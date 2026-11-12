@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>เพิ่มสถานที่ด้วย tag</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&amp;family=Prompt:wght@500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#0B7A6A}a:hover{color:#075E52}
+button,input,textarea{font-family:inherit}
+input:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid #0B7A6A;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; display: flex; flex-direction: column; background: #FFFFFF; color: #13222F; font-family: 'IBM Plex Sans Thai', sans-serif; overflow: hidden">
+
+  <header style="display: flex; align-items: center; gap: 8px; padding: 16px 12px 8px">
+    <a href="PlacesJP.dc.html" aria-label="ปิด" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 14px; color: #13222F">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </a>
+    <h1 style="margin: 0; flex: 1; font-family: Prompt, sans-serif; font-size: 18px; font-weight: 600">เพิ่มสถานที่</h1>
+  </header>
+
+  <main style="flex: 1; overflow-y: auto; padding: 4px 20px 20px; display: flex; flex-direction: column; gap: 20px">
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <label for="qname" style="font-size: 14px; font-weight: 600">ชื่อสถานที่</label>
+      <input id="qname" type="text" value="ร้านราเมงซุปเข้มข้น" placeholder="ชื่อร้านหรือสถานที่" style="height: 48px; padding: 0 14px; border: 1px solid #D5DDE3; border-radius: 14px; font-size: 15px; color: #13222F; background: #FFFFFF">
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <label for="glink" style="font-size: 14px; font-weight: 600">ลิงก์ Google Maps (ไม่บังคับ)</label>
+      <div style="display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 6px 0 14px; border: 1px solid #D5DDE3; border-radius: 14px; color: #5B6B78">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
+        <input id="glink" type="url" value="https://maps.app.goo.gl/xxxxxxxx" style="flex: 1; min-width: 0; border: 0; outline: none; background: none; font-size: 15px; color: #13222F">
+        <button type="button" style="min-height: 36px; padding: 0 10px; border: 0; border-radius: 10px; background: #F3F5F7; color: #13222F; font-size: 13px; font-weight: 600; cursor: pointer">วาง</button>
+      </div>
+      <span style="font-size: 12px; color: #5B6B78">เก็บไว้ให้กดเปิดใน Google Maps เท่านั้น</span>
+    </div>
+
+    <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+      <legend style="font-size: 14px; font-weight: 600; padding: 0; margin-bottom: 8px">เมือง</legend>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px">
+        <sc-for list="{{cities}}" as="c" hint-placeholder-count="3">
+          <button type="button" role="radio" aria-checked="{{c.on}}" onClick="{{c.pick}}" style="min-height: 40px; padding: 0 14px; border-radius: 999px; font-size: 14px; font-weight: 600; cursor: pointer; border: 1.5px solid {{c.border}}; background: {{c.bg}}; color: {{c.fg}}">{{c.label}}</button>
+        </sc-for>
+        <button type="button" style="display: flex; align-items: center; gap: 4px; min-height: 40px; padding: 0 12px; border: 1.5px dashed #C9D3DA; border-radius: 999px; background: none; color: #13222F; font-size: 14px; font-weight: 500; cursor: pointer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>เมืองใหม่</button>
+      </div>
+      <span style="font-size: 12px; color: #5B6B78">ตามเส้นทางทริป: {{cityHint}}</span>
+    </fieldset>
+
+    <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column">
+      <legend style="font-size: 14px; font-weight: 600; padding: 0; margin-bottom: 8px">ย่านใน {{cityName}}</legend>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px">
+        <sc-for list="{{areas}}" as="a" hint-placeholder-count="4">
+          <button type="button" role="radio" aria-checked="{{a.on}}" onClick="{{a.pick}}" style="min-height: 40px; padding: 0 14px; border-radius: 999px; font-size: 14px; font-weight: 600; cursor: pointer; border: 1.5px solid {{a.border}}; background: {{a.bg}}; color: {{a.fg}}">{{a.label}}</button>
+        </sc-for>
+        <button type="button" style="display: flex; align-items: center; gap: 4px; min-height: 40px; padding: 0 12px; border: 1.5px dashed #C9D3DA; border-radius: 999px; background: none; color: #13222F; font-size: 14px; font-weight: 500; cursor: pointer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>ย่านใหม่</button>
+      </div>
+    </fieldset>
+
+    <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column">
+      <legend style="font-size: 14px; font-weight: 600; padding: 0; margin-bottom: 8px">ประเภท</legend>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px">
+        <sc-for list="{{types}}" as="t" hint-placeholder-count="4">
+          <button type="button" aria-pressed="{{t.on}}" onClick="{{t.pick}}" style="display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border-radius: 999px; font-size: 14px; font-weight: 600; cursor: pointer; border: 1.5px solid {{t.border}}; background: {{t.bg}}; color: #13222F">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: {{t.color}}"></span>{{t.label}}
+          </button>
+        </sc-for>
+      </div>
+    </fieldset>
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <div style="display: flex; justify-content: space-between; align-items: baseline">
+        <label for="tagin" style="font-size: 14px; font-weight: 600">Tag</label>
+        <span style="font-size: 12px; color: #5B6B78">ใส่ได้หลายอัน</span>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 48px; padding: 6px 8px; border: 1.5px solid #0B7A6A; border-radius: 14px">
+        <sc-for list="{{chosen}}" as="c" hint-placeholder-count="2">
+          <span style="display: flex; align-items: center; gap: 2px; min-height: 32px; padding: 0 2px 0 10px; border-radius: 999px; background: #E3F2EF; color: #0B5C50; font-size: 14px; font-weight: 600">
+            #{{c.name}}
+            <button type="button" aria-label="ลบ tag {{c.name}}" onClick="{{c.remove}}" style="width: 28px; height: 28px; border: 0; border-radius: 50%; background: none; color: #0B5C50; display: flex; align-items: center; justify-content: center; cursor: pointer">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </span>
+        </sc-for>
+        <input id="tagin" type="text" value="{{draft}}" onChange="{{onDraft}}" placeholder="พิมพ์ tag ใหม่" style="flex: 1; min-width: 100px; height: 32px; border: 0; outline: none; background: none; font-size: 15px; color: #13222F">
+      </div>
+      <sc-if value="{{hasDraft}}" hint-placeholder-val="{{ false }}">
+        <button type="button" onClick="{{addDraft}}" style="align-self: flex-start; display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; border: 1px dashed #0B7A6A; border-radius: 999px; background: #FFFFFF; color: #0B7A6A; font-size: 14px; font-weight: 600; cursor: pointer">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>สร้าง tag "{{draft}}"
+        </button>
+      </sc-if>
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <span style="font-size: 12px; color: #5B6B78">tag ที่คุณเคยใช้</span>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px">
+          <sc-for list="{{suggest}}" as="s" hint-placeholder-count="6">
+            <button type="button" onClick="{{s.add}}" style="min-height: 36px; padding: 0 12px; border: 1px solid #D5DDE3; border-radius: 999px; background: #FFFFFF; color: #13222F; font-size: 13px; font-weight: 500; cursor: pointer">#{{s.name}}</button>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <label for="jnote" style="font-size: 14px; font-weight: 600">โน้ต</label>
+      <textarea id="jnote" rows="2" style="padding: 12px 14px; border: 1px solid #D5DDE3; border-radius: 14px; font-size: 15px; line-height: 1.5; color: #13222F; background: #FFFFFF; resize: none">คิวยาวช่วงเย็น ไปหลัง 21:00</textarea>
+    </div>
+
+    <a href="PickPlace.dc.html" style="display: flex; align-items: center; justify-content: space-between; min-height: 52px; padding: 0 14px; border: 1px solid #E3E8EC; border-radius: 14px; color: #13222F; text-decoration: none">
+      <span style="display: flex; flex-direction: column"><span style="font-size: 14px; font-weight: 600">ลงแผน</span><span style="font-size: 12px; color: #5B6B78">ยังไม่จัดวัน · ไว้ทีหลังได้</span></span>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+    </a>
+  </main>
+
+  <footer style="padding: 12px 20px 28px; border-top: 1px solid #E3E8EC; background: #FFFFFF">
+    <a href="PlacesJP.dc.html" style="display: flex; align-items: center; justify-content: center; height: 54px; border-radius: 16px; background: #0B7A6A; color: #FFFFFF; font-size: 16px; font-weight: 600; text-decoration: none">บันทึกลงลิสต์</a>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { type: 'eat', tags: ['ราเมง', 'เปิดดึก'], draft: '', city: 'Tokyo', area: 'Shinjuku' };
+  }
+  renderVals() {
+    var self = this;
+    var st = this.state;
+    var typeDefs = [['eat', 'ที่กิน', '#B2540F'], ['see', 'ที่เที่ยว', '#0B7A6A'], ['fun', 'น่าสนใจ', '#2F5BB7'], ['stay', 'ที่พัก', '#3C4C59']];
+    var types = typeDefs.map(function (t) {
+      var on = st.type === t[0];
+      return { label: t[1], color: t[2], on: on ? 'true' : 'false', border: on ? '#13222F' : '#E3E8EC', bg: on ? '#F3F5F7' : '#FFFFFF', pick: function () { self.setState({ type: t[0] }); } };
+    });
+    var known = ['ราเมง', 'ปิ้งย่าง', 'คาเฟ่', 'ชาบู', 'ต้องจอง', 'เปิดดึก', 'โซบะ', 'สตรีทฟู้ด', 'ของฝาก'];
+    var chosen = st.tags.map(function (t) {
+      return { name: t, remove: function () { self.setState({ tags: st.tags.filter(function (x) { return x !== t; }) }); } };
+    });
+    var q = st.draft.trim();
+    var suggest = known.filter(function (t) { return st.tags.indexOf(t) < 0 && (!q || t.indexOf(q) >= 0); }).map(function (t) {
+      return { name: t, add: function () { self.setState({ tags: st.tags.concat([t]), draft: '' }); } };
+    });
+    var isNew = q && known.indexOf(q) < 0 && st.tags.indexOf(q) < 0;
+    var AREAS = { Tokyo: ['Shinjuku', 'Akihabara', 'Tokyo Station', 'Asakusa'], Kyoto: ['Gion', 'Fushimi'], Osaka: ['Namba', 'Umeda'] };
+    var HINT = { Tokyo: 'Tokyo วันที่ 1–4', Kyoto: 'Kyoto วันที่ 5–6', Osaka: 'Osaka วันที่ 7–9' };
+    var pill = function (on) { return { on: on ? 'true' : 'false', border: on ? '#13222F' : '#D5DDE3', bg: on ? '#13222F' : '#FFFFFF', fg: on ? '#FFFFFF' : '#13222F' }; };
+    var cities = Object.keys(AREAS).map(function (c) {
+      return Object.assign({ label: c, pick: function () { self.setState({ city: c, area: '' }); } }, pill(st.city === c));
+    });
+    var areas = AREAS[st.city].concat(['']).map(function (a) {
+      return Object.assign({ label: a || 'ไม่ระบุ', pick: function () { self.setState({ area: a }); } }, pill(st.area === a));
+    });
+    return {
+      cities: cities, areas: areas, cityName: st.city, cityHint: HINT[st.city],
+      types: types, chosen: chosen, suggest: suggest, draft: q, hasDraft: !!isNew,
+      onDraft: function (e) { self.setState({ draft: e.target.value }); },
+      addDraft: function () { if (q) self.setState({ tags: st.tags.concat([q]), draft: '' }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

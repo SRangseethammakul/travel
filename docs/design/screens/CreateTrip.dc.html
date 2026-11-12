@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>สร้างทริปใหม่</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&amp;family=Prompt:wght@500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#0B7A6A}a:hover{color:#075E52}
+button,input,textarea{font-family:inherit}
+input:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid #0B7A6A;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; display: flex; flex-direction: column; background: #FFFFFF; color: #13222F; font-family: 'IBM Plex Sans Thai', sans-serif; overflow: hidden">
+
+  <header style="display: flex; align-items: center; gap: 8px; padding: 16px 12px 8px">
+    <a href="Main.dc.html" aria-label="ย้อนกลับ" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 14px; color: #13222F">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+    </a>
+    <h1 style="margin: 0; flex: 1; font-family: Prompt, sans-serif; font-size: 18px; font-weight: 600">สร้างทริปใหม่</h1>
+  </header>
+
+  <main style="flex: 1; overflow-y: auto; padding: 4px 20px 20px; display: flex; flex-direction: column; gap: 20px">
+
+    <div style="display: flex; flex-direction: column; gap: 6px; padding: 18px; border-radius: 22px; background: {{cover}}; color: #FFFFFF">
+      <span style="font-size: 13px; opacity: 0.85">{{destLabel}}</span>
+      <span style="font-family: Prompt, sans-serif; font-size: 22px; font-weight: 600; line-height: 1.3">{{nameLabel}}</span>
+      <span style="font-size: 13px; opacity: 0.9">{{n}} คน · ส. 12 – อ. 15 ธ.ค. 2569</span>
+    </div>
+
+    <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column">
+      <legend style="font-size: 14px; font-weight: 600; padding: 0; margin-bottom: 8px">สีหน้าปกทริป</legend>
+      <div style="display: flex; gap: 10px">
+        <sc-for list="{{covers}}" as="c" hint-placeholder-count="5">
+          <button type="button" aria-label="{{c.label}}" aria-pressed="{{c.on}}" onClick="{{c.pick}}" style="width: 44px; height: 44px; border-radius: 50%; cursor: pointer; background: {{c.hex}}; border: 3px solid {{c.ring}}; box-shadow: 0 0 0 2px {{c.outer}}"></button>
+        </sc-for>
+      </div>
+    </fieldset>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <label for="tname" style="font-size: 14px; font-weight: 600">ชื่อทริป</label>
+      <input id="tname" type="text" value="{{name}}" onChange="{{onName}}" placeholder="เช่น โตเกียวหน้าหนาว" style="height: 48px; padding: 0 14px; border: 1px solid #D5DDE3; border-radius: 14px; font-size: 15px; color: #13222F; background: #FFFFFF">
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <label for="dest" style="font-size: 14px; font-weight: 600">ปลายทาง</label>
+      <div style="display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 14px; border: 1px solid #D5DDE3; border-radius: 14px; color: #5B6B78">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+        <input id="dest" type="text" value="{{dest}}" onChange="{{onDest}}" placeholder="เมือง หรือ ประเทศ" style="flex: 1; min-width: 0; border: 0; outline: none; background: none; font-size: 15px; color: #13222F">
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <label for="dstart" style="font-size: 14px; font-weight: 600">วันไป</label>
+        <input id="dstart" type="date" value="2026-12-12" style="height: 48px; padding: 0 12px; border: 1px solid #D5DDE3; border-radius: 14px; font-size: 15px; color: #13222F; background: #FFFFFF; min-width: 0">
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <label for="dend" style="font-size: 14px; font-weight: 600">วันกลับ</label>
+        <input id="dend" type="date" value="2026-12-15" style="height: 48px; padding: 0 12px; border: 1px solid #D5DDE3; border-radius: 14px; font-size: 15px; color: #13222F; background: #FFFFFF; min-width: 0">
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <label for="budget" style="font-size: 14px; font-weight: 600">งบประมาณรวม (ไม่บังคับ)</label>
+      <div style="display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 14px; border: 1px solid #D5DDE3; border-radius: 14px">
+        <span style="font-family: Prompt, sans-serif; font-weight: 600; color: #5B6B78">฿</span>
+        <input id="budget" type="text" inputmode="numeric" value="36,000" style="flex: 1; min-width: 0; border: 0; outline: none; background: none; font-size: 15px; color: #13222F">
+      </div>
+    </div>
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-size: 14px; font-weight: 600">สมาชิก ({{n}})</h2>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px">
+        <sc-for list="{{members}}" as="m" hint-placeholder-count="3">
+          <span style="display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 6px 0 4px; border-radius: 999px; background: #F3F5F7">
+            <span style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: {{m.color}}; color: #FFFFFF; font-family: Prompt, sans-serif; font-weight: 600; font-size: 13px">{{m.initial}}</span>
+            <span style="font-size: 14px; font-weight: 500">{{m.label}}</span>
+            <sc-if value="{{m.removable}}" hint-placeholder-val="{{ true }}">
+              <button type="button" aria-label="ลบ {{m.name}}" onClick="{{m.remove}}" style="width: 32px; height: 32px; border: 0; border-radius: 50%; background: none; color: #5B6B78; display: flex; align-items: center; justify-content: center; cursor: pointer">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+              </button>
+            </sc-if>
+          </span>
+        </sc-for>
+      </div>
+      <div style="display: flex; gap: 8px">
+        <label for="newm" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">ชื่อสมาชิกใหม่</label>
+        <input id="newm" type="text" value="{{draft}}" onChange="{{onDraft}}" placeholder="พิมพ์ชื่อสมาชิก" style="flex: 1; min-width: 0; height: 48px; padding: 0 14px; border: 1px solid #D5DDE3; border-radius: 14px; font-size: 15px; color: #13222F; background: #FFFFFF">
+        <button type="button" onClick="{{addMember}}" style="height: 48px; padding: 0 16px; border: 0; border-radius: 14px; background: #E3F2EF; color: #0B7A6A; font-size: 14px; font-weight: 600; cursor: pointer">เพิ่ม</button>
+      </div>
+      <button type="button" style="display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border: 1.5px dashed #C9D3DA; border-radius: 14px; background: none; color: #13222F; font-size: 14px; font-weight: 500; cursor: pointer">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
+        หรือส่งลิงก์เชิญให้เพื่อนเข้าร่วมเอง
+      </button>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <div style="display: flex; justify-content: space-between; align-items: baseline">
+        <h2 style="margin: 0; font-size: 14px; font-weight: 600">เอกสารการเดินทาง ({{docCount}})</h2>
+        <span style="font-size: 12px; color: #5B6B78">ไม่บังคับ</span>
+      </div>
+      <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #5B6B78">เช่น ใบจองโรงแรม ใบจองรถ ตั๋วเครื่องบิน · สมาชิกทุกคนในทริปเปิดดูได้</p>
+
+      <sc-for list="{{docs}}" as="d" hint-placeholder-count="2">
+        <div style="display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px solid {{d.border}}; border-radius: 16px; background: #FFFFFF">
+          <div style="display: flex; align-items: center; gap: 12px">
+            <span style="width: 42px; height: 48px; flex-shrink: 0; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: {{d.tint}}; color: {{d.ink}}; font-family: Prompt, sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.5px">{{d.badge}}</span>
+            <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+              <input type="text" aria-label="ชื่อเอกสาร {{d.file}}" value="{{d.name}}" onChange="{{d.onName}}" placeholder="ตั้งชื่อเอกสาร" style="height: 32px; padding: 0; border: 0; border-bottom: 1.5px solid {{d.line}}; outline: none; background: none; font-size: 15px; font-weight: 600; color: #13222F; min-width: 0">
+              <span style="font-size: 12px; color: #5B6B78; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{d.file}} · {{d.meta}}</span>
+            </div>
+            <button type="button" aria-label="ลบ {{d.file}}" onClick="{{d.remove}}" style="width: 40px; height: 40px; flex-shrink: 0; border: 0; border-radius: 12px; background: #F3F5F7; color: #5B6B78; display: flex; align-items: center; justify-content: center; cursor: pointer">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13"/><path d="M9 7V4h6v3"/></svg>
+            </button>
+          </div>
+          <sc-if value="{{d.needName}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-wrap: wrap; gap: 6px">
+              <sc-for list="{{d.chips}}" as="c" hint-placeholder-count="4">
+                <button type="button" onClick="{{c.pick}}" style="min-height: 34px; padding: 0 12px; border: 1px solid #D5DDE3; border-radius: 999px; background: #FFFFFF; color: #13222F; font-size: 13px; font-weight: 500; cursor: pointer">{{c.label}}</button>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+
+      <label style="position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; border: 1.5px dashed #0B7A6A; border-radius: 16px; background: #F4FAF8; color: #0B7A6A; font-size: 14px; font-weight: 600; cursor: pointer">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+        อัปโหลดไฟล์ (PDF หรือรูปภาพ)
+        <input type="file" multiple accept="application/pdf,image/*" onChange="{{onFiles}}" style="position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden">
+      </label>
+    </section>
+  </main>
+
+  <footer style="padding: 12px 20px 28px; border-top: 1px solid #E3E8EC; background: #FFFFFF">
+    <a href="Main.dc.html" style="display: flex; align-items: center; justify-content: center; height: 54px; border-radius: 16px; background: #0B7A6A; color: #FFFFFF; font-size: 16px; font-weight: 600; text-decoration: none">สร้างทริป</a>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      name: 'โตเกียวหน้าหนาว', dest: 'โตเกียว, ญี่ปุ่น', cover: 'ink', draft: '',
+      docs: [
+        { name: 'ใบจองโรงแรม ชินจูกุ', file: 'booking-confirmation.pdf', kind: 'pdf', size: '312 KB' },
+        { name: '', file: 'IMG_2041.jpg', kind: 'img', size: '1.2 MB' }
+      ],
+      members: [{ name: 'Act', you: true }, { name: 'Mint' }, { name: 'Beam' }, { name: 'Ploy' }]
+    };
+  }
+  renderVals() {
+    var self = this;
+    var st = this.state;
+    var palette = ['#0B7A6A', '#2F5BB7', '#B2540F', '#8A3FA0', '#13222F', '#5B6B78'];
+    var coverDefs = [['ink', '#13222F', 'สีกรมท่า'], ['teal', '#0B7A6A', 'สีเขียวอมฟ้า'], ['blue', '#2F5BB7', 'สีน้ำเงิน'], ['orange', '#B2540F', 'สีส้มอิฐ'], ['purple', '#8A3FA0', 'สีม่วง']];
+    var coverHex = '#13222F';
+    var covers = coverDefs.map(function (c) {
+      var on = st.cover === c[0];
+      if (on) coverHex = c[1];
+      return { hex: c[1], label: c[2], on: on ? 'true' : 'false', ring: '#FFFFFF', outer: on ? '#13222F' : '#E3E8EC', pick: function () { self.setState({ cover: c[0] }); } };
+    });
+    var members = st.members.map(function (m, i) {
+      return {
+        name: m.name, label: m.you ? m.name + ' (คุณ)' : m.name, initial: m.name.charAt(0).toUpperCase(),
+        color: palette[i % palette.length], removable: !m.you,
+        remove: function () { self.setState({ members: st.members.filter(function (_, j) { return j !== i; }) }); }
+      };
+    });
+    var QUICK = ['ใบจองโรงแรม', 'ใบจองรถ', 'ตั๋วเครื่องบิน', 'ประกันเดินทาง', 'ตั๋วกิจกรรม'];
+    var setDoc = function (i, patch) {
+      var x = st.docs.slice();
+      x[i] = Object.assign({}, x[i], patch);
+      self.setState({ docs: x });
+    };
+    var docs = st.docs.map(function (d, i) {
+      var pdf = d.kind === 'pdf';
+      var need = !d.name;
+      return {
+        name: d.name, file: d.file, meta: (pdf ? 'PDF' : 'รูปภาพ') + ' · ' + d.size,
+        badge: pdf ? 'PDF' : 'IMG', tint: pdf ? '#FCE8E6' : '#E6EDFA', ink: pdf ? '#B23A2E' : '#2F5BB7',
+        needName: need, border: need ? '#E8B98A' : '#E3E8EC', line: need ? '#E8B98A' : '#E3E8EC',
+        onName: function (e) { setDoc(i, { name: e.target.value }); },
+        remove: function () { self.setState({ docs: st.docs.filter(function (_, j) { return j !== i; }) }); },
+        chips: QUICK.map(function (q) { return { label: q, pick: function () { setDoc(i, { name: q }); } }; })
+      };
+    });
+    var onFiles = function (e) {
+      var files = Array.prototype.slice.call(e.target.files || []);
+      var added = files.map(function (f) {
+        var kb = f.size / 1024;
+        return { name: '', file: f.name, kind: /\.pdf$/i.test(f.name) ? 'pdf' : 'img', size: kb > 1024 ? (kb / 1024).toFixed(1) + ' MB' : Math.max(1, Math.round(kb)) + ' KB' };
+      });
+      self.setState({ docs: st.docs.concat(added) });
+      e.target.value = '';
+    };
+    return {
+      docs: docs, docCount: st.docs.length, onFiles: onFiles,
+      name: st.name, dest: st.dest, draft: st.draft, cover: coverHex, covers: covers, members: members, n: st.members.length,
+      nameLabel: st.name || 'ชื่อทริป', destLabel: st.dest || 'ปลายทาง',
+      onName: function (e) { self.setState({ name: e.target.value }); },
+      onDest: function (e) { self.setState({ dest: e.target.value }); },
+      onDraft: function (e) { self.setState({ draft: e.target.value }); },
+      addMember: function () {
+        var v = st.draft.trim();
+        if (!v) return;
+        self.setState({ members: st.members.concat([{ name: v }]), draft: '' });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

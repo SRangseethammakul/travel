@@ -1,0 +1,124 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens — docs/design/SPEC.md "ระบบภาพ" + frontend/CLAUDE.md.
+ * The first block is the required palette. The second block holds the extra
+ * shades the mockups use (borders, tints, text on dark/soft surfaces) so
+ * components never need raw hex values.
+ */
+@theme {
+  /* Core palette */
+  --color-bg: #f3f5f7;
+  --color-surface: #ffffff;
+  --color-ink: #13222f;
+  --color-ink-muted: #5b6b78;
+  --color-line: #e3e8ec;
+  --color-primary: #0b7a6a;
+  --color-primary-hover: #075e52;
+  --color-primary-soft: #e3f2ef;
+  --color-danger: #b23a2e;
+  --color-todo: #8a4a0c;
+  --color-todo-soft: #fcebdd;
+  --color-type-sight: #0b7a6a;
+  --color-type-food: #b2540f;
+  --color-type-interest: #2f5bb7;
+  --color-type-stay: #3c4c59;
+  --color-type-transit: #8a3fa0;
+
+  /* Extra shades used in the mockups */
+  --color-ink-subtle: #3c4c59; /* secondary body text (notes, dialog copy) */
+  --color-ink-soft: #4a5965; /* unselected segmented text */
+  --color-line-strong: #d5dde3; /* input + chip borders */
+  --color-line-soft: #eef1f4; /* row dividers inside cards */
+  --color-control: #c9d3da; /* dashed add buttons, switch off */
+  --color-disabled: #a7b4be; /* disabled button, unchecked box */
+  --color-surface-alt: #f8fafb;
+  --color-on-ink-muted: #b9c6d0; /* secondary text on ink cards */
+  --color-on-ink-soft: #dce4ea;
+  --color-ink-divider: #2c3d4b;
+  --color-primary-ink: #0b5c50; /* text on primary-soft */
+  --color-primary-ink-soft: #2d4f49;
+  --color-primary-ink-strong: #0d2b26;
+  --color-primary-highlight: #bfe6de; /* countdown pill */
+  --color-primary-wash: #f4faf8; /* unread rows */
+  --color-danger-soft: #fce8e6;
+  --color-danger-line: #f1c7c2;
+  --color-danger-ink: #9b2c22;
+  --color-todo-line: #e8b98a;
+  --color-interest-soft: #e6edfa;
+  --color-interest-ink: #23468f;
+  --color-transit-soft: #f1e6f5;
+  --color-transit-line: #dcc3e6;
+  --color-transit-ink: #6e2f82;
+  --color-transit-ink-strong: #4a3352;
+  --color-stay-soft: #eef1f4;
+  --color-chart-food: #e08a3e; /* อาหาร slice in the Summary category bar (not text) */
+
+  /* Radii */
+  --radius-chip: 12px;
+  --radius-icon: 14px;
+  --radius-tile: 18px;
+  --radius-card: 20px;
+  --radius-trip: 24px;
+
+  /* Shadows */
+  --shadow-fab: 0 8px 20px rgb(11 122 106 / 0.28);
+  --shadow-seg: 0 1px 3px rgb(19 34 47 / 0.12);
+  --shadow-sheet: 0 -8px 24px rgb(19 34 47 / 0.12);
+
+  /* Motion */
+  --animate-sheet-in: sheet-in 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-fade-in: fade-in 180ms ease-out;
+
+  @keyframes sheet-in {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+/* Fonts come from next/font CSS variables set on <html> (see layout.tsx). */
+@theme inline {
+  --font-sans: var(--font-plex-thai), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-prompt), var(--font-plex-thai), ui-sans-serif, sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-bg font-sans text-[15px] text-ink antialiased;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+  a {
+    @apply text-primary hover:text-primary-hover;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-primary;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 1ms !important;
+      transition-duration: 1ms !important;
+    }
+  }
+}

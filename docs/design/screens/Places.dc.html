@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>สถานที่</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&amp;family=Prompt:wght@500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#0B7A6A}a:hover{color:#075E52}
+button,input{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; display: flex; flex-direction: column; background: #F3F5F7; color: #13222F; font-family: 'IBM Plex Sans Thai', sans-serif; overflow: hidden; position: relative">
+
+  <header style="display: flex; flex-direction: column; gap: 10px; padding: 20px 20px 10px">
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <div style="display: flex; flex-direction: column">
+        <span style="font-size: 13px; color: #5B6B78">โตเกียวหน้าหนาว · {{total}} ที่ · ยังไม่จัดวัน {{unCount}}</span>
+        <h1 style="margin: 0; font-family: Prompt, sans-serif; font-size: 24px; font-weight: 600">สถานที่</h1>
+      </div>
+      <a href="ManageTags.dc.html" aria-label="จัดการ tag และย่าน" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 1px solid #E3E8EC; border-radius: 14px; background: #FFFFFF; color: #13222F">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+      </a>
+    </div>
+
+    <label style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; background: #FFFFFF; border: 1px solid #E3E8EC; border-radius: 14px; color: #5B6B78">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">ค้นหาสถานที่</span>
+      <input type="search" placeholder="ค้นหาชื่อ ย่าน หรือ tag" style="flex: 1; border: 0; outline: none; background: none; font-size: 15px; color: #13222F; min-width: 0">
+    </label>
+
+    <sc-if value="{{multiCity}}" hint-placeholder-val="{{ false }}">
+      <div role="tablist" aria-label="เมือง" style="display: flex; gap: 4px; padding: 4px; background: #E3E8EC; border-radius: 14px">
+        <sc-for list="{{cities}}" as="c" hint-placeholder-count="2">
+          <button type="button" role="tab" aria-selected="{{c.on}}" onClick="{{c.pick}}" style="flex: 1; min-height: 40px; border: 0; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; background: {{c.bg}}; color: {{c.fg}}">{{c.label}} {{c.count}}</button>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <div aria-label="กรองด้วย tag" style="display: flex; gap: 6px; overflow-x: auto; margin: 0 -20px; padding: 2px 20px">
+      <sc-for list="{{tags}}" as="t" hint-placeholder-count="6">
+        <button type="button" aria-pressed="{{t.on}}" onClick="{{t.toggle}}" style="flex-shrink: 0; display: flex; align-items: center; gap: 2px; min-height: 36px; padding: 0 12px; border-radius: 999px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}"><span style="opacity: 0.7">#</span>{{t.name}}</button>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+      <button type="button" role="switch" aria-checked="{{onlyUn}}" onClick="{{toggleUn}}" style="display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 0; border: 0; background: none; color: #13222F; font-size: 13px; font-weight: 500; cursor: pointer">
+        <span style="width: 34px; height: 20px; border-radius: 999px; padding: 2px; box-sizing: border-box; display: flex; justify-content: {{swJustify}}; background: {{swBg}}"><span style="width: 16px; height: 16px; border-radius: 50%; background: #FFFFFF"></span></span>
+        ยังไม่จัดวัน
+      </button>
+      <div role="radiogroup" aria-label="จัดกลุ่มตาม" style="display: flex; gap: 2px; padding: 3px; background: #E3E8EC; border-radius: 10px">
+        <sc-for list="{{groupOpts}}" as="g" hint-placeholder-count="2">
+          <button type="button" role="radio" aria-checked="{{g.on}}" onClick="{{g.pick}}" style="min-height: 32px; padding: 0 10px; border: 0; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; background: {{g.bg}}; color: {{g.fg}}">{{g.label}}</button>
+        </sc-for>
+      </div>
+    </div>
+  </header>
+
+  <main style="flex: 1; overflow-y: auto; padding: 2px 20px 96px; display: flex; flex-direction: column; gap: 16px">
+    <sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+      <section style="display: flex; flex-direction: column; gap: 8px">
+        <h2 style="margin: 0; font-size: 15px; font-weight: 600">{{g.title}}<span style="font-weight: 400; color: #5B6B78"> · {{g.count}} ที่ · ลงแผน {{g.planned}}</span></h2>
+        <sc-if value="{{g.noArea}}" hint-placeholder-val="{{ false }}">
+          <p style="margin: -4px 0 0; font-size: 12px; color: #8A4A0C">ยังไม่ได้เลือกย่าน · แตะร้านเพื่อระบุ</p>
+        </sc-if>
+        <div style="display: flex; flex-direction: column; background: #FFFFFF; border-radius: 18px; overflow: hidden">
+          <sc-for list="{{g.items}}" as="p" hint-placeholder-count="2">
+            <article style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #EEF1F4">
+              <span style="width: 6px; align-self: stretch; flex-shrink: 0; border-radius: 999px; background: {{p.typeColor}}"></span>
+              <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+                <h3 style="margin: 0; font-size: 15px; font-weight: 600; line-height: 1.35">{{p.name}}</h3>
+                <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px">
+                  <span style="font-size: 12px; color: #5B6B78">{{p.sub}}</span>
+                  <sc-for list="{{p.tags}}" as="t" hint-placeholder-count="1">
+                    <span style="padding: 1px 8px; border-radius: 999px; background: #F3F5F7; color: #3C4C59; font-size: 12px">#{{t}}</span>
+                  </sc-for>
+                </div>
+              </div>
+              <sc-if value="{{p.scheduled}}" hint-placeholder-val="{{ true }}">
+                <span style="flex-shrink: 0; font-size: 12px; font-weight: 600; color: #0B7A6A">{{p.plan}}</span>
+              </sc-if>
+              <sc-if value="{{p.unscheduled}}" hint-placeholder-val="{{ false }}">
+                <a href="PickPlace.dc.html" style="flex-shrink: 0; display: flex; align-items: center; min-height: 36px; padding: 0 10px; border-radius: 10px; background: #FCEBDD; color: #8A4A0C; font-size: 12px; font-weight: 600; text-decoration: none">ลงแผน</a>
+              </sc-if>
+            </article>
+          </sc-for>
+        </div>
+      </section>
+    </sc-for>
+    <sc-if value="{{empty}}" hint-placeholder-val="{{ false }}">
+      <p style="margin: 24px 0; text-align: center; color: #5B6B78; font-size: 14px">ไม่มีสถานที่ที่ตรงกับตัวกรอง</p>
+    </sc-if>
+  </main>
+
+  <a href="AddPlace.dc.html" style="position: absolute; right: 20px; bottom: 96px; display: flex; align-items: center; gap: 8px; height: 52px; padding: 0 20px; border-radius: 18px; background: #0B7A6A; color: #FFFFFF; font-size: 15px; font-weight: 600; text-decoration: none; box-shadow: 0 8px 20px rgba(11, 122, 106, 0.28)">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>เพิ่มสถานที่
+  </a>
+
+  <nav aria-label="เมนูหลัก" style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); background: #FFFFFF; border-top: 1px solid #E3E8EC; padding: 6px 4px 22px">
+    <a href="Main.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 52px; text-decoration: none; color: #5B6B78; font-size: 12px; font-weight: 500"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M3 13h18"/></svg>ทริป</a>
+    <a href="Planner.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 52px; text-decoration: none; color: #5B6B78; font-size: 12px; font-weight: 500"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>แผน</a>
+    <a href="Places.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 52px; text-decoration: none; color: #0B7A6A; font-size: 12px; font-weight: 600"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>สถานที่</a>
+    <a href="Expenses.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 52px; text-decoration: none; color: #5B6B78; font-size: 12px; font-weight: 500"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>ค่าใช้จ่าย</a>
+    <a href="Summary.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 52px; text-decoration: none; color: #5B6B78; font-size: 12px; font-weight: 500"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9h-9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg>สรุป</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { city: 'all', tags: {}, groupBy: 'area', onlyUn: false };
+  }
+  renderVals() {
+    var self = this;
+    var st = this.state;
+    var TYPES = {
+      stay: { label: 'ที่พัก', color: '#3C4C59' },
+      see: { label: 'ที่เที่ยว', color: '#0B7A6A' },
+      eat: { label: 'ที่กิน', color: '#B2540F' },
+      fun: { label: 'น่าสนใจ', color: '#2F5BB7' },
+      move: { label: 'เดินทาง', color: '#8A3FA0' }
+    };
+    var lib = [
+      { city: 'Tokyo', area: 'Shinjuku', type: 'stay', name: 'โรงแรมใกล้สถานีชินจูกุ', tags: [], days: [1, 4] },
+      { city: 'Tokyo', area: 'Shinjuku', type: 'eat', name: 'ร้านราเมงซุปเข้มข้น', tags: ['ราเมง', 'เปิดดึก'], days: [1] },
+      { city: 'Tokyo', area: 'Shinjuku', type: 'eat', name: 'ยากินิคุหลังสถานี', tags: ['ปิ้งย่าง', 'ต้องจอง'], days: [3] },
+      { city: 'Tokyo', area: 'Shinjuku', type: 'fun', name: 'Omoide Yokocho', tags: [], days: [] },
+      { city: 'Tokyo', area: 'Asakusa', type: 'see', name: 'วัดเซ็นโซจิ', tags: ['ไหว้พระ'], days: [2] },
+      { city: 'Tokyo', area: 'Asakusa', type: 'see', name: 'Tokyo Skytree', tags: ['วิว'], days: [2] },
+      { city: 'Tokyo', area: 'Asakusa', type: 'eat', name: 'ร้านเทมปุระเก่าแก่', tags: ['เทมปุระ', 'ต้องจอง'], days: [] },
+      { city: 'Tokyo', area: 'Akihabara', type: 'eat', name: 'ชาบูบุฟเฟ่ต์', tags: ['ชาบู'], days: [2] },
+      { city: 'Tokyo', area: 'Akihabara', type: 'eat', name: 'คาเฟ่ใต้ทางรถไฟ', tags: ['คาเฟ่'], days: [] },
+      { city: 'Tokyo', area: 'Shibuya', type: 'fun', name: 'Shibuya Crossing', tags: [], days: [3] },
+      { city: 'Tokyo', area: 'Tokyo Station', type: 'fun', name: 'โซนขนมของฝากในสถานี', tags: ['ของฝาก'], days: [4] },
+      { city: 'Tokyo', area: '', type: 'move', name: 'สนามบินฮาเนดะ', tags: [], days: [1, 4] }
+    ];
+    var cityList = [];
+    lib.forEach(function (p) { if (cityList.indexOf(p.city) < 0) cityList.push(p.city); });
+    var multiCity = cityList.length > 1;
+    var cities = ['all'].concat(cityList).map(function (c) {
+      var on = st.city === c;
+      return { label: c === 'all' ? 'ทั้งหมด' : c, count: c === 'all' ? lib.length : lib.filter(function (p) { return p.city === c; }).length, on: on ? 'true' : 'false', bg: on ? '#FFFFFF' : 'transparent', fg: on ? '#13222F' : '#4A5965', pick: function () { self.setState({ city: c }); } };
+    });
+    var inCity = lib.filter(function (p) { return st.city === 'all' || p.city === st.city; });
+    var tagCount = {};
+    inCity.forEach(function (p) { p.tags.forEach(function (t) { tagCount[t] = (tagCount[t] || 0) + 1; }); });
+    var activeTags = Object.keys(st.tags).filter(function (t) { return st.tags[t]; });
+    var tags = Object.keys(tagCount).sort(function (a, b) { return tagCount[b] - tagCount[a]; }).map(function (t) {
+      var on = !!st.tags[t];
+      return { name: t, on: on ? 'true' : 'false', border: on ? '#0B7A6A' : '#D5DDE3', bg: on ? '#0B7A6A' : '#FFFFFF', fg: on ? '#FFFFFF' : '#13222F', toggle: function () { var x = Object.assign({}, st.tags); x[t] = !x[t]; self.setState({ tags: x }); } };
+    });
+    var shown = inCity.filter(function (p) {
+      if (st.onlyUn && p.days.length) return false;
+      if (!activeTags.length) return true;
+      return activeTags.some(function (t) { return p.tags.indexOf(t) >= 0; });
+    });
+    var keyOf = function (p) {
+      if (st.groupBy === 'type') return TYPES[p.type].label;
+      var a = p.area || 'ไม่ระบุย่าน';
+      return multiCity && st.city === 'all' ? p.city + ' › ' + a : a;
+    };
+    var order = [], map = {};
+    shown.forEach(function (p) { var k = keyOf(p); if (!map[k]) { map[k] = []; order.push(k); } map[k].push(p); });
+    var groups = order.map(function (k) {
+      var items = map[k];
+      return {
+        title: k, count: items.length, planned: items.filter(function (p) { return p.days.length; }).length,
+        noArea: st.groupBy === 'area' && !items[0].area,
+        items: items.map(function (p) {
+          var un = !p.days.length;
+          return {
+            name: p.name, tags: p.tags, typeColor: TYPES[p.type].color,
+            sub: st.groupBy === 'type' ? (p.area || 'ไม่ระบุย่าน') : TYPES[p.type].label,
+            scheduled: !un, unscheduled: un, plan: 'วัน ' + p.days.join(', ')
+          };
+        })
+      };
+    });
+    var groupOpts = [['area', 'ตามย่าน'], ['type', 'ตามประเภท']].map(function (g) {
+      var on = st.groupBy === g[0];
+      return { label: g[1], on: on ? 'true' : 'false', bg: on ? '#FFFFFF' : 'transparent', fg: on ? '#13222F' : '#4A5965', pick: function () { self.setState({ groupBy: g[0] }); } };
+    });
+    return {
+      total: lib.length, unCount: lib.filter(function (p) { return !p.days.length; }).length,
+      multiCity: multiCity, cities: cities, tags: tags, groups: groups, groupOpts: groupOpts, empty: groups.length === 0,
+      onlyUn: st.onlyUn ? 'true' : 'false', swBg: st.onlyUn ? '#0B7A6A' : '#C9D3DA', swJustify: st.onlyUn ? 'flex-end' : 'flex-start',
+      toggleUn: function () { self.setState({ onlyUn: !st.onlyUn }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

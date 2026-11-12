@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>สรุปค่าใช้จ่ายรายคน</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&amp;family=Prompt:wght@500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#0B7A6A}a:hover{color:#075E52}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; display: flex; flex-direction: column; background: #F3F5F7; color: #13222F; font-family: 'IBM Plex Sans Thai', sans-serif; overflow: hidden">
+
+  <header style="display: flex; justify-content: space-between; align-items: center; padding: 20px 20px 12px">
+    <div style="display: flex; flex-direction: column">
+      <span style="font-size: 13px; color: #5B6B78">โตเกียวหน้าหนาว</span>
+      <h1 style="margin: 0; font-family: Prompt, sans-serif; font-size: 24px; font-weight: 600">สรุปค่าใช้จ่าย</h1>
+    </div>
+    <button type="button" aria-label="แชร์สรุป" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 1px solid #E3E8EC; border-radius: 14px; background: #FFFFFF; color: #13222F; cursor: pointer">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>
+    </button>
+  </header>
+
+  <main style="flex: 1; overflow-y: auto; padding: 0 20px 24px; display: flex; flex-direction: column; gap: 16px">
+
+    <section style="background: #FFFFFF; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; justify-content: space-between; align-items: baseline">
+        <span style="font-size: 14px; color: #5B6B78">ยอดรวมทั้งทริป</span>
+        <span style="font-family: Prompt, sans-serif; font-size: 24px; font-weight: 600">฿30,350</span>
+      </div>
+      <div role="img" aria-label="สัดส่วน: ที่พัก 72%, อาหาร 15%, กิจกรรม 9%, เดินทาง 4%" style="display: flex; gap: 2px; height: 12px; border-radius: 999px; overflow: hidden">
+        <div style="width: 72%; background: #0B7A6A"></div>
+        <div style="width: 15%; background: #E08A3E"></div>
+        <div style="width: 9%; background: #8A3FA0"></div>
+        <div style="width: 4%; background: #2F5BB7"></div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; font-size: 13px">
+        <span style="display: flex; align-items: center; gap: 6px"><span style="width: 8px; height: 8px; border-radius: 2px; background: #0B7A6A"></span>ที่พัก ฿22,000</span>
+        <span style="display: flex; align-items: center; gap: 6px"><span style="width: 8px; height: 8px; border-radius: 2px; background: #E08A3E"></span>อาหาร ฿4,500</span>
+        <span style="display: flex; align-items: center; gap: 6px"><span style="width: 8px; height: 8px; border-radius: 2px; background: #8A3FA0"></span>กิจกรรม ฿2,800</span>
+        <span style="display: flex; align-items: center; gap: 6px"><span style="width: 8px; height: 8px; border-radius: 2px; background: #2F5BB7"></span>เดินทาง ฿1,050</span>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-family: Prompt, sans-serif; font-size: 17px; font-weight: 600">แต่ละคน</h2>
+      <sc-for list="{{people}}" as="p" hint-placeholder-count="4">
+        <div style="background: #FFFFFF; border-radius: 18px; overflow: hidden; border: 1.5px solid {{p.ring}}">
+          <button type="button" aria-expanded="{{p.open}}" onClick="{{p.pick}}" style="width: 100%; display: flex; align-items: center; gap: 12px; padding: 14px; border: 0; background: none; text-align: left; color: #13222F; cursor: pointer">
+            <span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: {{p.color}}; color: #FFFFFF; font-family: Prompt, sans-serif; font-weight: 600; font-size: 15px">{{p.initial}}</span>
+            <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+              <span style="font-size: 15px; font-weight: 600">{{p.name}}</span>
+              <span style="font-size: 12px; color: #5B6B78">ส่วนที่ต้องจ่าย {{p.share}} · จ่ายไปแล้ว {{p.paid}}</span>
+            </span>
+            <span style="display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0">
+              <span style="font-family: Prompt, sans-serif; font-size: 16px; font-weight: 600; color: {{p.netColor}}">{{p.net}}</span>
+              <span style="font-size: 12px; color: {{p.netColor}}">{{p.netLabel}}</span>
+            </span>
+          </button>
+          <sc-if value="{{p.isOpen}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column; padding: 0 14px 14px 66px; gap: 6px">
+              <sc-for list="{{p.items}}" as="i" hint-placeholder-count="4">
+                <div style="display: flex; justify-content: space-between; gap: 8px; font-size: 13px"><span style="color: #5B6B78">{{i.t}}</span><span style="font-weight: 500">{{i.v}}</span></div>
+              </sc-for>
+              <div style="display: flex; justify-content: space-between; font-size: 13px; padding-top: 6px; border-top: 1px solid #EEF1F4; font-weight: 600"><span>รวมส่วนของ {{p.name}}</span><span>{{p.share}}</span></div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </section>
+
+    <section style="background: #FFFFFF; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 4px">
+      <h2 style="margin: 0 0 4px; font-family: Prompt, sans-serif; font-size: 17px; font-weight: 600">ใครต้องโอนให้ใคร</h2>
+      <p style="margin: 0 0 6px; font-size: 13px; color: #5B6B78">คำนวณให้โอนน้อยครั้งที่สุด</p>
+      <sc-for list="{{settle}}" as="s" hint-placeholder-count="3">
+        <div style="display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid #EEF1F4">
+          <span style="width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: {{s.fromColor}}; color: #FFFFFF; font-family: Prompt, sans-serif; font-weight: 600; font-size: 13px">{{s.fromInitial}}</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5B6B78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          <span style="width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #0B7A6A; color: #FFFFFF; font-family: Prompt, sans-serif; font-weight: 600; font-size: 13px">A</span>
+          <span style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+            <span style="font-size: 14px; font-weight: 600">{{s.from}} → Act</span>
+            <span style="font-family: Prompt, sans-serif; font-size: 15px; font-weight: 600">{{s.amount}}</span>
+          </span>
+          <a href="SettleUp.dc.html" style="display: flex; align-items: center; min-height: 40px; padding: 0 12px; border-radius: 12px; font-size: 13px; font-weight: 600; text-decoration: none; border: 1px solid {{s.border}}; background: {{s.bg}}; color: {{s.fg}}">{{s.label}}</a>
+        </div>
+      </sc-for>
+    </section>
+  </main>
+
+  <nav aria-label="เมนูหลัก" style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); background: #FFFFFF; border-top: 1px solid #E3E8EC; padding: 6px 4px 22px">
+    <a href="Main.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 52px; text-decoration: none; color: #5B6B78; font-size: 12px; font-weight: 500"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M3 13h18"/></svg>ทริป</a>
+    <a href="Planner.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 52px; text-decoration: none; color: #5B6B78; font-size: 12px; font-weight: 500"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>แผน</a>
+    <a href="Places.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 52px; text-decoration: none; color: #5B6B78; font-size: 12px; font-weight: 500"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>สถานที่</a>
+    <a href="Expenses.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 52px; text-decoration: none; color: #5B6B78; font-size: 12px; font-weight: 500"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>ค่าใช้จ่าย</a>
+    <a href="Summary.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 52px; text-decoration: none; color: #0B7A6A; font-size: 12px; font-weight: 600"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9h-9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg>สรุป</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { open: 'act' };
+  }
+  renderVals() {
+    var self = this;
+    var st = this.state;
+    var fmt = function (n) { return '฿' + Math.abs(n).toLocaleString('en-US'); };
+    var members = [
+      { id: 'act', name: 'Act', initial: 'A', color: '#0B7A6A' },
+      { id: 'mint', name: 'Mint', initial: 'M', color: '#2F5BB7' },
+      { id: 'beam', name: 'Beam', initial: 'B', color: '#B2540F' },
+      { id: 'ploy', name: 'Ploy', initial: 'P', color: '#8A3FA0' }
+    ];
+    var expenses = [
+      { t: 'ที่พัก 3 คืน', amount: 22000, payer: 'act', with: ['act', 'mint', 'beam', 'ploy'] },
+      { t: 'Tokyo Subway Ticket', amount: 1050, payer: 'beam', with: ['act', 'beam', 'ploy'] },
+      { t: 'ร้านราเมงซุปเข้มข้น', amount: 1200, payer: 'mint', with: ['act', 'mint', 'beam', 'ploy'] },
+      { t: 'ตั๋ว Tokyo Skytree', amount: 2800, payer: 'ploy', with: ['act', 'mint', 'beam', 'ploy'] },
+      { t: 'ชาบูบุฟเฟ่ต์', amount: 3300, payer: 'mint', with: ['act', 'mint', 'ploy'] }
+    ];
+    var byId = {};
+    members.forEach(function (m) { byId[m.id] = m; });
+    var people = members.map(function (m) {
+      var items = [];
+      var share = 0, paid = 0;
+      expenses.forEach(function (e) {
+        if (e.payer === m.id) paid += e.amount;
+        if (e.with.indexOf(m.id) >= 0) {
+          var each = e.amount / e.with.length;
+          share += each;
+          items.push({ t: e.t + ' (÷' + e.with.length + ')', v: fmt(each) });
+        }
+      });
+      var net = paid - share;
+      var isOpen = st.open === m.id;
+      return {
+        name: m.name, initial: m.initial, color: m.color, items: items,
+        share: fmt(share), paid: fmt(paid),
+        net: (net >= 0 ? '+' : '−') + fmt(net),
+        netLabel: net >= 0 ? 'ได้คืน' : 'ต้องจ่ายเพิ่ม',
+        netColor: net >= 0 ? '#0B7A6A' : '#B23A2E',
+        isOpen: isOpen, open: isOpen ? 'true' : 'false', ring: isOpen ? '#0B7A6A' : '#FFFFFF',
+        pick: function () { self.setState({ open: isOpen ? '' : m.id }); }
+      };
+    });
+    var transfers = [{ from: 'mint', amount: 3100, status: 'done' }, { from: 'beam', amount: 5800, status: 'sent' }, { from: 'ploy', amount: 5150, status: 'pending' }];
+    var S = {
+      done: { label: 'เคลียร์แล้ว', border: '#0B7A6A', bg: '#E3F2EF', fg: '#0B7A6A' },
+      sent: { label: 'รอยืนยัน', border: '#E8B98A', bg: '#FCEBDD', fg: '#8A4A0C' },
+      pending: { label: 'โอนเงิน', border: '#0B7A6A', bg: '#0B7A6A', fg: '#FFFFFF' }
+    };
+    var settle = transfers.map(function (t) {
+      var f = byId[t.from];
+      var s = S[t.status];
+      return { from: f.name, fromInitial: f.initial, fromColor: f.color, amount: fmt(t.amount), label: s.label, border: s.border, bg: s.bg, fg: s.fg };
+    });
+    return { people: people, settle: settle };
+  }
+}
+</script>
+</body>
+</html>

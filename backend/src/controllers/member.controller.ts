@@ -1,0 +1,117 @@
+import type { RequestHandler } from "express";
+import { currentMember } from "../auth/middleware.js";
+import { newId } from "../db/ids.js";
+import { ROLE_LABEL } from "../domain/labels.js";
+import { outstandingOf } from "../domain/money/trip.js";
+import { HttpError } from "../errors.js";
+import { addActivity } from "../models/activity.model.js";
+import { isMemberReferenced, loadBalanceInputs } from "../models/balance.model.js";
+import { removeMemberFromChecklist } from "../models/checklist.model.js";
+import {
+  approveMember,
+  countActiveOwners,
+  deleteMember,
+  findMemberAnyStatus,
+  findTripMember,
+  insertMembers,
+  listTripMembers,
+  setMemberRole,
+  softRemoveMember,
+} from "../models/member.model.js";
+import { AddMemberInput, ChangeRoleInput } from "../schemas/member.inputs.js";
+import type { MemberDoc } from "../schemas/models.js";
+import { memberView } from "../views/member.view.js";
+import { param } from "./params.js";
+import { PALETTE } from "./trip.controller.js";
+
+async function loadTarget(tripId: string, memberId: string): Promise<MemberDoc> {
+  const member = await findTripMember(tripId, memberId);
+  if (!member) throw new HttpError(404, "member_not_found", "ไม่พบสมาชิกคนนี้");
+  return member;
+}
+
+/** The last active owner can't be demoted or removed. */
+async function assertNotLastOwner(target: MemberDoc): Promise<void> {
+  if (target.role === "owner" && target.status === "active" && (await countActiveOwners(target.tripId)) <= 1) {
+    throw new HttpError(409, "last_owner", "ทริปต้องมีผู้จัดทริปอย่างน้อย 1 คน");
+  }
+}
+
+/** A4 GET /api/trips/:tripId/members */
+export const listMembers: RequestHandler = async (req, res) => {
+  res.json((await listTripMembers(currentMember(req).tripId)).map(memberView));
+};
+
+/** B4 POST /api/trips/:tripId/members (owner) — adds an Unclaimed Member. */
+export const addMember: RequestHandler = async (req, res) => {
+  const me = currentMember(req);
+  const input = AddMemberInput.parse(req.body);
+  const used = new Set((await listTripMembers(me.tripId)).map((m) => m.color));
+  const member: MemberDoc = {
+    _id: newId(),
+    tripId: me.tripId,
+    userId: null,
+    displayName: input.displayName,
+    role: input.role,
+    status: "active",
+    color: PALETTE.find((c) => !used.has(c)) ?? "gray",
+    createdAt: new Date(),
+  };
+  await insertMembers([member]);
+  await addActivity({ tripId: me.tripId, actorId: me._id, type: "member", refId: member._id, text: `เพิ่ม ${member.displayName} เป็นสมาชิก` });
+  res.status(201).json(memberView(member));
+};
+
+/** B5 PATCH /api/trips/:tripId/members/:memberId (owner) — change role. */
+export const changeRole: RequestHandler = async (req, res) => {
+  const me = currentMember(req);
+  const { role } = ChangeRoleInput.parse(req.body);
+  const target = await loadTarget(me.tripId, param(req, "memberId"));
+  if (role !== "owner") await assertNotLastOwner(target);
+  const updated = await setMemberRole(me.tripId, target._id, role);
+  if (!updated) throw new HttpError(404, "member_not_found", "ไม่พบสมาชิกคนนี้");
+  await addActivity({
+    tripId: me.tripId,
+    actorId: me._id,
+    type: "member",
+    refId: target._id,
+    text: `เปลี่ยนสิทธิ์ของ ${target.displayName} เป็น${ROLE_LABEL[role]}`,
+  });
+  res.json(memberView(updated));
+};
+
+/**
+ * B6 DELETE /api/trips/:tripId/members/:memberId (owner), docs/db/schema.md §5.4:
+ * last owner → 409; Outstanding ≠ 0 → 409; still named by an Expense/Settlement → soft remove;
+ * otherwise delete (and their personal checklist).
+ */
+export const removeMember: RequestHandler = async (req, res) => {
+  const me = currentMember(req);
+  const target = await loadTarget(me.tripId, param(req, "memberId"));
+  await assertNotLastOwner(target);
+  if (outstandingOf(await loadBalanceInputs(me.tripId), target._id) !== 0) {
+    throw new HttpError(409, "outstanding_not_zero", "สมาชิกคนนี้ยังมียอดค้าง ต้องเคลียร์ก่อนนำออก");
+  }
+  if (await isMemberReferenced(me.tripId, target._id)) {
+    await softRemoveMember(me.tripId, target._id);
+  } else {
+    await deleteMember(me.tripId, target._id);
+    await removeMemberFromChecklist(me.tripId, target._id);
+  }
+  await addActivity({ tripId: me.tripId, actorId: me._id, type: "member", refId: target._id, text: `นำ ${target.displayName} ออกจากทริป` });
+  res.status(204).end();
+};
+
+/** B11 POST /api/trips/:tripId/members/:memberId/approve (owner) — pending → active. */
+export const approve: RequestHandler = async (req, res) => {
+  const me = currentMember(req);
+  const memberId = param(req, "memberId");
+  const approved = await approveMember(me.tripId, memberId);
+  if (!approved) {
+    const existing = await findMemberAnyStatus(me.tripId, memberId);
+    if (!existing || existing.status === "removed") throw new HttpError(404, "member_not_found", "ไม่พบสมาชิกคนนี้");
+    throw new HttpError(409, "not_pending", "สมาชิกคนนี้ไม่ได้รออนุมัติ");
+  }
+  await addActivity({ tripId: me.tripId, actorId: me._id, type: "member", refId: memberId, text: `อนุมัติ ${approved.displayName} เข้าร่วมทริป` });
+  res.json(memberView(approved));
+};

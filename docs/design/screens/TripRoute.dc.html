@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>เส้นทางเมือง</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&amp;family=Prompt:wght@500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#0B7A6A}a:hover{color:#075E52}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; display: flex; flex-direction: column; background: #F3F5F7; color: #13222F; font-family: 'IBM Plex Sans Thai', sans-serif; overflow: hidden">
+
+  <header style="display: flex; align-items: center; gap: 8px; padding: 16px 12px 8px">
+    <a href="PlacesJP.dc.html" aria-label="ย้อนกลับ" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 14px; color: #13222F">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+    </a>
+    <div style="flex: 1; display: flex; flex-direction: column">
+      <h1 style="margin: 0; font-family: Prompt, sans-serif; font-size: 18px; font-weight: 600">เส้นทางเมือง</h1>
+      <span style="font-size: 12px; color: #5B6B78">ญี่ปุ่นฤดูใบไม้ผลิ · ส. 20 – อา. 28 มี.ค. 2570</span>
+    </div>
+  </header>
+
+  <main style="flex: 1; overflow-y: auto; padding: 8px 20px 24px; display: flex; flex-direction: column; gap: 16px">
+
+    <p style="margin: 0; font-size: 13px; line-height: 1.55; color: #3C4C59">ไม่บังคับ ใส่แล้ว Planner จะแสดงสถานที่ของเมืองที่คุณอยู่ในวันนั้นก่อน และเตือนเมื่อลงร้านผิดเมือง</p>
+
+    <section aria-label="ภาพรวม 9 วัน" style="display: flex; flex-direction: column; gap: 8px; padding: 14px; background: #FFFFFF; border-radius: 18px">
+      <div style="display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 3px">
+        <sc-for list="{{strip}}" as="d" hint-placeholder-count="9">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 4px">
+            <span style="width: 100%; height: 28px; border-radius: 6px; background: {{d.color}}"></span>
+            <span style="font-size: 11px; color: #5B6B78">{{d.n}}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display: flex; gap: 12px; font-size: 12px">
+        <sc-for list="{{legs}}" as="l" hint-placeholder-count="3">
+          <span style="display: flex; align-items: center; gap: 4px"><span style="width: 8px; height: 8px; border-radius: 2px; background: {{l.color}}"></span>{{l.city}}</span>
+        </sc-for>
+      </div>
+    </section>
+
+    <ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0">
+      <sc-for list="{{legs}}" as="l" hint-placeholder-count="3">
+        <li style="display: flex; gap: 12px">
+          <div style="width: 20px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center">
+            <span style="width: 14px; height: 14px; margin-top: 20px; border-radius: 50%; border: 3px solid {{l.color}}; background: #FFFFFF"></span>
+            <span style="width: 2px; flex: 1; background: {{l.line}}"></span>
+          </div>
+          <article style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 14px; background: #FFFFFF; border-radius: 18px">
+            <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+              <h2 style="margin: 0; font-family: Prompt, sans-serif; font-size: 17px; font-weight: 600">{{l.city}}</h2>
+              <span style="font-size: 13px; color: #3C4C59">{{l.dates}} · {{l.days}}</span>
+              <span style="font-size: 12px; color: #5B6B78">{{l.places}} ที่ในลิสต์ · ที่พัก: {{l.stay}}</span>
+            </div>
+            <button type="button" aria-label="ลบ {{l.city}} ออกจากเส้นทาง" onClick="{{l.remove}}" style="width: 40px; height: 40px; flex-shrink: 0; border: 0; border-radius: 12px; background: #F3F5F7; color: #5B6B78; display: flex; align-items: center; justify-content: center; cursor: pointer">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </article>
+        </li>
+      </sc-for>
+    </ol>
+
+    <button type="button" style="display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; border: 1.5px dashed #C9D3DA; border-radius: 16px; background: none; color: #13222F; font-size: 14px; font-weight: 500; cursor: pointer">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>เพิ่มเมือง
+    </button>
+
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { removed: {} };
+  }
+  renderVals() {
+    var self = this;
+    var st = this.state;
+    var all = [
+      { city: 'Tokyo', color: '#2F5BB7', from: 1, to: 4, dates: 'ส. 20 – อ. 23 มี.ค.', places: 9, stay: 'โรงแรมใกล้สถานีชินจูกุ' },
+      { city: 'Kyoto', color: '#8A3FA0', from: 5, to: 6, dates: 'พ. 24 – พฤ. 25 มี.ค.', places: 3, stay: 'ยังไม่ระบุ' },
+      { city: 'Osaka', color: '#B2540F', from: 7, to: 9, dates: 'ศ. 26 – อา. 28 มี.ค.', places: 4, stay: 'ยังไม่ระบุ' }
+    ];
+    var kept = all.filter(function (l) { return !st.removed[l.city]; });
+    var legs = kept.map(function (l, i) {
+      return {
+        city: l.city, color: l.color, dates: l.dates, places: l.places, stay: l.stay,
+        days: 'วัน ' + l.from + '–' + l.to, line: i === kept.length - 1 ? 'transparent' : '#D5DDE3',
+        remove: function () { var r = Object.assign({}, st.removed); r[l.city] = true; self.setState({ removed: r }); }
+      };
+    });
+    var strip = [];
+    for (var d = 1; d <= 9; d++) {
+      var leg = kept.filter(function (l) { return d >= l.from && d <= l.to; })[0];
+      strip.push({ n: d, color: leg ? leg.color : '#E3E8EC' });
+    }
+    return { legs: legs, strip: strip };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>แผนรายวัน</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&amp;family=Prompt:wght@500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#0B7A6A}a:hover{color:#075E52}
+button,input{font-family:inherit}
+input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid #0B7A6A;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; display: flex; flex-direction: column; background: #F3F5F7; color: #13222F; font-family: 'IBM Plex Sans Thai', sans-serif; overflow: hidden; position: relative">
+
+  <header style="display: flex; flex-direction: column; gap: 12px; padding: 20px 20px 12px">
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <div style="display: flex; flex-direction: column">
+        <span style="font-size: 13px; color: #5B6B78">โตเกียวหน้าหนาว</span>
+        <h1 style="margin: 0; font-family: Prompt, sans-serif; font-size: 24px; font-weight: 600">แผนรายวัน</h1>
+      </div>
+      <button type="button" aria-label="จัดเรียงแผน" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 1px solid #E3E8EC; border-radius: 14px; background: #FFFFFF; color: #13222F; cursor: pointer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg>
+      </button>
+    </div>
+    <div role="tablist" aria-label="เลือกวัน" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+      <sc-for list="{{days}}" as="d" hint-placeholder-count="4">
+        <button type="button" role="tab" aria-selected="{{d.on}}" onClick="{{d.pick}}" style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px; border-radius: 16px; cursor: pointer; border: 1px solid {{d.border}}; background: {{d.bg}}; color: {{d.fg}}">
+          <span style="font-size: 12px; opacity: 0.85">{{d.date}}</span>
+          <span style="font-family: Prompt, sans-serif; font-size: 15px; font-weight: 600">{{d.label}}</span>
+        </button>
+      </sc-for>
+    </div>
+  </header>
+
+  <main style="flex: 1; overflow-y: auto; padding: 4px 20px 96px; display: flex; flex-direction: column; gap: 14px">
+    <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px">
+      <h2 style="margin: 0; font-family: Prompt, sans-serif; font-size: 17px; font-weight: 600">{{dayTitle}}</h2>
+      <span style="font-size: 13px; color: #5B6B78; text-align: right">{{dayAreas}}</span>
+    </div>
+
+    <ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+      <sc-for list="{{items}}" as="it" hint-placeholder-count="3">
+        <li style="display: flex; gap: 12px">
+          <div style="width: 48px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center">
+            <span style="font-family: Prompt, sans-serif; font-size: 14px; font-weight: 600; padding-top: 14px">{{it.time}}</span>
+            <sc-if value="{{it.isTransit}}" hint-placeholder-val="{{ false }}">
+              <span style="font-size: 11px; color: #5B6B78">ถึง {{it.arr}}</span>
+            </sc-if>
+            <span style="width: 2px; flex: 1; margin-top: 6px; background: {{it.line}}"></span>
+          </div>
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; padding-bottom: 6px">
+
+            <sc-if value="{{it.isPlace}}" hint-placeholder-val="{{ true }}">
+              <article style="display: flex; gap: 10px; align-items: center; padding: 12px; background: #FFFFFF; border-radius: 16px">
+                <span style="width: 6px; align-self: stretch; border-radius: 999px; background: {{it.ink}}"></span>
+                <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+                  <span style="font-size: 12px; font-weight: 600; color: {{it.ink}}">{{it.cat}} · {{it.area}}</span>
+                  <h3 style="margin: 0; font-size: 15px; font-weight: 600; line-height: 1.35">{{it.name}}</h3>
+                  <p style="margin: 0; font-size: 13px; color: #5B6B78">{{it.note}}</p>
+                </div>
+              </article>
+            </sc-if>
+
+            <sc-if value="{{it.isTransit}}" hint-placeholder-val="{{ false }}">
+              <article style="display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; background: #F1E6F5; border: 1px solid #DCC3E6; border-radius: 16px">
+                <div style="display: flex; align-items: center; gap: 10px">
+                  <span style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 10px; background: #8A3FA0; color: #FFFFFF; display: flex; align-items: center; justify-content: center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 16l20-6-3-3-6 2-6-5-2 1 4 6-5 2-2-1-1 1z"/></svg>
+                  </span>
+                  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+                    <span style="font-size: 12px; font-weight: 600; color: #6E2F82">{{it.modeLabel}} · {{it.dur}}</span>
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 600">{{it.route}}</h3>
+                  </div>
+                </div>
+                <span style="font-size: 12px; color: #4A3352">{{it.ref}}</span>
+                <div style="display: flex; gap: 8px">
+                  <button type="button" style="display: flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 10px; border: 1px solid #DCC3E6; border-radius: 10px; background: #FFFFFF; color: #13222F; font-size: 13px; font-weight: 600; cursor: pointer">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>{{it.doc}}
+                  </button>
+                  <a href="ExpenseDetail.dc.html" style="display: flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 10px; border: 1px solid #DCC3E6; border-radius: 10px; background: #FFFFFF; color: #13222F; font-size: 13px; font-weight: 600; text-decoration: none">฿ ค่าใช้จ่าย</a>
+                </div>
+              </article>
+            </sc-if>
+
+            <sc-if value="{{it.hasTravel}}" hint-placeholder-val="{{ true }}">
+              <button type="button" onClick="{{it.openTravel}}" aria-label="แก้การเดินทางไปรายการถัดไป: {{it.travelText}}" style="align-self: flex-start; display: flex; align-items: center; gap: 6px; min-height: 36px; margin: 6px 0 2px; padding: 0 10px; border: 0; border-radius: 10px; background: #E6EDFA; color: #23468F; font-size: 12px; font-weight: 600; cursor: pointer">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h8a3 3 0 0 0 0-6H8a3 3 0 0 1 0-6h8"/></svg>{{it.travelText}}
+              </button>
+            </sc-if>
+            <sc-if value="{{it.needTravel}}" hint-placeholder-val="{{ false }}">
+              <button type="button" onClick="{{it.openTravel}}" style="align-self: flex-start; display: flex; align-items: center; gap: 4px; min-height: 36px; margin: 6px 0 2px; padding: 0 10px; border: 1.5px dashed #C9D3DA; border-radius: 10px; background: none; color: #4A5965; font-size: 12px; font-weight: 600; cursor: pointer">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>เพิ่มการเดินทาง
+              </button>
+            </sc-if>
+          </div>
+        </li>
+      </sc-for>
+    </ol>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+      <a href="PickPlace.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 48px; border: 1.5px dashed #C9D3DA; border-radius: 16px; color: #13222F; font-size: 14px; font-weight: 500; text-decoration: none">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>สถานที่
+      </a>
+      <a href="AddTransit.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 48px; border: 1.5px dashed #C9D3DA; border-radius: 16px; color: #13222F; font-size: 14px; font-weight: 500; text-decoration: none">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>เที่ยวบิน/ตั๋ว
+      </a>
+    </div>
+
+    <section style="display: flex; flex-direction: column; gap: 10px; padding: 14px; background: #FFFFFF; border-radius: 18px">
+      <div style="display: flex; justify-content: space-between; align-items: baseline">
+        <h2 style="margin: 0; font-size: 14px; font-weight: 600">ยังไม่จัดวัน</h2>
+        <span style="font-size: 12px; color: #5B6B78">กดเพื่อเพิ่มเข้า{{dayLabel}}</span>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px">
+        <sc-for list="{{pool}}" as="p" hint-placeholder-count="3">
+          <button type="button" onClick="{{p.add}}" style="display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; border-radius: 999px; border: 1px solid #E3E8EC; background: {{p.tint}}; color: {{p.ink}}; font-size: 14px; font-weight: 600; cursor: pointer">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>{{p.name}}
+          </button>
+        </sc-for>
+        <sc-if value="{{poolEmpty}}" hint-placeholder-val="{{ false }}">
+          <span style="font-size: 13px; color: #5B6B78">จัดครบทุกที่แล้ว</span>
+        </sc-if>
+      </div>
+    </section>
+  </main>
+
+  <nav aria-label="เมนูหลัก" style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); background: #FFFFFF; border-top: 1px solid #E3E8EC; padding: 6px 4px 22px">
+    <a href="Main.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 52px; text-decoration: none; color: #5B6B78; font-size: 12px; font-weight: 500"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M3 13h18"/></svg>ทริป</a>
+    <a href="Planner.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 52px; text-decoration: none; color: #0B7A6A; font-size: 12px; font-weight: 600"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>แผน</a>
+    <a href="Places.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 52px; text-decoration: none; color: #5B6B78; font-size: 12px; font-weight: 500"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>สถานที่</a>
+    <a href="Expenses.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 52px; text-decoration: none; color: #5B6B78; font-size: 12px; font-weight: 500"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>ค่าใช้จ่าย</a>
+    <a href="Summary.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 52px; text-decoration: none; color: #5B6B78; font-size: 12px; font-weight: 500"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9h-9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg>สรุป</a>
+  </nav>
+
+  <sc-if value="{{editing}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; background: rgba(19, 34, 47, 0.45); display: flex; flex-direction: column; justify-content: flex-end">
+      <section role="dialog" aria-labelledby="travelTitle" style="display: flex; flex-direction: column; gap: 14px; padding: 22px 20px 32px; background: #FFFFFF; border-radius: 24px 24px 0 0">
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 12px; color: #5B6B78">การเดินทาง</span>
+          <h2 id="travelTitle" style="margin: 0; font-family: Prompt, sans-serif; font-size: 17px; font-weight: 600; line-height: 1.35">{{sheetTitle}}</h2>
+        </div>
+        <div role="radiogroup" aria-label="วิธีเดินทาง" style="display: flex; flex-wrap: wrap; gap: 8px">
+          <sc-for list="{{modeChips}}" as="m" hint-placeholder-count="5">
+            <button type="button" role="radio" aria-checked="{{m.on}}" onClick="{{m.pick}}" style="min-height: 40px; padding: 0 14px; border-radius: 999px; font-size: 14px; font-weight: 600; cursor: pointer; border: 1.5px solid {{m.border}}; background: {{m.bg}}; color: {{m.fg}}">{{m.label}}</button>
+          </sc-for>
+        </div>
+        <div style="display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 8px">
+          <div style="display: flex; flex-direction: column; gap: 4px">
+            <label for="tmin" style="font-size: 12px; font-weight: 600; color: #5B6B78">นาที (โดยประมาณ)</label>
+            <input id="tmin" type="text" inputmode="numeric" value="{{editMin}}" onChange="{{onMin}}" placeholder="15" style="height: 44px; padding: 0 12px; border: 1px solid #D5DDE3; border-radius: 12px; font-size: 15px; color: #13222F; min-width: 0">
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px">
+            <label for="tnote" style="font-size: 12px; font-weight: 600; color: #5B6B78">โน้ต เช่น สายรถไฟ ทางออก</label>
+            <input id="tnote" type="text" value="{{editNote}}" onChange="{{onNote}}" placeholder="JR Yamanote ไป Shibuya" style="height: 44px; padding: 0 12px; border: 1px solid #D5DDE3; border-radius: 12px; font-size: 15px; color: #13222F; min-width: 0">
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+          <button type="button" onClick="{{cancelEdit}}" style="min-height: 48px; border: 1px solid #D5DDE3; border-radius: 14px; background: #FFFFFF; color: #13222F; font-size: 15px; font-weight: 600; cursor: pointer">{{cancelLabel}}</button>
+          <button type="button" onClick="{{saveEdit}}" style="min-height: 48px; border: 0; border-radius: 14px; background: #0B7A6A; color: #FFFFFF; font-size: 15px; font-weight: 600; cursor: pointer">บันทึก</button>
+        </div>
+      </section>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      day: 1,
+      edit: null,
+      plan: {
+        1: [
+          { kind: 'transit', mode: 'เครื่องบิน', time: '00:30', arr: '08:30', dur: '6 ชม.', from: 'BKK', to: 'HND', fromName: 'สุวรรณภูมิ', toName: 'สนามบินฮาเนดะ', ref: 'เลขที่จอง ABC123 · ที่นั่ง 32A–32D', doc: 'ตั๋วเครื่องบิน', travel: { mode: 'รถไฟ', min: 40, note: 'ไปชินจูกุ' } },
+          { kind: 'place', time: '11:00', cat: 'stay', area: 'Shinjuku', name: 'โรงแรมใกล้สถานีชินจูกุ', note: 'ฝากกระเป๋า · เช็คอิน 15:00', travel: { mode: 'เดิน', min: 10, note: '' } },
+          { kind: 'place', time: '19:00', cat: 'eat', area: 'Shinjuku', name: 'ร้านราเมงซุปเข้มข้น', note: 'คิวยาวช่วงเย็น' }
+        ],
+        2: [
+          { kind: 'place', time: '09:00', cat: 'see', area: 'Asakusa', name: 'วัดเซ็นโซจิ', note: 'ไปเช้าก่อนคนเยอะ', travel: { mode: 'เดิน', min: 20, note: 'ข้ามสะพานอาซึมะ' } },
+          { kind: 'place', time: '11:30', cat: 'see', area: 'Asakusa', name: 'Tokyo Skytree', note: 'จองตั๋วล่วงหน้าแล้ว' },
+          { kind: 'place', time: '18:00', cat: 'eat', area: 'Akihabara', name: 'ชาบูบุฟเฟ่ต์', note: 'จำกัดเวลา 90 นาที' }
+        ],
+        3: [
+          { kind: 'place', time: '14:00', cat: 'fun', area: 'Shibuya', name: 'Shibuya Crossing', note: 'ถ่ายรูปจากชั้นบนของร้านกาแฟ', travel: { mode: 'รถไฟ', min: 10, note: 'JR Yamanote' } },
+          { kind: 'place', time: '19:00', cat: 'eat', area: 'Shinjuku', name: 'ยากินิคุหลังสถานี', note: 'จองโต๊ะ 4 ที่' }
+        ],
+        4: [
+          { kind: 'place', time: '10:00', cat: 'stay', area: 'Shinjuku', name: 'โรงแรมใกล้สถานีชินจูกุ', note: 'เช็คเอาท์', travel: { mode: 'รถไฟ', min: 15, note: '' } },
+          { kind: 'place', time: '12:00', cat: 'fun', area: 'Tokyo Station', name: 'โซนขนมของฝากในสถานี', note: 'ซื้อของฝากก่อนกลับ', travel: { mode: 'รถไฟ', min: 35, note: 'ถึงสนามบินก่อน 2 ชม.' } },
+          { kind: 'transit', mode: 'เครื่องบิน', time: '18:00', arr: '23:30', dur: '7 ชม. 30 นาที', from: 'HND', to: 'BKK', fromName: 'สนามบินฮาเนดะ', toName: 'สุวรรณภูมิ', ref: 'เลขที่จอง ABC123', doc: 'ตั๋วเครื่องบิน' }
+        ]
+      },
+      pool: [{ cat: 'fun', area: 'Shinjuku', name: 'Omoide Yokocho' }, { cat: 'eat', area: 'Asakusa', name: 'ร้านเทมปุระเก่าแก่' }, { cat: 'eat', area: 'Akihabara', name: 'คาเฟ่ใต้ทางรถไฟ' }]
+    };
+  }
+  renderVals() {
+    var self = this;
+    var st = this.state;
+    var CATS = {
+      see: { label: 'ที่เที่ยว', tint: '#E3F2EF', ink: '#0B7A6A' },
+      eat: { label: 'ที่กิน', tint: '#FCEBDD', ink: '#B2540F' },
+      fun: { label: 'น่าสนใจ', tint: '#E6EDFA', ink: '#2F5BB7' },
+      stay: { label: 'ที่พัก', tint: '#EEF1F4', ink: '#3C4C59' },
+      move: { label: 'เดินทาง', tint: '#F1E6F5', ink: '#8A3FA0' }
+    };
+    var MODES = ['เดิน', 'รถไฟ', 'รถบัส', 'แท็กซี่', 'รถเช่า'];
+    var meta = { 1: ['ส. 12', 'วันที่ 1 · เสาร์ 12 ธ.ค.'], 2: ['อา. 13', 'วันที่ 2 · อาทิตย์ 13 ธ.ค.'], 3: ['จ. 14', 'วันที่ 3 · จันทร์ 14 ธ.ค.'], 4: ['อ. 15', 'วันที่ 4 · อังคาร 15 ธ.ค.'] };
+    var days = [1, 2, 3, 4].map(function (d) {
+      var on = st.day === d;
+      return { date: meta[d][0], label: 'วัน ' + d, on: on ? 'true' : 'false', border: on ? '#13222F' : '#E3E8EC', bg: on ? '#13222F' : '#FFFFFF', fg: on ? '#FFFFFF' : '#13222F', pick: function () { self.setState({ day: d, edit: null }); } };
+    });
+    var list = st.plan[st.day] || [];
+    var endName = function (it) { return it.kind === 'transit' ? it.toName : it.name; };
+    var startName = function (it) { return it.kind === 'transit' ? it.fromName : it.name; };
+    var travelText = function (t) { return t.mode + (t.min ? ' · ~' + t.min + ' นาที' : '') + (t.note ? ' · ' + t.note : ''); };
+    var areas = [];
+    list.forEach(function (it) { if (it.kind === 'place' && areas.indexOf(it.area) < 0) areas.push(it.area); });
+    var items = list.map(function (it, i) {
+      var last = i === list.length - 1;
+      var base = {
+        isPlace: it.kind === 'place', isTransit: it.kind === 'transit', time: it.time,
+        line: last ? 'transparent' : '#D5DDE3',
+        hasTravel: !last && !!it.travel, needTravel: !last && !it.travel,
+        travelText: it.travel ? travelText(it.travel) : '',
+        openTravel: function () {
+          var t = it.travel || { mode: 'รถไฟ', min: '', note: '' };
+          self.setState({ edit: { idx: i, mode: t.mode, min: t.min ? String(t.min) : '', note: t.note || '', existed: !!it.travel } });
+        }
+      };
+      if (it.kind === 'place') {
+        var c = CATS[it.cat];
+        return Object.assign(base, { name: it.name, note: it.note, area: it.area, cat: c.label, ink: c.ink });
+      }
+      return Object.assign(base, { arr: it.arr, dur: it.dur, modeLabel: it.mode, route: it.from + ' → ' + it.to, ref: it.ref, doc: it.doc });
+    });
+    var ed = st.edit;
+    var setEdit = function (patch) { self.setState({ edit: Object.assign({}, st.edit, patch) }); };
+    var modeChips = MODES.map(function (m) {
+      var on = ed && ed.mode === m;
+      return { label: m, on: on ? 'true' : 'false', border: on ? '#13222F' : '#D5DDE3', bg: on ? '#13222F' : '#FFFFFF', fg: on ? '#FFFFFF' : '#13222F', pick: function () { setEdit({ mode: m }); } };
+    });
+    var writeTravel = function (travel) {
+      var plan = Object.assign({}, st.plan);
+      plan[st.day] = list.map(function (x, j) {
+        if (j !== ed.idx) return x;
+        var y = Object.assign({}, x);
+        if (travel) y.travel = travel; else delete y.travel;
+        return y;
+      });
+      self.setState({ plan: plan, edit: null });
+    };
+    var pool = st.pool.map(function (p, i) {
+      var c = CATS[p.cat];
+      return {
+        name: p.name, tint: c.tint, ink: c.ink,
+        add: function () {
+          var plan = Object.assign({}, st.plan);
+          plan[st.day] = (plan[st.day] || []).concat([{ kind: 'place', time: '—', cat: p.cat, area: p.area, name: p.name, note: 'ยังไม่ได้ตั้งเวลา' }]);
+          self.setState({ plan: plan, pool: st.pool.filter(function (_, j) { return j !== i; }) });
+        }
+      };
+    });
+    return {
+      days: days, items: items, dayTitle: meta[st.day][1], dayLabel: 'วัน ' + st.day,
+      dayAreas: areas.join(' · '), pool: pool, poolEmpty: pool.length === 0,
+      editing: !!ed,
+      sheetTitle: ed ? endName(list[ed.idx]) + ' → ' + startName(list[ed.idx + 1]) : '',
+      modeChips: modeChips,
+      editMin: ed ? ed.min : '', editNote: ed ? ed.note : '',
+      onMin: function (e) { setEdit({ min: e.target.value.replace(/[^0-9]/g, '') }); },
+      onNote: function (e) { setEdit({ note: e.target.value }); },
+      cancelLabel: ed && ed.existed ? 'ลบการเดินทาง' : 'ยกเลิก',
+      cancelEdit: function () { if (ed && ed.existed) writeTravel(null); else self.setState({ edit: null }); },
+      saveEdit: function () { writeTravel({ mode: ed.mode, min: parseInt(ed.min, 10) || 0, note: ed.note }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

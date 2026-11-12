@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>เช็คลิสต์</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&amp;family=Prompt:wght@500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#0B7A6A}a:hover{color:#075E52}
+button,input{font-family:inherit}
+input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid #0B7A6A;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; display: flex; flex-direction: column; background: #F3F5F7; color: #13222F; font-family: 'IBM Plex Sans Thai', sans-serif; overflow: hidden">
+
+  <header style="display: flex; flex-direction: column; gap: 12px; padding: 16px 20px 12px">
+    <div style="display: flex; align-items: center; gap: 8px; margin-left: -8px">
+      <a href="Main.dc.html" aria-label="ย้อนกลับ" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 14px; color: #13222F">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+      </a>
+      <div style="flex: 1; display: flex; flex-direction: column">
+        <h1 style="margin: 0; font-family: Prompt, sans-serif; font-size: 18px; font-weight: 600">เช็คลิสต์</h1>
+        <span style="font-size: 12px; color: #5B6B78">โตเกียวหน้าหนาว · อีก 33 วัน</span>
+      </div>
+    </div>
+
+    <div role="tablist" aria-label="ประเภทเช็คลิสต์" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; background: #E3E8EC; border-radius: 14px">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="2">
+        <button type="button" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}" style="display: flex; flex-direction: column; align-items: center; min-height: 48px; justify-content: center; border: 0; border-radius: 10px; cursor: pointer; background: {{t.bg}}; color: {{t.fg}}; box-shadow: {{t.shadow}}">
+          <span style="font-size: 14px; font-weight: 600">{{t.label}}</span>
+          <span style="font-size: 11px; opacity: 0.85">{{t.sub}}</span>
+        </button>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <div style="display: flex; justify-content: space-between; font-size: 13px">
+        <span style="color: #3C4C59">{{scopeNote}}</span>
+        <span style="font-weight: 600">{{doneCount}}/{{totalCount}} เสร็จแล้ว</span>
+      </div>
+      <div role="img" aria-label="ทำเสร็จ {{doneCount}} จาก {{totalCount}}" style="height: 8px; border-radius: 999px; background: #D5DDE3; overflow: hidden"><div style="width: {{pct}}; height: 100%; border-radius: 999px; background: #0B7A6A"></div></div>
+    </div>
+  </header>
+
+  <main style="flex: 1; overflow-y: auto; padding: 4px 20px 16px; display: flex; flex-direction: column; gap: 16px">
+    <sc-for list="{{groups}}" as="g" hint-placeholder-count="2">
+      <section style="display: flex; flex-direction: column; gap: 8px">
+        <h2 style="margin: 0; font-size: 13px; font-weight: 600; color: #5B6B78">{{g.title}}</h2>
+        <div style="display: flex; flex-direction: column; background: #FFFFFF; border-radius: 18px; overflow: hidden">
+          <sc-for list="{{g.items}}" as="it" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; gap: 4px; min-height: 56px; padding: 0 6px 0 0; border-bottom: 1px solid #EEF1F4">
+              <button type="button" role="checkbox" aria-checked="{{it.on}}" onClick="{{it.toggle}}" style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 6px 0 6px 14px; border: 0; background: none; color: #13222F; text-align: left; cursor: pointer">
+                <span style="width: 24px; height: 24px; flex-shrink: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 2px solid {{it.boxBorder}}; background: {{it.boxBg}}; color: #FFFFFF">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>
+                </span>
+                <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px">
+                  <span style="font-size: 15px; font-weight: 500; color: {{it.textColor}}; text-decoration: {{it.strike}}">{{it.text}}</span>
+                  <sc-if value="{{it.hasMeta}}" hint-placeholder-val="{{ false }}">
+                    <span style="font-size: 12px; color: #5B6B78">{{it.meta}}</span>
+                  </sc-if>
+                </span>
+              </button>
+              <sc-if value="{{it.isGroup}}" hint-placeholder-val="{{ true }}">
+                <button type="button" onClick="{{it.assign}}" aria-label="คนรับผิดชอบ: {{it.whoLabel}} แตะเพื่อเปลี่ยน" style="display: flex; align-items: center; gap: 4px; min-height: 36px; padding: 0 8px 0 4px; border: 1px solid #E3E8EC; border-radius: 999px; background: #FFFFFF; color: #3C4C59; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0">
+                  <span style="width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: {{it.whoColor}}; color: #FFFFFF; font-family: Prompt, sans-serif; font-size: 11px; font-weight: 600">{{it.whoInitial}}</span>{{it.whoShort}}
+                </button>
+              </sc-if>
+              <button type="button" onClick="{{it.remove}}" aria-label="ลบ {{it.text}}" style="width: 36px; height: 36px; flex-shrink: 0; border: 0; border-radius: 10px; background: none; color: #8796A2; display: flex; align-items: center; justify-content: center; cursor: pointer">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+              </button>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </sc-for>
+
+    <sc-if value="{{hasSuggest}}" hint-placeholder-val="{{ true }}">
+      <section style="display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 18px; background: #FFFFFF">
+        <h2 style="margin: 0; font-size: 13px; font-weight: 600">แนะนำสำหรับทริปต่างประเทศ</h2>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px">
+          <sc-for list="{{suggest}}" as="s" hint-placeholder-count="4">
+            <button type="button" onClick="{{s.add}}" style="display: flex; align-items: center; gap: 4px; min-height: 36px; padding: 0 12px; border: 1px dashed #0B7A6A; border-radius: 999px; background: #F4FAF8; color: #0B5C50; font-size: 13px; font-weight: 600; cursor: pointer">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>{{s.text}}
+            </button>
+          </sc-for>
+        </div>
+      </section>
+    </sc-if>
+  </main>
+
+  <footer style="display: flex; gap: 8px; padding: 12px 20px 28px; border-top: 1px solid #E3E8EC; background: #FFFFFF">
+    <label for="newItem" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">เพิ่มรายการใหม่</label>
+    <input id="newItem" type="text" value="{{draft}}" onChange="{{onDraft}}" placeholder="{{addPlaceholder}}" style="flex: 1; min-width: 0; height: 50px; padding: 0 14px; border: 1px solid #D5DDE3; border-radius: 14px; font-size: 15px; color: #13222F; background: #FFFFFF">
+    <button type="button" onClick="{{addItem}}" style="height: 50px; padding: 0 18px; border: 0; border-radius: 14px; background: {{addBg}}; color: #FFFFFF; font-size: 15px; font-weight: 600; cursor: pointer">เพิ่ม</button>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      tab: 'group', draft: '', seq: 100,
+      group: [
+        { id: 1, cat: 'การจอง', text: 'จองตั๋วเครื่องบิน', who: 'act', done: true },
+        { id: 2, cat: 'การจอง', text: 'จองที่พัก', who: 'act', done: true },
+        { id: 3, cat: 'การจอง', text: 'ซื้อประกันเดินทาง', who: 'mint', done: false },
+        { id: 4, cat: 'การจอง', text: 'จองตั๋ว Tokyo Skytree', who: 'ploy', done: true },
+        { id: 5, cat: 'ใช้ร่วมกัน', text: 'eSIM หรือ pocket wifi', who: 'beam', done: false },
+        { id: 6, cat: 'ใช้ร่วมกัน', text: 'ปลั๊กแปลงไฟ', who: '', done: false },
+        { id: 7, cat: 'ใช้ร่วมกัน', text: 'ยาสามัญประจำบ้าน', who: 'mint', done: false },
+        { id: 8, cat: 'เพิ่มเอง', text: 'จองร้านยากินิคุ วันที่ 3', who: 'act', done: false }
+      ],
+      personal: [
+        { id: 51, cat: 'เอกสาร', text: 'พาสปอร์ต', done: true },
+        { id: 52, cat: 'เอกสาร', text: 'บัตรเครดิต และเงินสดเยน', done: false },
+        { id: 53, cat: 'เสื้อผ้า', text: 'เสื้อกันหนาว', done: false },
+        { id: 54, cat: 'เสื้อผ้า', text: 'รองเท้าเดินสบาย', done: true },
+        { id: 55, cat: 'ของใช้', text: 'ที่ชาร์จและพาวเวอร์แบงก์', done: false },
+        { id: 56, cat: 'ของใช้', text: 'ยาประจำตัว', done: false }
+      ],
+      suggestGroup: ['แลกเงินเยน', 'บัตรรถไฟ', 'ร่มพับ'],
+      suggestPersonal: ['ลิปบาล์ม / ครีมทามือ', 'ถุงสำหรับของฝาก', 'ปากกาสำหรับกรอกฟอร์ม']
+    };
+  }
+  renderVals() {
+    var self = this;
+    var st = this.state;
+    var P = { act: ['Act', 'A', '#0B7A6A'], mint: ['Mint', 'M', '#2F5BB7'], beam: ['Beam', 'B', '#B2540F'], ploy: ['Ploy', 'P', '#8A3FA0'] };
+    var cycle = ['', 'act', 'mint', 'beam', 'ploy'];
+    var isGroup = st.tab === 'group';
+    var key = isGroup ? 'group' : 'personal';
+    var list = st[key];
+    var patch = function (id, fn) {
+      var x = {};
+      x[key] = list.map(function (it) { return it.id === id ? fn(Object.assign({}, it)) : it; });
+      self.setState(x);
+    };
+    var order = [], map = {};
+    list.forEach(function (it) {
+      if (!map[it.cat]) { map[it.cat] = []; order.push(it.cat); }
+      var who = it.who && P[it.who];
+      map[it.cat].push({
+        text: it.text, on: it.done ? 'true' : 'false', isGroup: isGroup,
+        boxBorder: it.done ? '#0B7A6A' : '#A7B4BE', boxBg: it.done ? '#0B7A6A' : '#FFFFFF',
+        textColor: it.done ? '#5B6B78' : '#13222F', strike: it.done ? 'line-through' : 'none',
+        hasMeta: isGroup && it.done && !!who, meta: who ? 'เสร็จโดย ' + who[0] : '',
+        whoInitial: who ? who[1] : '?', whoColor: who ? who[2] : '#A7B4BE', whoShort: who ? who[0] : 'ใครรับ?', whoLabel: who ? who[0] : 'ยังไม่มีคนรับ',
+        toggle: function () { patch(it.id, function (y) { y.done = !y.done; return y; }); },
+        assign: function () { patch(it.id, function (y) { y.who = cycle[(cycle.indexOf(y.who || '') + 1) % cycle.length]; return y; }); },
+        remove: function () { var x = {}; x[key] = list.filter(function (z) { return z.id !== it.id; }); self.setState(x); }
+      });
+    });
+    var groups = order.map(function (c) { return { title: c, items: map[c] }; });
+    var count = function (arr) { return arr.filter(function (i) { return i.done; }).length; };
+    var tabs = [['group', 'กลุ่ม', st.group], ['personal', 'ส่วนตัว', st.personal]].map(function (t) {
+      var on = st.tab === t[0];
+      return { label: t[1], sub: count(t[2]) + '/' + t[2].length, on: on ? 'true' : 'false', bg: on ? '#FFFFFF' : 'transparent', fg: on ? '#13222F' : '#4A5965', shadow: on ? '0 1px 3px rgba(19, 34, 47, 0.12)' : 'none', pick: function () { self.setState({ tab: t[0], draft: '' }); } };
+    });
+    var sKey = isGroup ? 'suggestGroup' : 'suggestPersonal';
+    var add = function (text) {
+      var x = {};
+      x[key] = list.concat([{ id: st.seq + 1, cat: 'เพิ่มเอง', text: text, who: '', done: false }]);
+      x.seq = st.seq + 1;
+      x.draft = '';
+      return x;
+    };
+    var suggest = st[sKey].map(function (s) {
+      return { text: s, add: function () { var x = add(s); x[sKey] = st[sKey].filter(function (z) { return z !== s; }); self.setState(x); } };
+    });
+    var done = count(list);
+    var q = st.draft.trim();
+    return {
+      tabs: tabs, groups: groups, suggest: suggest, hasSuggest: suggest.length > 0,
+      doneCount: done, totalCount: list.length, pct: (list.length ? Math.round(done / list.length * 100) : 0) + '%',
+      scopeNote: isGroup ? 'ทุกคนในทริปเห็นและติ๊กได้' : 'เห็นแค่คุณคนเดียว',
+      draft: st.draft, addPlaceholder: isGroup ? 'เพิ่มรายการของกลุ่ม' : 'เพิ่มของที่ต้องเตรียม',
+      addBg: q ? '#0B7A6A' : '#A7B4BE',
+      onDraft: function (e) { self.setState({ draft: e.target.value }); },
+      addItem: function () { if (q) self.setState(add(q)); }
+    };
+  }
+}
+</script>
+</body>
+</html>

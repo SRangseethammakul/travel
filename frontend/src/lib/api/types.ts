@@ -1,0 +1,277 @@
+/**
+ * Data model from docs/design/SPEC.md "โมเดลข้อมูลที่แนะนำ" (+ User).
+ * Names follow CONTEXT.md. Money is always integer satang; dates are ISO strings.
+ */
+import type { Satang } from "@/lib/money/format";
+import type { ISODate } from "@/lib/date";
+
+export type ID = string;
+/** "2026-12-12T00:30" — local wall-clock time at the place it happens (timezones are an open SPEC item). */
+export type LocalDateTime = string;
+/** Full ISO timestamp, e.g. "2026-11-11T14:58:00.000Z". */
+export type Timestamp = string;
+
+/** Colour keys map to design tokens (see components/ui/colors.ts). Never raw hex in data. */
+export type ColorKey = "teal" | "blue" | "orange" | "purple" | "slate" | "gray" | "ink";
+
+// ── People ──────────────────────────────────────────────────────────────────
+
+export type AuthProvider = "line" | "google";
+
+/** A real person's account (LINE or Google). One User can be a Member of many Trips. */
+export interface User {
+  id: ID;
+  name: string;
+  email: string;
+  avatarUrl?: string;
+  provider: AuthProvider;
+  color: ColorKey;
+}
+
+export type Role = "owner" | "editor" | "viewer";
+
+/** A named participant in one Trip. `userId: null` = Unclaimed Member. */
+export interface Member {
+  id: ID;
+  tripId: ID;
+  userId: ID | null;
+  displayName: string;
+  role: Role;
+  joinedVia?: AuthProvider;
+  color: ColorKey;
+  /** A4 lists `pending` Members (waiting for the owner's approval) next to `active` ones; absent = active. */
+  status?: "active" | "pending" | "removed";
+}
+
+// ── Trip ────────────────────────────────────────────────────────────────────
+
+/** One part of a multi-city Trip's route, in trip days (1-based, inclusive). */
+export interface CityLeg {
+  city: string;
+  from: number;
+  to: number;
+}
+
+export interface Trip {
+  id: ID;
+  name: string;
+  destination: string;
+  startDate: ISODate;
+  endDate: ISODate;
+  budget: Satang | null;
+  baseCurrency: "THB";
+  cover: ColorKey;
+  legs?: CityLeg[];
+  /** Free-text meeting point shown on the trip page, e.g. "สุวรรณภูมิ · ศ. 11 ธ.ค. 21:30". */
+  meetingPoint?: string;
+  createdBy: ID; // User id
+}
+
+/** One row of A2 GET /api/trips: a trip, my Member in it, and my Outstanding there. */
+export interface MyTrip {
+  trip: Trip;
+  me: Member;
+  outstanding: Satang;
+}
+
+/** How long a new or reset invite link works (B7 `expiresIn`). */
+export type InviteExpiry = "1d" | "7d" | "never";
+
+export interface Invite {
+  tripId: ID;
+  token: string;
+  expiresAt: Timestamp | null;
+  requireApproval: boolean;
+}
+
+/** Stored privately; opened through a signed URL. */
+export interface TripDocument {
+  id: ID;
+  tripId: ID;
+  name: string;
+  /** Storage key; only test fixtures set it — the backend never sends it (files open through B13 signed URLs). */
+  fileKey?: string;
+  mime: string;
+  size: number; // bytes
+  uploadedBy: ID; // Member id
+}
+
+// ── Places and plans ────────────────────────────────────────────────────────
+
+export type PlaceType = "sight" | "food" | "interest" | "stay" | "transit";
+
+export interface Place {
+  id: ID;
+  tripId: ID;
+  name: string;
+  type: PlaceType;
+  city: string;
+  /** Area typed by a Member, or null for "ไม่ระบุย่าน". */
+  area: string | null;
+  tagIds: ID[];
+  mapUrl?: string;
+  note: string;
+  costPerPerson?: Satang;
+  createdBy: ID; // Member id
+}
+
+/** Owned by a User and reusable across all their Trips. */
+export interface Tag {
+  id: ID;
+  ownerId: ID; // User id
+  name: string;
+  group: string | null;
+  color?: ColorKey;
+}
+
+export type HopMode = "walk" | "train" | "bus" | "taxi" | "car";
+
+/** How people get from one Plan Item to the next on the same day. */
+export interface Hop {
+  mode: HopMode;
+  minutes?: number;
+  note?: string;
+}
+
+export interface PlacePlanItem {
+  kind: "place";
+  id: ID;
+  tripId: ID;
+  day: number; // 1-based trip day
+  /** "11:00", or null when not timed yet. */
+  time: string | null;
+  placeId: ID;
+  note: string;
+  travelToNext?: Hop;
+  /** Member who added it; editors may change only their own (incl. its Hop). */
+  createdBy: ID;
+}
+
+export type TransitMode = "plane" | "train" | "bus" | "car" | "boat" | "other";
+
+export interface TransitPlanItem {
+  kind: "transit";
+  id: ID;
+  tripId: ID;
+  mode: TransitMode;
+  /** Short code shown large, e.g. "BKK". */
+  fromCode?: string;
+  fromText: string;
+  toCode?: string;
+  toText: string;
+  departAt: LocalDateTime;
+  arriveAt: LocalDateTime;
+  /** Entered by the user because departAt/arriveAt may be in different timezones. */
+  durationMinutes?: number;
+  bookingRef?: string;
+  seatInfo?: string;
+  docIds: ID[];
+  expenseId?: ID;
+  /** Places this transit starts/ends at (e.g. the airport), so they count as scheduled. */
+  fromPlaceId?: ID;
+  toPlaceId?: ID;
+  travelToNext?: Hop;
+  /** Member who added it; editors may change only their own (incl. its Hop). */
+  createdBy: ID;
+}
+
+export type PlanItem = PlacePlanItem | TransitPlanItem;
+
+// ── Money ───────────────────────────────────────────────────────────────────
+
+export type ExpenseCategory = "stay" | "transport" | "food" | "activity" | "other";
+export type PaymentMethod = "cash" | "promptpay" | "card" | "wallet";
+export type SplitMode = "equal" | "amount" | "shares";
+
+/** A Member's portion of an Expense. `amount` is always resolved; `weight` only for shares mode. */
+export interface Share {
+  memberId: ID;
+  amount: Satang;
+  weight?: number;
+}
+
+export interface Expense {
+  id: ID;
+  tripId: ID;
+  title: string;
+  category: ExpenseCategory;
+  payerId: ID; // Member id
+  method: PaymentMethod;
+  cardLast4?: string;
+  amount: Satang;
+  currency: "THB";
+  baseAmount: Satang;
+  splitMode: SplitMode;
+  shares: Share[];
+  slipDocId?: ID;
+  note?: string;
+  /** Day the expense happened (groups the Expenses list). */
+  date: ISODate;
+  createdBy: ID; // Member id
+  createdAt: Timestamp;
+  updatedBy?: ID;
+  updatedAt?: Timestamp;
+}
+
+export type SettlementStatus = "pending" | "sent" | "confirmed";
+
+export interface Settlement {
+  id: ID;
+  tripId: ID;
+  fromId: ID; // Member id
+  toId: ID; // Member id
+  amount: Satang;
+  status: SettlementStatus;
+  slipDocId?: ID;
+  createdAt: Timestamp;
+  sentAt?: Timestamp;
+  confirmedAt?: Timestamp;
+}
+
+// ── Checklist and activity ──────────────────────────────────────────────────
+
+export type ChecklistScope = "group" | "personal";
+
+export interface ChecklistItem {
+  id: ID;
+  tripId: ID;
+  scope: ChecklistScope;
+  /** Member id; required for personal items (only the owner may see them). */
+  ownerId?: ID;
+  text: string;
+  category: string;
+  assigneeId?: ID;
+  done: boolean;
+  doneBy?: ID;
+  fromTemplate: boolean;
+}
+
+export type ActivityType = "expense" | "settlement" | "plan" | "member";
+
+export interface Activity {
+  id: ID;
+  tripId: ID;
+  actorId: ID; // Member id
+  type: ActivityType;
+  refId: ID | null;
+  text: string;
+  createdAt: Timestamp;
+  /** User ids that have read it. */
+  readBy: ID[];
+}
+
+// ── Derived (computed, never stored) ────────────────────────────────────────
+
+export interface MemberBalanceRow {
+  member: Member;
+  paid: Satang;
+  share: Satang;
+  net: Satang;
+  outstanding: Satang;
+}
+
+export interface TripBalances {
+  total: Satang;
+  rows: MemberBalanceRow[];
+  transfers: { from: Member; to: Member; amount: Satang; settlement: Settlement | null }[];
+}

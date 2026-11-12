@@ -1,0 +1,70 @@
+# Local stack: MongoDB + backend API (:4000) + frontend (:3000).
+#   docker compose up --build
+#   docker compose exec backend node dist/seed/run.js   # load the 4 seed trips
+# Override secrets/settings in a root .env file (see .env.example).
+services:
+  mongo:
+    image: mongo:9.0.8
+    restart: unless-stopped
+    ports:
+      - "${MONGO_HOST_PORT:-27017}:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "4000:4000"
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/travel-planner
+      PORT: 4000
+      # development keeps the `mock-user` cookie and seeding working; use production for real deploys.
+      NODE_ENV: ${BACKEND_NODE_ENV:-development}
+      SESSION_SECRET: ${SESSION_SECRET:-dev-only-session-secret-change-me-0000}
+      FILE_URL_SECRET: ${FILE_URL_SECRET:-dev-only-file-url-secret-change-me-000}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      # The web origin: Next rewrites /api/* to this backend (docs/adr/0001).
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:3000}
+      # Reverse proxies in front of the backend that append X-Forwarded-For (Next does not count). 0 here: nothing in front.
+      TRUST_PROXY: ${TRUST_PROXY:-0}
+      UPLOAD_DIR: .data/uploads
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      LINE_CHANNEL_ID: ${LINE_CHANNEL_ID:-}
+      LINE_CHANNEL_SECRET: ${LINE_CHANNEL_SECRET:-}
+    volumes:
+      - uploads:/app/.data/uploads
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # rewrites() in next.config.ts are fixed at build time, so the build needs it too.
+        BACKEND_URL: http://backend:4000
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      # Server-side only: Next calls the backend and rewrites /api/* to it (docs/adr/0001).
+      BACKEND_URL: http://backend:4000
+    ports:
+      - "3000:3000"
+
+volumes:
+  mongo-data:
+  uploads:

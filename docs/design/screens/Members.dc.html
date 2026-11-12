@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>สมาชิกและสิทธิ์</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&amp;family=Prompt:wght@500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#0B7A6A}a:hover{color:#075E52}
+button{font-family:inherit}
+button:focus-visible,a:focus-visible{outline:2px solid #0B7A6A;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; display: flex; flex-direction: column; background: #F3F5F7; color: #13222F; font-family: 'IBM Plex Sans Thai', sans-serif; overflow: hidden; position: relative">
+
+  <header style="display: flex; align-items: center; gap: 8px; padding: 16px 12px 8px">
+    <a href="Main.dc.html" aria-label="ย้อนกลับ" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 14px; color: #13222F">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+    </a>
+    <div style="flex: 1; display: flex; flex-direction: column">
+      <h1 style="margin: 0; font-family: Prompt, sans-serif; font-size: 18px; font-weight: 600">สมาชิกและสิทธิ์</h1>
+      <span style="font-size: 12px; color: #5B6B78">โตเกียวหน้าหนาว · {{count}} คน</span>
+    </div>
+  </header>
+
+  <main style="flex: 1; overflow-y: auto; padding: 8px 20px 24px; display: flex; flex-direction: column; gap: 18px">
+
+    <section style="display: flex; flex-direction: column; background: #FFFFFF; border-radius: 18px; overflow: hidden">
+      <sc-for list="{{members}}" as="m" hint-placeholder-count="4">
+        <div style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 0 12px 0 14px; border-bottom: 1px solid #EEF1F4">
+          <span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: {{m.color}}; color: #FFFFFF; font-family: Prompt, sans-serif; font-weight: 600; font-size: 15px">{{m.initial}}</span>
+          <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+            <span style="font-size: 15px; font-weight: 600">{{m.name}}</span>
+            <span style="font-size: 12px; color: {{m.loginColor}}">{{m.login}}</span>
+          </span>
+          <button type="button" onClick="{{m.open}}" aria-label="เปลี่ยนสิทธิ์ของ {{m.name}} ตอนนี้: {{m.roleLabel}}" style="display: flex; align-items: center; gap: 4px; min-height: 40px; padding: 0 10px; border: 1px solid {{m.roleBorder}}; border-radius: 10px; background: {{m.roleBg}}; color: {{m.roleFg}}; font-size: 13px; font-weight: 600; cursor: pointer">
+            {{m.roleLabel}}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+        </div>
+      </sc-for>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 8px; padding: 14px; background: #FFFFFF; border-radius: 18px">
+      <h2 style="margin: 0 0 2px; font-size: 14px; font-weight: 600">แต่ละสิทธิ์ทำอะไรได้</h2>
+      <div style="display: flex; gap: 10px; font-size: 13px; line-height: 1.5"><span style="flex-shrink: 0; width: 82px; font-weight: 600">ผู้จัดทริป</span><span style="color: #3C4C59">แก้ได้ทุกอย่าง จัดการสมาชิกและลิงก์เชิญ ลบทริป</span></div>
+      <div style="display: flex; gap: 10px; font-size: 13px; line-height: 1.5"><span style="flex-shrink: 0; width: 82px; font-weight: 600">แก้ไขได้</span><span style="color: #3C4C59">เพิ่มสถานที่ แผน และค่าใช้จ่าย · แก้หรือลบได้เฉพาะค่าใช้จ่ายที่ตัวเองสร้าง</span></div>
+      <div style="display: flex; gap: 10px; font-size: 13px; line-height: 1.5"><span style="flex-shrink: 0; width: 82px; font-weight: 600">ดูอย่างเดียว</span><span style="color: #3C4C59">ดูแผนและยอดของตัวเอง แจ้งโอนเงินได้</span></div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 12px; padding: 14px; background: #FFFFFF; border-radius: 18px">
+      <h2 style="margin: 0; font-size: 14px; font-weight: 600">ลิงก์เชิญ</h2>
+      <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: #F3F5F7">
+        <span style="flex: 1; min-width: 0; font-size: 14px; color: #3C4C59; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">[ลิงก์เชิญของทริป]</span>
+        <button type="button" style="min-height: 36px; padding: 0 12px; border: 1px solid #D5DDE3; border-radius: 10px; background: #FFFFFF; color: #13222F; font-size: 13px; font-weight: 600; cursor: pointer">คัดลอก</button>
+      </div>
+      <div role="radiogroup" aria-label="ลิงก์หมดอายุใน" style="display: flex; flex-direction: column; gap: 6px">
+        <span style="font-size: 13px; font-weight: 600">หมดอายุใน</span>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+          <sc-for list="{{expiry}}" as="e" hint-placeholder-count="3">
+            <button type="button" role="radio" aria-checked="{{e.on}}" onClick="{{e.pick}}" style="min-height: 40px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1.5px solid {{e.border}}; background: {{e.bg}}; color: {{e.fg}}">{{e.label}}</button>
+          </sc-for>
+        </div>
+      </div>
+      <button type="button" role="switch" aria-checked="{{approveOn}}" onClick="{{toggleApprove}}" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 0; border: 0; background: none; color: #13222F; text-align: left; cursor: pointer">
+        <span style="display: flex; flex-direction: column">
+          <span style="font-size: 14px; font-weight: 600">ต้องอนุมัติก่อนเข้าทริป</span>
+          <span style="font-size: 12px; color: #5B6B78">กันคนนอกที่ได้ลิงก์ต่อๆ กันมา</span>
+        </span>
+        <span style="width: 44px; height: 26px; flex-shrink: 0; border-radius: 999px; padding: 3px; box-sizing: border-box; display: flex; justify-content: {{swJustify}}; background: {{swBg}}"><span style="width: 20px; height: 20px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(19, 34, 47, 0.25)"></span></span>
+      </button>
+      <sc-if value="{{showPending}}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: #FCEBDD">
+          <span style="width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #5B6B78; color: #FFFFFF; font-family: Prompt, sans-serif; font-weight: 600; font-size: 13px">N</span>
+          <span style="flex: 1; min-width: 0; font-size: 13px; color: #5C3208"><strong style="font-weight: 600">Nok</strong> ขอเข้าร่วม</span>
+          <button type="button" onClick="{{reject}}" style="min-height: 36px; padding: 0 10px; border: 1px solid #E8B98A; border-radius: 10px; background: #FFFFFF; color: #5C3208; font-size: 13px; font-weight: 600; cursor: pointer">ปฏิเสธ</button>
+          <button type="button" onClick="{{approve}}" style="min-height: 36px; padding: 0 10px; border: 0; border-radius: 10px; background: #0B7A6A; color: #FFFFFF; font-size: 13px; font-weight: 600; cursor: pointer">อนุมัติ</button>
+        </div>
+      </sc-if>
+      <button type="button" style="min-height: 44px; border: 1px solid #F1C7C2; border-radius: 12px; background: #FFFFFF; color: #B23A2E; font-size: 14px; font-weight: 600; cursor: pointer">รีเซ็ตลิงก์ (ลิงก์เดิมจะใช้ไม่ได้)</button>
+    </section>
+  </main>
+
+  <sc-if value="{{editing}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; background: rgba(19, 34, 47, 0.45); display: flex; flex-direction: column; justify-content: flex-end">
+      <section role="dialog" aria-labelledby="roleTitle" style="display: flex; flex-direction: column; gap: 10px; padding: 22px 20px 32px; background: #FFFFFF; border-radius: 24px 24px 0 0">
+        <h2 id="roleTitle" style="margin: 0 0 4px; font-family: Prompt, sans-serif; font-size: 18px; font-weight: 600">สิทธิ์ของ {{editName}}</h2>
+        <sc-for list="{{roleOpts}}" as="r" hint-placeholder-count="3">
+          <button type="button" role="radio" aria-checked="{{r.on}}" onClick="{{r.pick}}" style="display: flex; align-items: center; justify-content: space-between; min-height: 52px; padding: 0 14px; border-radius: 14px; font-size: 15px; font-weight: 600; cursor: pointer; border: 1.5px solid {{r.border}}; background: {{r.bg}}; color: #13222F; text-align: left">
+            {{r.label}}
+            <span style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid {{r.dotBorder}}; display: flex; align-items: center; justify-content: center"><span style="width: 10px; height: 10px; border-radius: 50%; background: {{r.dot}}"></span></span>
+          </button>
+        </sc-for>
+        <sc-if value="{{canRemove}}" hint-placeholder-val="{{ true }}">
+          <button type="button" style="min-height: 48px; margin-top: 4px; border: 1px solid #F1C7C2; border-radius: 14px; background: #FFFFFF; color: #B23A2E; font-size: 14px; font-weight: 600; cursor: pointer">นำ {{editName}} ออกจากทริป</button>
+          <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #5B6B78">ถ้ายังมียอดค้าง ระบบจะให้เคลียร์ก่อน หรือย้ายส่วนที่ต้องจ่ายไปให้คนอื่น</p>
+        </sc-if>
+        <button type="button" onClick="{{close}}" style="min-height: 48px; margin-top: 4px; border: 0; border-radius: 14px; background: #13222F; color: #FFFFFF; font-size: 15px; font-weight: 600; cursor: pointer">เสร็จ</button>
+      </section>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      roles: { act: 'owner', mint: 'editor', beam: 'editor', ploy: 'editor' },
+      edit: '', expiry: '7d', approve: true, pending: true
+    };
+  }
+  renderVals() {
+    var self = this;
+    var st = this.state;
+    var ROLE = { owner: 'ผู้จัดทริป', editor: 'แก้ไขได้', viewer: 'ดูอย่างเดียว' };
+    var people = [
+      { id: 'act', name: 'Act (คุณ)', initial: 'A', color: '#0B7A6A', login: 'เข้าสู่ระบบด้วย Google' },
+      { id: 'mint', name: 'Mint', initial: 'M', color: '#2F5BB7', login: 'เข้าสู่ระบบด้วย LINE' },
+      { id: 'beam', name: 'Beam', initial: 'B', color: '#B2540F', login: 'เข้าสู่ระบบด้วย LINE' },
+      { id: 'ploy', name: 'Ploy', initial: 'P', color: '#8A3FA0', login: 'ยังไม่เข้าร่วม · ส่งลิงก์แล้ว', pending: true }
+    ];
+    var members = people.map(function (p) {
+      var r = st.roles[p.id];
+      var owner = r === 'owner';
+      return {
+        name: p.name, initial: p.initial, color: p.color, login: p.login, loginColor: p.pending ? '#8A4A0C' : '#5B6B78',
+        roleLabel: ROLE[r], roleBorder: owner ? '#13222F' : '#D5DDE3', roleBg: owner ? '#13222F' : '#FFFFFF', roleFg: owner ? '#FFFFFF' : '#13222F',
+        open: function () { self.setState({ edit: p.id }); }
+      };
+    });
+    var cur = people.filter(function (p) { return p.id === st.edit; })[0];
+    var roleOpts = ['owner', 'editor', 'viewer'].map(function (k) {
+      var on = cur && st.roles[cur.id] === k;
+      return {
+        label: ROLE[k], on: on ? 'true' : 'false', border: on ? '#0B7A6A' : '#E3E8EC', bg: on ? '#E3F2EF' : '#FFFFFF',
+        dotBorder: on ? '#0B7A6A' : '#A7B4BE', dot: on ? '#0B7A6A' : 'transparent',
+        pick: function () { var x = Object.assign({}, st.roles); x[cur.id] = k; self.setState({ roles: x }); }
+      };
+    });
+    var expiry = [['1d', '1 วัน'], ['7d', '7 วัน'], ['never', 'ไม่หมดอายุ']].map(function (e) {
+      var on = st.expiry === e[0];
+      return { label: e[1], on: on ? 'true' : 'false', border: on ? '#13222F' : '#D5DDE3', bg: on ? '#13222F' : '#FFFFFF', fg: on ? '#FFFFFF' : '#13222F', pick: function () { self.setState({ expiry: e[0] }); } };
+    });
+    return {
+      count: people.length, members: members, expiry: expiry,
+      approveOn: st.approve ? 'true' : 'false', swBg: st.approve ? '#0B7A6A' : '#C9D3DA', swJustify: st.approve ? 'flex-end' : 'flex-start',
+      toggleApprove: function () { self.setState({ approve: !st.approve }); },
+      showPending: st.approve && st.pending,
+      approve: function () { self.setState({ pending: false }); },
+      reject: function () { self.setState({ pending: false }); },
+      editing: !!cur, editName: cur ? cur.name : '', roleOpts: roleOpts,
+      canRemove: !!cur && cur.id !== 'act',
+      close: function () { self.setState({ edit: '' }); }
+    };
+  }
+}
+</script>
+</body>
+</html>
