@@ -7,6 +7,9 @@
  * components never need raw hex values.
  */
 @theme {
+  /* App frame: mockups are drawn at 390px, the app stretches up to 640px (tablets). Use max-w-app. */
+  --container-app: 40rem;
+
   /* Core palette */
   --color-bg: #f3f5f7;
   --color-surface: #ffffff;
@@ -52,6 +55,8 @@
   --color-transit-ink: #6e2f82;
   --color-transit-ink-strong: #4a3352;
   --color-stay-soft: #eef1f4;
+  --color-shopping-soft: #fbe5f1; /* ช็อปปิ้ง badge tint (Personal Expenses) */
+  --color-shopping-ink: #a8226b; /* magenta, 5.66:1 on shopping-soft; not the danger rose */
   --color-chart-food: #e08a3e; /* อาหาร slice in the Summary category bar (not text) */
 
   /* Radii */

@@ -190,7 +190,7 @@ export function ExpenseForm({ tripId, expenseId, members, trip, initial, transit
               placeholder="0"
               value={amountText}
               onChange={(e) => setAmountText(formatBahtInput(e.target.value))}
-              className="w-[220px] rounded-chip border-0 bg-transparent p-0 text-center font-display text-[44px] font-semibold text-ink tabular-nums placeholder:text-line-strong focus-visible:outline-offset-4"
+              className="w-full max-w-[220px] rounded-chip border-0 bg-transparent p-0 text-center font-display text-[44px] font-semibold text-ink tabular-nums placeholder:text-line-strong focus-visible:outline-offset-4"
             />
           </div>
         </div>
@@ -238,7 +238,7 @@ export function ExpenseForm({ tripId, expenseId, members, trip, initial, transit
 
         <fieldset className="m-0 flex flex-col border-0 p-0">
           <legend className={legend}>จ่ายโดย</legend>
-          <div role="radiogroup" aria-label="จ่ายโดย" className="grid grid-cols-4 gap-2">
+          <div role="radiogroup" aria-label="จ่ายโดย" className="grid grid-cols-4 gap-2 sm:grid-cols-6">
             {members.map((m) => {
               const on = payerId === m.id;
               return (

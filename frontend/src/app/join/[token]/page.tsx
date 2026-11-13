@@ -89,7 +89,7 @@ export default async function JoinTripPage({ params, searchParams }: PageProps<"
             {formatDateRange(trip.startDate, trip.endDate)} · {formatTripLength(trip.startDate, trip.endDate)}
           </span>
           {stats.length ? (
-          <dl className="m-0 grid grid-cols-3 gap-2 border-t border-ink-divider pt-3">
+          <dl className="m-0 grid grid-cols-[repeat(3,minmax(min-content,1fr))] gap-2 border-t border-ink-divider pt-3">
             {stats.map(([value, label]) => (
               <div key={label} className="flex flex-col-reverse">
                 <dt className="text-xs text-on-ink-muted">{label}</dt>

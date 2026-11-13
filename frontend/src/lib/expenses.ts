@@ -1,11 +1,12 @@
 /**
  * Expenses list and Summary helpers (pure, money in satang).
  */
-import type { Activity, Expense, ExpenseCategory, ID, Settlement } from "@/lib/api/types";
+import type { Activity, Expense, ExpenseCategory, ID, PersonalExpenseCategory, Settlement } from "@/lib/api/types";
 import { daysBetween, formatDayMonth, type ISODate } from "@/lib/date";
 import type { Satang } from "@/lib/money/format";
 
-type ExpenseLike = Pick<Expense, "id" | "date" | "amount" | "shares">;
+/** Anything dated with an amount: group Expenses and Personal Expenses. */
+type ExpenseLike = Pick<Expense, "id" | "date" | "amount">;
 
 export interface ExpenseDay<E> {
   date: ISODate;
@@ -51,22 +52,32 @@ export function equalShareAmount(e: Pick<Expense, "amount" | "shares">): Satang 
   return max - min <= amounts.length - 1 ? min : null;
 }
 
-export interface CategoryTotal {
-  category: ExpenseCategory;
+export interface CategoryTotal<C extends string = ExpenseCategory> {
+  category: C;
   amount: Satang;
   /** Share of the total, rounded to a whole percent for labels (bar widths use the exact ratio). */
   percent: number;
 }
 
 /** Spending per category, largest first. */
-export function categoryTotals(expenses: readonly Pick<Expense, "category" | "amount">[]): CategoryTotal[] {
-  const sums = new Map<ExpenseCategory, Satang>();
+export function categoryTotals<C extends string = ExpenseCategory>(
+  expenses: readonly { category: C; amount: Satang }[],
+): CategoryTotal<C>[] {
+  const sums = new Map<C, Satang>();
   for (const e of expenses) sums.set(e.category, (sums.get(e.category) ?? 0) + e.amount);
   const total = [...sums.values()].reduce((a, b) => a + b, 0);
   if (!total) return [];
   return [...sums]
     .map(([category, amount]) => ({ category, amount, percent: Math.round((amount * 100) / total) }))
     .sort((a, b) => b.amount - a.amount);
+}
+
+/** Personal view header: the Member's own spending, total and per category (largest first). */
+export function personalTotals(records: readonly { category: PersonalExpenseCategory; amount: Satang }[]): {
+  total: Satang;
+  byCategory: CategoryTotal<PersonalExpenseCategory>[];
+} {
+  return { total: records.reduce((sum, r) => sum + r.amount, 0), byCategory: categoryTotals(records) };
 }
 
 export interface ShareLine {

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createSeed, memberId, TRIP_IDS } from "@/test/fixtures/seed";
 import { outstandingBalances } from "@/lib/money/balance";
 import { suggestTransfers } from "@/lib/money/settle";
-import { categoryTotals, equalShareAmount, groupExpensesByDay, shareBreakdown, suggestedRow, transferRows, unreadCount } from "./expenses";
+import { categoryTotals, equalShareAmount, groupExpensesByDay, personalTotals, shareBreakdown, suggestedRow, transferRows, unreadCount } from "./expenses";
 
 const seed = createSeed(new Date("2026-11-11T10:00:00Z"));
 const T = TRIP_IDS.tokyo;
@@ -47,6 +47,45 @@ describe("categoryTotals", () => {
   });
   it("is empty without expenses", () => {
     expect(categoryTotals([])).toEqual([]);
+  });
+});
+
+describe("personalTotals", () => {
+  it("sums my own records and breaks them down by category, shopping included", () => {
+    const records = [
+      { category: "shopping" as const, amount: 300_000 },
+      { category: "food" as const, amount: 45_050 },
+      { category: "shopping" as const, amount: 120_000 },
+      { category: "transport" as const, amount: 21_000 },
+    ];
+    expect(personalTotals(records)).toEqual({
+      total: 486_050,
+      byCategory: [
+        { category: "shopping", amount: 420_000, percent: 86 },
+        { category: "food", amount: 45_050, percent: 9 },
+        { category: "transport", amount: 21_000, percent: 4 },
+      ],
+    });
+  });
+  it("is zero and empty without records", () => {
+    expect(personalTotals([])).toEqual({ total: 0, byCategory: [] });
+  });
+});
+
+describe("groupExpensesByDay with Personal Expenses", () => {
+  it("groups records that have no Shares", () => {
+    const days = groupExpensesByDay(
+      [
+        { id: "p1", date: "2026-12-13", amount: 300_000 },
+        { id: "p2", date: "2026-12-12", amount: 45_050 },
+        { id: "p3", date: "2026-12-13", amount: 21_000 },
+      ],
+      tokyo,
+    );
+    expect(days.map((d) => [d.label, d.total, d.items.map((i) => i.id)])).toEqual([
+      ["ส. 12 ธ.ค. · วันที่ 1", 45_050, ["p2"]],
+      ["อา. 13 ธ.ค. · วันที่ 2", 321_000, ["p1", "p3"]],
+    ]);
   });
 });
 

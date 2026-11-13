@@ -4,7 +4,8 @@ import { placeTypeStyle } from "@/components/ui/colors";
 import type { Place, PlanItem, TransitPlanItem, TripDocument } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
 import { formatDuration, transitModeLabel } from "@/lib/labels";
-import { hopText } from "@/lib/plan";
+import { formatWeekdayDay } from "@/lib/date";
+import { arrivesLaterDay, hopText } from "@/lib/plan";
 import { HopButton } from "./HopButton";
 
 interface TimelineProps {
@@ -15,14 +16,37 @@ interface TimelineProps {
   base: string;
   /** Hop chips of these Plan Items become buttons that open the travel sheet (items the viewer may edit). */
   hopEdit?: { tripId: string; itemIds: string[] };
+  /** Overnight Transits landing on this day, shown first as read-only arrival rows. */
+  arrivals?: { item: TransitPlanItem; departDay: number }[];
 }
 
 /** One day of the Planner: time column with a rail, place cards, purple Transit cards and Hop chips. */
-export function Timeline({ items, places, documents, base, hopEdit }: TimelineProps) {
+export function Timeline({ items, places, documents, base, hopEdit, arrivals = [] }: TimelineProps) {
   const itemName = (item: PlanItem | undefined) =>
     !item ? "" : item.kind === "place" ? (places.get(item.placeId)?.name ?? "") : (item.toCode ?? item.toText);
   return (
     <ol className="m-0 flex list-none flex-col p-0">
+      {arrivals.map(({ item, departDay }, i) => (
+        <li key={`arrive-${item.id}`} className="flex gap-3">
+          <div className="flex w-12 shrink-0 flex-col items-center">
+            <span className="pt-3.5 font-display text-sm font-semibold tabular-nums">{item.arriveAt.slice(11, 16)}</span>
+            <span aria-hidden="true" className={cn("mt-1.5 w-0.5 flex-1", i === arrivals.length - 1 && !items.length ? "bg-transparent" : "bg-line-strong")} />
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col pb-1.5">
+            <article className="flex items-center gap-2.5 rounded-2xl border border-dashed border-transit-line bg-transit-soft/60 px-3.5 py-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-type-transit/80 text-surface">
+                <Icon name="plane" size={18} />
+              </span>
+              <div className="flex min-w-0 flex-1 flex-col">
+                <h3 className="m-0 text-base font-semibold">ถึง {item.toCode ?? item.toText}</h3>
+                <span className="text-xs text-transit-ink">
+                  {transitModeLabel[item.mode]}จาก {item.fromCode ?? item.fromText} · ออกวัน {departDay} {item.departAt.slice(11, 16)}
+                </span>
+              </div>
+            </article>
+          </div>
+        </li>
+      ))}
       {items.map((item, i) => {
         const last = i === items.length - 1;
         const time = item.kind === "transit" ? item.departAt.slice(11, 16) : (item.time ?? "—");
@@ -31,6 +55,9 @@ export function Timeline({ items, places, documents, base, hopEdit }: TimelinePr
             <div className="flex w-12 shrink-0 flex-col items-center">
               <span className="pt-3.5 font-display text-sm font-semibold tabular-nums">{time}</span>
               {item.kind === "transit" ? <span className="text-[11px] text-ink-muted">ถึง {item.arriveAt.slice(11, 16)}</span> : null}
+              {item.kind === "transit" && arrivesLaterDay(item) ? (
+                <span className="text-[11px] font-semibold whitespace-nowrap text-transit-ink">{formatWeekdayDay(item.arriveAt.slice(0, 10))}</span>
+              ) : null}
               <span aria-hidden="true" className={cn("mt-1.5 w-0.5 flex-1", last ? "bg-transparent" : "bg-line-strong")} />
             </div>
             <div className="flex min-w-0 flex-1 flex-col pb-1.5">

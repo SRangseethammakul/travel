@@ -28,6 +28,7 @@ const paths = {
   card: { w: 1.8, d: <><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20M6 15h4" /></> },
   home: { w: 1.8, d: <><path d="M3 11l9-7 9 7" /><path d="M5 10v10h14V10" /><path d="M10 20v-5h4v5" /></> },
   clock: { w: 1.8, d: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></> },
+  lock: { w: 1.8, d: <><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></> },
   arrowRight: { w: 2, d: <path d="M5 12h14M13 6l6 6-6 6" /> },
   checklist: { w: 2, d: <><path d="M4 6l2 2 4-4M4 14l2 2 4-4" /><path d="M13 7h7M13 15h7" /></> },
   cash: { w: 1.8, d: <><rect x="2" y="6" width="20" height="12" rx="2" /><circle cx="12" cy="12" r="2.5" /><path d="M6 9.5v5M18 9.5v5" /></> },

@@ -222,7 +222,7 @@ describe("invite + join", () => {
 
 describe("dev routes", () => {
   it("list Users and switch the mock User", async () => {
-    expect((await request(app()).get("/api/dev/users")).body).toHaveLength(5);
+    expect((await request(app()).get("/api/dev/users")).body).toHaveLength(7);
     const res = await request(app()).post("/api/dev/login").send({ userId: "ploy" });
     expect(res.status).toBe(204);
     expect(res.headers["set-cookie"]?.[0]).toMatch(/^mock-user=ploy/);

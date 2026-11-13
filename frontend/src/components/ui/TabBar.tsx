@@ -21,7 +21,7 @@ export function TabBar({ tripId }: { tripId: string }) {
   return (
     <nav
       aria-label="เมนูหลัก"
-      className="fixed inset-x-0 bottom-0 z-30 mx-auto grid w-full max-w-[390px] grid-cols-5 border-t border-line bg-surface px-1 pt-1.5 pb-[max(22px,env(safe-area-inset-bottom))]"
+      className="fixed inset-x-0 bottom-0 z-30 mx-auto grid w-full max-w-app grid-cols-5 border-t border-line bg-surface px-1 pt-1.5 pb-[max(22px,env(safe-area-inset-bottom))]"
     >
       {tabs.map((t) => {
         const href = t.segment ? `${base}/${t.segment}` : base;

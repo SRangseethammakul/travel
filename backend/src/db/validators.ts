@@ -321,6 +321,33 @@ export const collectionDefs: CollectionDef[] = [
     indexes: [{ key: { tripId: 1, date: 1, createdAt: 1 }, options: { name: "expenses_trip_date" } }],
   },
   {
+    name: "personalExpenses",
+    validator: {
+      $jsonSchema: {
+        bsonType: "object",
+        additionalProperties: false,
+        required: ["_id", "tripId", "ownerId", "title", "category", "amount", "currency", "baseAmount", "method", "date", "createdAt"],
+        properties: {
+          _id: id,
+          tripId: id,
+          ownerId: id,
+          title: text(200),
+          category: { enum: ["stay", "transport", "food", "activity", "other", "shopping"] },
+          amount: positiveMoney,
+          currency: { enum: ["THB"] },
+          baseAmount: positiveMoney,
+          method: { enum: ["cash", "promptpay", "card", "wallet"] },
+          note: text(2000),
+          date: isoDate,
+          createdAt: date,
+          updatedAt: date,
+        },
+      },
+    },
+    // Every query filters on tripId + ownerId (private to the owner) and sorts by date.
+    indexes: [{ key: { tripId: 1, ownerId: 1, date: 1, createdAt: 1 }, options: { name: "personalExpenses_trip_owner_date" } }],
+  },
+  {
     name: "settlements",
     validator: {
       $jsonSchema: {

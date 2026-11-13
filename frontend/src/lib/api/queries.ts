@@ -14,6 +14,7 @@ import type {
   Invite,
   Member,
   MyTrip,
+  PersonalExpense,
   Place,
   PlanItem,
   Settlement,
@@ -129,6 +130,11 @@ export async function getExpenses(tripId: ID): Promise<Expense[]> {
 /** A12 GET /api/trips/:tripId/expenses/:expenseId, or null. */
 export async function getExpense(tripId: ID, expenseId: ID): Promise<Expense | null> {
   return nullOn404(apiFetch<Expense>(`${tripPath(tripId)}/expenses/${encodeURIComponent(expenseId)}`));
+}
+
+/** B44 GET /api/trips/:tripId/personal-expenses — the Current Member's own records, by date then createdAt. */
+export async function getPersonalExpenses(tripId: ID): Promise<PersonalExpense[]> {
+  return apiFetch<PersonalExpense[]>(`${tripPath(tripId)}/personal-expenses`);
 }
 
 /** A13 GET /api/trips/:tripId/settlements — every Settlement (viewers too). */

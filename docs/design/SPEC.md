@@ -4,7 +4,7 @@
 
 ## ภาพรวม
 
-Travel Planner คือ web app แบบมือถือเป็นหลัก สำหรับเที่ยวเป็นกลุ่ม ครอบคลุมตั้งแต่ list สถานที่ วางแผนรายวัน จดค่าใช้จ่าย จนถึงหารเงินและโอนคืนกัน แบบมี 22 หน้าจอขนาด 390×844
+Travel Planner คือ web app แบบมือถือเป็นหลัก สำหรับเที่ยวเป็นกลุ่ม ครอบคลุมตั้งแต่ list สถานที่ วางแผนรายวัน จดค่าใช้จ่าย จนถึงหารเงินและโอนคืนกัน แบบมี 22 หน้าจอขนาด 390×844 (mockup วาดที่ 390px แต่แอปจริงยืดได้ถึง 640px ให้ใช้ได้ทั้งมือถือ 320px ขึ้นไปและแท็บเล็ต)
 
 ข้อมูลตัวอย่างในทุกหน้าคือทริป "โตเกียวหน้าหนาว" ของสมาชิก 4 คน (Act, Mint, Beam, Ploy) วันที่ 12–15 ธ.ค. 2569 ใช้จ่ายรวม ฿30,350 ตัวเลขทุกหน้าคำนวณให้ตรงกัน
 
@@ -163,6 +163,7 @@ Expense   { tripId, title, category, payerId, method, amount, currency: 'THB', b
             splitMode: 'equal' | 'amount' | 'shares',
             shares: [{ memberId, amount?, weight? }], slipDocId?, createdBy }
 Settlement{ tripId, fromId, toId, amount, status: 'pending' | 'sent' | 'confirmed', slipDocId? }
+PersonalExpense { tripId, ownerId, title, category, amount, currency: 'THB', baseAmount, method, note?, date }  // ส่วนตัว ไม่มี payer/shares
 
 ChecklistItem { tripId, scope: 'group' | 'personal', ownerId?, text, category, assigneeId?, doneBy?, fromTemplate }
 Activity  { tripId, actorId, type, refId, text, createdAt }
@@ -170,6 +171,7 @@ Activity  { tripId, actorId, type, refId, text, createdAt }
 
 - ยอดสุทธิคำนวณจาก Expense ทุกครั้ง ไม่เก็บซ้ำ ส่วน Settlement เก็บเฉพาะการโอนที่เกิดขึ้นจริง
 - รายการเช็คลิสต์ `personal` ต้องกรองด้วย `ownerId` ที่ backend เสมอ
+- PersonalExpense (ค่าใช้จ่ายส่วนตัว) เห็นได้เฉพาะเจ้าของ กรองด้วย `ownerId` ที่ backend เสมอ ทุก role เพิ่ม/แก้/ลบของตัวเองได้ หมวดเพิ่ม `shopping` (ช็อปปิ้ง) ไม่นับในยอดรวมทริป ยอดสุทธิ การโอน หรือสรุป และไม่ลง Activity index `{ tripId, ownerId, date }`
 - index หลัก: `{ tripId, area }` และ `tagIds` (multikey) ของ Place, `{ tripId, day, time }` ของ PlanItem
 
 ## เรื่องที่ยังเปิดอยู่

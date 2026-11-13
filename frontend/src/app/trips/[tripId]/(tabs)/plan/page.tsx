@@ -9,7 +9,7 @@ import { getDocuments, getPlaces, getPlanItems, requireTripMember } from "@/lib/
 import { cn } from "@/lib/cn";
 import { canEditPlanEntry } from "@/lib/permissions";
 import { formatLongDayMonth, formatWeekdayDay, todayISO, tripDayDate } from "@/lib/date";
-import { dayAreasLabel, itemsByDay, legCity, resolveDay, unscheduledPlaces } from "@/lib/plan";
+import { arrivalsOnDay, dayAreasLabel, itemDay, itemsByDay, legCity, resolveDay, unscheduledPlaces } from "@/lib/plan";
 
 export default async function PlannerPage({ params, searchParams }: PageProps<"/trips/[tripId]/plan">) {
   const { tripId } = await params;
@@ -21,6 +21,7 @@ export default async function PlannerPage({ params, searchParams }: PageProps<"/
   const days = itemsByDay(plan, trip);
   const day = resolveDay(sp.day, trip, todayISO());
   const dayItems = days[day - 1];
+  const arrivals = arrivalsOnDay(plan, trip, day).map((item) => ({ item, departDay: itemDay(item, trip) }));
   const placeById = new Map(places.map((p) => [p.id, p]));
   const city = trip.legs?.length ? legCity(trip.legs, day) : null;
   // Multi-city trips list the day's city first (SPEC: City Legs).
@@ -67,13 +68,14 @@ export default async function PlannerPage({ params, searchParams }: PageProps<"/
           {areas ? <span className="text-right text-[13px] text-ink-muted">{areas}</span> : null}
         </div>
 
-        {dayItems.length ? (
+        {dayItems.length || arrivals.length ? (
           <Timeline
             items={dayItems}
             places={placeById}
             documents={new Map(documents.map((d) => [d.id, d]))}
             base={base}
             hopEdit={{ tripId, itemIds: dayItems.filter((i) => canEditPlanEntry(me, i)).map((i) => i.id) }}
+            arrivals={arrivals}
           />
         ) : (
           <p className="m-0 rounded-2xl bg-surface px-4 py-5 text-center text-sm text-ink-muted">ยังไม่มีแผนของวันนี้ เพิ่มสถานที่หรือเที่ยวบินได้ด้านล่าง</p>

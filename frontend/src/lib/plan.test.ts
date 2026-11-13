@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { createSeed, TRIP_IDS } from "@/test/fixtures/seed";
 import { formatDuration } from "@/lib/labels";
-import type { PlanItem } from "@/lib/api/types";
-import { dayAreasLabel, dayCardCaption, hopText, itemsByDay, legCity, placeDays, resolveDay, unscheduledPlaces } from "./plan";
+import type { PlanItem, TransitPlanItem } from "@/lib/api/types";
+import { arrivalsOnDay, dayAreasLabel, dayCardCaption, hopText, itemsByDay, legCity, placeDays, resolveDay, unscheduledPlaces } from "./plan";
 
 const seed = createSeed(new Date("2026-11-11T10:00:00Z"));
 const trip = (id: string) => seed.trips.find((t) => t.id === id)!;
@@ -86,5 +86,25 @@ describe("text helpers", () => {
     expect(formatDuration(360)).toBe("6 ชม.");
     expect(formatDuration(450)).toBe("7 ชม. 30 นาที");
     expect(formatDuration(40)).toBe("40 นาที");
+  });
+});
+
+describe("arrivalsOnDay", () => {
+  const t = { startDate: "2027-01-27", endDate: "2027-01-31" };
+  const flight = (departAt: string, arriveAt: string): TransitPlanItem => ({
+    kind: "transit", id: departAt, tripId: "t", mode: "plane", fromText: "bkk", toText: "kix", departAt, arriveAt, docIds: [], createdBy: "u",
+  });
+  it("lists an overnight flight on the day it lands", () => {
+    const f = flight("2027-01-27T23:40", "2027-01-28T03:39");
+    expect(arrivalsOnDay([f], t, 2)).toEqual([f]);
+    expect(arrivalsOnDay([f], t, 1)).toEqual([]);
+  });
+  it("ignores same-day flights", () => {
+    const f = flight("2027-01-27T08:00", "2027-01-27T15:00");
+    expect([1, 2, 3, 4, 5].flatMap((d) => arrivalsOnDay([f], t, d))).toEqual([]);
+  });
+  it("drops arrivals after the last trip day", () => {
+    const f = flight("2027-01-31T23:00", "2027-02-01T05:00");
+    expect([1, 2, 3, 4, 5].flatMap((d) => arrivalsOnDay([f], t, d))).toEqual([]);
   });
 });

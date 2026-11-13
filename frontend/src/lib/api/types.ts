@@ -213,6 +213,29 @@ export interface Expense {
   updatedAt?: Timestamp;
 }
 
+/** Personal Expenses add "shopping" to the group categories. */
+export type PersonalExpenseCategory = ExpenseCategory | "shopping";
+
+/**
+ * Money one Member spent only for themself (B44–B47). Only its owner sees it;
+ * it has no payer or Shares and never touches group totals or balances.
+ */
+export interface PersonalExpense {
+  id: ID;
+  tripId: ID;
+  ownerId: ID; // Member id
+  title: string;
+  category: PersonalExpenseCategory;
+  amount: Satang;
+  currency: "THB";
+  baseAmount: Satang;
+  method: PaymentMethod;
+  note?: string;
+  date: ISODate;
+  createdAt: Timestamp;
+  updatedAt?: Timestamp;
+}
+
 export type SettlementStatus = "pending" | "sent" | "confirmed";
 
 export interface Settlement {

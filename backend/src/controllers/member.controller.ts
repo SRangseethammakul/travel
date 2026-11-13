@@ -7,6 +7,7 @@ import { HttpError } from "../errors.js";
 import { addActivity } from "../models/activity.model.js";
 import { isMemberReferenced, loadBalanceInputs } from "../models/balance.model.js";
 import { removeMemberFromChecklist } from "../models/checklist.model.js";
+import { removeMemberPersonalExpenses } from "../models/personal-expense.model.js";
 import {
   approveMember,
   countActiveOwners,
@@ -83,7 +84,7 @@ export const changeRole: RequestHandler = async (req, res) => {
 /**
  * B6 DELETE /api/trips/:tripId/members/:memberId (owner), docs/db/schema.md §5.4:
  * last owner → 409; Outstanding ≠ 0 → 409; still named by an Expense/Settlement → soft remove;
- * otherwise delete (and their personal checklist).
+ * otherwise delete (and their personal checklist and Personal Expenses).
  */
 export const removeMember: RequestHandler = async (req, res) => {
   const me = currentMember(req);
@@ -97,6 +98,7 @@ export const removeMember: RequestHandler = async (req, res) => {
   } else {
     await deleteMember(me.tripId, target._id);
     await removeMemberFromChecklist(me.tripId, target._id);
+    await removeMemberPersonalExpenses(me.tripId, target._id);
   }
   await addActivity({ tripId: me.tripId, actorId: me._id, type: "member", refId: target._id, text: `นำ ${target.displayName} ออกจากทริป` });
   res.status(204).end();

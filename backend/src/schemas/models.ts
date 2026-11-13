@@ -188,6 +188,26 @@ export const ExpenseDoc = z.strictObject({
   updatedAt: z.date().optional(),
 });
 
+/** Personal Expense categories: the 5 group ones plus `shopping`. Group Expenses keep only the 5. */
+export const PersonalExpenseCategory = z.enum(["stay", "transport", "food", "activity", "other", "shopping"]);
+
+/** Money one Member spent only for themself. Private to `ownerId`; no payer, no Shares. */
+export const PersonalExpenseDoc = z.strictObject({
+  _id: Id,
+  tripId: Id,
+  ownerId: Id,
+  title: text(200),
+  category: PersonalExpenseCategory,
+  amount: PositiveSatang,
+  currency: z.literal("THB"),
+  baseAmount: PositiveSatang,
+  method: ExpenseDoc.shape.method,
+  note: text(2000).optional(),
+  date: IsoDate,
+  createdAt: z.date(),
+  updatedAt: z.date().optional(),
+});
+
 export const SettlementDoc = z.strictObject({
   _id: Id,
   tripId: Id,
@@ -236,6 +256,8 @@ export type PlaceDoc = z.infer<typeof PlaceDoc>;
 export type TagDoc = z.infer<typeof TagDoc>;
 export type PlanItemDoc = z.infer<typeof PlanItemDoc>;
 export type ExpenseDoc = z.infer<typeof ExpenseDoc>;
+export type PersonalExpenseCategory = z.infer<typeof PersonalExpenseCategory>;
+export type PersonalExpenseDoc = z.infer<typeof PersonalExpenseDoc>;
 export type SettlementDoc = z.infer<typeof SettlementDoc>;
 export type ChecklistItemDoc = z.infer<typeof ChecklistItemDoc>;
 export type ActivityDoc = z.infer<typeof ActivityDoc>;

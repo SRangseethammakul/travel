@@ -9,6 +9,7 @@ export { Fab } from "./Fab";
 export { Icon, type IconName } from "./Icon";
 export { IconButton, IconLink } from "./IconButton";
 export { Money } from "./Money";
+export { NotFoundState } from "./NotFoundState";
 export { Segmented, type SegmentedOption } from "./Segmented";
 export { Switch } from "./Switch";
 export { TabBar } from "./TabBar";

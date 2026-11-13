@@ -84,7 +84,7 @@ export default async function TripPage({ params }: PageProps<"/trips/[tripId]">)
               {formatCountdown(today, trip.startDate, trip.endDate)}
             </span>
           </div>
-          <dl className="m-0 grid grid-cols-3 gap-2 border-t border-ink-divider pt-3.5">
+          <dl className="m-0 grid grid-cols-[repeat(3,minmax(min-content,1fr))] gap-2 border-t border-ink-divider pt-3.5">
             <Stat value={String(members.length)} label="สมาชิก" />
             <Stat value={String(places.length)} label="สถานที่" />
             <Stat value={<Money value={balances.total} />} label="ใช้ไปแล้ว" />

@@ -2,7 +2,7 @@
 
 Status: **design, not implemented**. The `backend` agent implements this in `backend/src/db/` (ช่วง 1 of `first-backend.md`).
 
-Sources, in order of precedence: `docs/design/SPEC.md` → decided agreements in `first-backend.md` / `first-frontend.md` → `frontend/src/lib/api/types.ts` → MongoDB skill advice. Access patterns come from `docs/api/API.md` (A1–A17 reads, B1–B43 writes) and `frontend/src/lib/api/queries.ts`. Terms follow `CONTEXT.md`.
+Sources, in order of precedence: `docs/design/SPEC.md` → decided agreements in `first-backend.md` / `first-frontend.md` → `frontend/src/lib/api/types.ts` → MongoDB skill advice. Access patterns come from `docs/api/API.md` (A1–A17 reads, B1–B47 writes; B44–B47 are Personal Expenses) and `frontend/src/lib/api/queries.ts`. Terms follow `CONTEXT.md`.
 
 ## 0. Conventions
 
@@ -63,11 +63,13 @@ Frequency: **H** = every page view of that screen · **M** = per user action · 
 | B38 | checklist suggestions | — | L | none (static list in code) | — |
 | B39 | mark activity read | update many | M | activities | `activities_trip_created` prefix |
 | B41 | OAuth callback: find or create User | read/upsert | L | users | `users_provider_subject` (unique partial) |
+| B44 | `GET .../personal-expenses` — my Personal Expenses, by date | read | H (personal view of the expenses tab) | personalExpenses | `personalExpenses_trip_owner_date` (equality `tripId`+`ownerId` + full sort) |
+| B45–B47 | create / edit / delete my Personal Expense | write | M | personalExpenses (+ trips for the date check) | `_id` (+ `tripId`, `ownerId` in filter) |
 | all writes | append Activity | insert | M | activities | — |
 
 ## 2. Collections
 
-Twelve collections: `users`, `trips`, `members`, `invites`, `documents`, `places`, `tags`, `planItems`, `expenses`, `settlements`, `checklistItems`, `activities`.
+Thirteen collections: `users`, `trips`, `members`, `invites`, `documents`, `places`, `tags`, `planItems`, `expenses`, `settlements`, `checklistItems`, `activities`, `personalExpenses`.
 
 Sizes are per trip, from `frontend/src/lib/mock/seed.ts` (Tokyo: 4 Members, 12 Places, ~4 days of plan, 5 Expenses, 2 Settlements) scaled to a realistic upper bound for a group trip.
 
@@ -378,6 +380,39 @@ type Hop = { mode: 'walk' | 'train' | 'bus' | 'taxi' | 'car'; minutes?: int; not
 - Growth policy: no TTL for now (history matters for money disputes) — see Open questions.
 - Size: hundreds to a few thousand per trip, < 500 B each.
 
+### 2.13 `personalExpenses`
+
+A **Personal Expense** (CONTEXT.md): money one Member spent only for themself. Private to that Member; no payer, no Shares; never part of the group's money.
+
+```ts
+{
+  _id: string;
+  tripId: string;
+  ownerId: string;             // Member id (NOT User id) — the only Member who can see it
+  title: string;
+  category: 'stay' | 'transport' | 'food' | 'activity' | 'other' | 'shopping';
+  amount: int;                 // satang, > 0
+  currency: 'THB';
+  baseAmount: int;             // = amount while only THB exists
+  method: 'cash' | 'promptpay' | 'card' | 'wallet';
+  note?: string;
+  date: string;                // YYYY-MM-DD, inside the trip (checked in app)
+  createdAt: Date;
+  updatedAt?: Date;
+}
+```
+
+- **Separate collection, not a flag on `expenses`** (e.g. `private: true`, no shares):
+  - Every group-money read (A11 list, A14/A2/B9 balances, Summary, `isMemberReferenced`, B6 Outstanding check) does `expenses.find({ tripId })`. A flag would mean every one of those must add `private: { $ne: true }`; one forgotten filter leaks a private record to the group or changes Net Balance. A separate collection makes "never affects group money" true by construction.
+  - The shapes differ: an Expense requires `payerId`, `splitMode` and 1–50 `shares` (Σ = `amount`); a Personal Expense has none of them, and allows `shopping`, which group Expenses must reject. One validator would need a `oneOf` on the flag and two category enums.
+  - Privacy needs `ownerId` as an index key. In `expenses` that would add a third index only for this feature.
+- **`ownerId` is a Member id**, like `checklistItems.ownerId`, so a Claim (5.1) never touches this collection. It always comes from the session (Current Member), never from the request body.
+- **No `createdBy` / `updatedBy`**: only the owner can write, so they would always equal `ownerId`.
+- **No Activity** is written for B45–B47 — the feed is shared by the whole trip.
+- **No slip / `cardLast4`** (decision 5 in the plan). Add later as optional fields if wanted.
+- `currency` + `baseAmount` kept for the same multi-currency path as Expenses; the header card ("ทริปนี้ฉันใช้") sums `baseAmount`.
+- Size: 0–200 per Member per trip, ~300 B each — tiny; at most ~50 × 200 docs per trip.
+
 ## 3. Indexes
 
 `_id` indexes are implicit and not listed. Names are fixed so tests can assert them.
@@ -399,8 +434,9 @@ type Hop = { mode: 'walk' | 'train' | 'bus' | 'taxi' | 'car'; minutes?: int; not
 | checklistItems | `checklist_trip_scope_owner` | `{ tripId: 1, scope: 1, ownerId: 1 }` | — | A15 — both `$or` branches (see below), B3 |
 | activities | `activities_trip_created` | `{ tripId: 1, createdAt: -1 }` | — | A16 without type, B39, B3 |
 | activities | `activities_trip_type_created` | `{ tripId: 1, type: 1, createdAt: -1 }` | — | A16 `?type=` |
+| personalExpenses | `personalExpenses_trip_owner_date` | `{ tripId: 1, ownerId: 1, date: 1, createdAt: 1 }` | — | B44 (equality + full sort, no in-memory sort), B6 hard-delete cleanup, B3 (prefix `tripId`) |
 
-Total: 14 secondary indexes, at most 2 per collection — cheap on writes.
+Total: 15 secondary indexes, at most 2 per collection — cheap on writes.
 
 **SPEC index hints**
 - `Place { tripId, area }` → **changed to `{ tripId, city, area }`**. B23 renames/merges an Area *within a city*, and A7's city tabs filter by city; `{ tripId, city, area }` serves both plus every `tripId`-only query. Listed under Proposed changes to SPEC.
@@ -420,6 +456,7 @@ Total: 14 secondary indexes, at most 2 per collection — cheap on writes.
   Each `$or` branch becomes an index bound on `checklist_trip_scope_owner` (`tripId` eq + `scope` eq [+ `ownerId` eq]). `ownerId` comes from the session, never the request.
 - A11: `expenses.find({ tripId }).sort({ date: 1, createdAt: 1 })` — fully index-ordered.
 - A16: `activities.find({ tripId, type? , createdAt: { $lt: cursor } }).sort({ createdAt: -1 }).limit(50)`.
+- B44: `personalExpenses.find({ tripId, ownerId: me }).sort({ date: 1, createdAt: 1 })` — same order as A11, fully index-ordered. Do **not** add `_id` to the sort: it is not in the index and would force an in-memory sort. B45–B47 filter on `{ _id, tripId, ownerId: me }`, so another Member's id matches nothing → 404 (never 403, which would confirm it exists).
 
 ## 4. Validation
 
@@ -679,6 +716,25 @@ App-only rules (400): Σ `shares.amount` = `amount`; `memberId`s unique and all 
 } }
 ```
 
+### personalExpenses
+```js
+{ $jsonSchema: {
+  bsonType: 'object', additionalProperties: false,
+  required: ['_id', 'tripId', 'ownerId', 'title', 'category', 'amount', 'currency', 'baseAmount', 'method', 'date', 'createdAt'],
+  properties: {
+    _id: id, tripId: id, ownerId: id, title: text(200),
+    category: { enum: ['stay', 'transport', 'food', 'activity', 'other', 'shopping'] },
+    amount: positiveMoney,
+    currency: { enum: ['THB'] },
+    baseAmount: positiveMoney,
+    method: { enum: ['cash', 'promptpay', 'card', 'wallet'] },
+    note: text(2000), date: isoDate,
+    createdAt: { bsonType: 'date' }, updatedAt: { bsonType: 'date' },
+  },
+} }
+```
+App-only rules (400): `date` within the trip's `startDate`–`endDate`; `title` not blank; `baseAmount` = `amount` (set by the server, also on PATCH when `amount` changes). `ownerId`, `currency`, `baseAmount` are never accepted from the request.
+
 ## 5. Write paths
 
 Transactions need a replica set (standalone `mongod` does not support them). None of the paths below **requires** one; where a transaction would add safety it is noted. For tests that do want one, `mongodb-memory-server` offers `MongoMemoryReplSet`.
@@ -733,7 +789,9 @@ Use `findOneAndUpdate(..., { returnDocument: 'after' })` to return the new Settl
 1. Owner only; cannot remove the last `owner` (→ 409; check `members.countDocuments({ tripId, role: 'owner', status: 'active' })`).
 2. Compute the Member's **Outstanding** (section 6). ≠ 0 → **409** (API.md proposal; SPEC open item).
 3. Outstanding = 0 but the Member is still referenced (`expenses` with `payerId` or `shares.memberId`, or any `settlements` row) → **proposed**: soft remove — `updateOne({ _id, tripId, status: 'active' }, { $set: { status: 'removed' } })`. The Member disappears from A4 / auth but old Expenses still show the name. *(Open question.)*
-4. Not referenced anywhere → hard `deleteOne`; also `deleteMany` their personal checklist items and `$unset` `assigneeId` on group items.
+4. Not referenced anywhere → hard `deleteOne`; also `deleteMany` their personal checklist items, `$unset` `assigneeId` on group items, and `personalExpenses.deleteMany({ tripId, ownerId: memberId })` (uses `personalExpenses_trip_owner_date`). Personal Expenses do **not** count as "referenced" in step 3 — they are private and have no money link to anyone.
+   - Order: delete the Member first, then the cleanups. A crash in between leaves records whose `ownerId` matches no Member — nobody can read them (every read filters on the Current Member), and re-running B6 / the orphan sweep (5.5) removes them. No transaction.
+   - Soft-removed Members (step 3) keep their Personal Expenses; nobody can see them, and they go with the trip (see Open questions).
 
 Race: an Expense can be added for this Member between step 2 and step 3/4. Acceptable at this scale; if it matters, run steps 2–4 in a transaction (replica set) or re-check after writing. Removing a Member never touches Expenses.
 
@@ -741,7 +799,7 @@ Race: an Expense can be added for this Member between step 2 and step 3/4. Accep
 
 1. Owner only.
 2. `trips.deleteOne({ _id: tripId })` first — from now on every endpoint returns 404 because the trip lookup fails.
-3. `deleteMany({ tripId })` on `members`, `invites`, `places`, `planItems`, `expenses`, `settlements`, `checklistItems`, `activities`, `documents` (each uses its `tripId`-leading index).
+3. `deleteMany({ tripId })` on `members`, `invites`, `places`, `planItems`, `expenses`, `settlements`, `personalExpenses`, `checklistItems`, `activities`, `documents` (each uses its `tripId`-leading index).
 4. Delete the files of the removed `documents` from object storage (collect `fileKey`s before step 3).
 
 `tags` are owned by Users and are **not** deleted. No transaction (could be large); every step is idempotent, so a crash is fixed by re-running, and a periodic "orphans whose `tripId` has no trip" sweep is a safety net.
@@ -756,7 +814,9 @@ Race: an Expense can be added for this Member between step 2 and step 3/4. Accep
 
 ## 6. Balance computation
 
-Nothing derived is stored. Definitions from `CONTEXT.md`:
+Nothing derived is stored. `personalExpenses` is **never read** here (nor by Summary / A2 / B9): Personal Expenses do not affect group money. The personal header card ("ทริปนี้ฉันใช้") = my `share` from A14 + Σ `baseAmount` of my B44 rows, summed in the frontend.
+
+Definitions from `CONTEXT.md`:
 - Net Balance(m) = Σ `amount` of Expenses where `payerId = m` − Σ `shares.amount` where `shares.memberId = m`.
 - Outstanding(m) = Net(m) + Σ confirmed Settlements `fromId = m` − Σ confirmed Settlements `toId = m`.
 - Suggested Transfers = greedy match of Outstanding debtors to creditors (fewest transfers).
@@ -806,6 +866,8 @@ plus a small `$group` on confirmed settlements. Suggested Transfers stay in app 
 | `Settlement.pending` | stored status | in enum, but normally **not stored** (computed from Suggested Transfers) | API.md B32 |
 | Fields in types but not SPEC (`Expense.date/createdAt/updatedBy/updatedAt/cardLast4/note`, `Settlement.createdAt/sentAt/confirmedAt`, `ChecklistItem.done`, `Activity.readBy`, `Trip.meetingPoint/createdBy`, `Member.color`, `User.color`, `Place.createdBy`, Transit `fromCode/toCode/durationMinutes/seatInfo/fromPlaceId/toPlaceId`) | — | stored | as listed in API.md |
 | `Invite` | separate model | separate collection with `_id = tripId` | 1:1; token lookup |
+| `PersonalExpense` | not yet in SPEC data model / `types.ts` (being added, see `wondrous-dancing-torvalds.md`) | `personalExpenses` collection (2.13) | new feature |
+| Personal Expense endpoint numbers | plan file says B39–B42 | **B44–B47** here | B39–B43 are already used in API.md (activity read, OAuth start/callback, logout, dev login) |
 
 ### Proposed changes to SPEC
 
@@ -813,6 +875,7 @@ plus a small `$group` on confirmed settlements. Suggested Transfers stay in app 
 2. **PlanItem order:** state that the plan order is "day, time (untimed last), insertion order" and is applied in the app; the `{ tripId, day, time }` index serves the trip/day fetch, not the final order.
 3. **Settlement `pending`:** clarify that `pending` is a computed state (a Suggested Transfer nobody has acted on) and that stored Settlements start at `sent`.
 4. **Member status:** add `status` (`active` / `pending`, and `removed` if soft removal is accepted).
+5. **Personal Expense:** add `PersonalExpense { id, tripId, ownerId (Member), title, category (5 + shopping), amount, currency, baseAmount, method, note?, date, createdAt, updatedAt? }` to the data model, with index `{ tripId, ownerId, date, createdAt }`, and state that it is private and outside all group-money calculations.
 
 ## 8. Open questions
 
@@ -826,3 +889,5 @@ plus a small `$group` on confirmed settlements. Suggested Transfers stay in app 
 8. ~~**Duplicate open Settlements**~~ — **decided 2026-11-12:** one open (`sent`) Settlement per sender–receiver pair, enforced by `settlements_open_pair`. The total a sender reports as `sent` is also capped at what they owe (BUG-B6, API.md B32), checked in code with a re-check after insert.
 9. **Money cap** — zod limit of ฿20,000,000 per amount/budget keeps every value int32. Acceptable?
 10. **Multi-currency (SPEC open item)** — the schema already has `currency` and `baseAmount`; a future `rate` field would be added then.
+11. **Personal Expenses of a soft-removed Member** — kept (invisible to everyone) until the trip is deleted. Alternative: delete them at soft remove too, since their owner can no longer open the trip. **Decided (2026-11-13): keep** — if soft removal is ever reversed, the Member gets them back.
+12. **Trip dates shrink (B2)** — existing Personal Expenses (like Expenses) may then fall outside the trip. **Decided (2026-11-13): allow**; only new writes are checked.

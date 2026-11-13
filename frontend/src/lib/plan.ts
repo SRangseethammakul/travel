@@ -2,7 +2,7 @@
  * Plan helpers shared by the trip page (Main) and the Planner (pure).
  * Plan Items arrive already sorted by day then time (lib/api getPlanItems).
  */
-import type { CityLeg, Hop, ID, Place, PlanItem, Trip } from "@/lib/api/types";
+import type { CityLeg, Hop, ID, Place, PlanItem, TransitPlanItem, Trip } from "@/lib/api/types";
 import { daysBetween, tripLength, tripPhase, type ISODate } from "@/lib/date";
 import { hopModeLabel } from "@/lib/labels";
 
@@ -23,6 +23,19 @@ export function itemsByDay(items: readonly PlanItem[], trip: TripDates): PlanIte
   const days: PlanItem[][] = Array.from({ length: tripDayCount(trip) }, () => []);
   for (const item of items) days[itemDay(item, trip) - 1]?.push(item);
   return days;
+}
+
+/** True when a Transit lands on a later date than it leaves (overnight flight). */
+export function arrivesLaterDay(item: Pick<TransitPlanItem, "departAt" | "arriveAt">): boolean {
+  return item.arriveAt.slice(0, 10) > item.departAt.slice(0, 10);
+}
+
+/** Overnight Transits that land on trip day `day` (they are listed on their departure day). */
+export function arrivalsOnDay(items: readonly PlanItem[], trip: Pick<Trip, "startDate">, day: number): TransitPlanItem[] {
+  return items.filter(
+    (i): i is TransitPlanItem =>
+      i.kind === "transit" && arrivesLaterDay(i) && daysBetween(trip.startDate, i.arriveAt.slice(0, 10)) + 1 === day,
+  );
 }
 
 /** Days (sorted, unique) each Place appears on, as a visit or as a transit endpoint. */

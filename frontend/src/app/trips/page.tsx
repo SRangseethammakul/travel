@@ -80,7 +80,7 @@ export default async function TripsPage({ searchParams }: PageProps<"/trips">) {
 
       <main className="flex flex-1 flex-col gap-3 px-5 pt-1 pb-[110px]">
         {shown.length ? (
-          <ul aria-label={tab === "past" ? "ทริปที่ผ่านมาแล้ว" : "ทริปที่กำลังจะไป"} className="m-0 flex list-none flex-col gap-3 p-0">
+          <ul aria-label={tab === "past" ? "ทริปที่ผ่านมาแล้ว" : "ทริปที่กำลังจะไป"} className="m-0 flex list-none flex-col gap-3 p-0 sm:grid sm:grid-cols-2">
             {shown.map(({ trip, members, total, myOutstanding, status }) => {
               const hasExpenses = total > 0;
               const meta = `${members.length} คน · ${hasExpenses ? `${tab === "upcoming" ? "ใช้ไป " : ""}${formatMoney(total)}` : "ยังไม่มีค่าใช้จ่าย"}`;
@@ -126,7 +126,7 @@ export default async function TripsPage({ searchParams }: PageProps<"/trips">) {
         <JoinLinkButton />
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-[390px] bg-bg px-5 pt-3 pb-[calc(28px+env(safe-area-inset-bottom))]">
+      <div className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-app bg-bg px-5 pt-3 pb-[calc(28px+env(safe-area-inset-bottom))]">
         <Link href="/trips/new" className={buttonClasses({ size: "lg", block: true, className: "h-[54px] rounded-2xl hover:text-surface" })}>
           <Icon name="plus" size={18} />
           สร้างทริปใหม่

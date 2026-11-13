@@ -1,5 +1,5 @@
 /** Thai labels for enum values shown in the UI (pure, safe for client components). */
-import type { ExpenseCategory, HopMode, Member, PaymentMethod, Role, SplitMode, TransitMode } from "@/lib/api/types";
+import type { HopMode, Member, PaymentMethod, PersonalExpenseCategory, Role, SplitMode, TransitMode } from "@/lib/api/types";
 
 export const roleLabel: Record<Role, string> = {
   owner: "ผู้จัดทริป",
@@ -42,13 +42,14 @@ export function formatDuration(minutes: number): string {
   return m ? `${h} ชม. ${m} นาที` : `${h} ชม.`;
 }
 
-/** AddExpense category pills (AddExpense.dc.html order and wording). */
-export const expenseCategoryFormLabel: Record<ExpenseCategory, string> = {
+/** AddExpense category pills (AddExpense.dc.html order and wording); `shopping` is personal only. */
+export const expenseCategoryFormLabel: Record<PersonalExpenseCategory, string> = {
   stay: "ที่พัก",
   transport: "เดินทาง",
   food: "อาหาร",
   activity: "ตั๋ว/กิจกรรม",
   other: "อื่นๆ",
+  shopping: "ช็อปปิ้ง",
 };
 
 export const paymentMethodLabel: Record<PaymentMethod, string> = {

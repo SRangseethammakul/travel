@@ -3,14 +3,35 @@ import { TabPageHeader } from "@/components/trip/TabPageHeader";
 import { Fab } from "@/components/ui/Fab";
 import { Icon } from "@/components/ui/Icon";
 import { Money } from "@/components/ui/Money";
+import { Segmented } from "@/components/ui/Segmented";
 import { expenseCategoryStyle } from "@/components/ui/colors";
-import { getExpenses, getMembers, getTripBalances, requireTripMember } from "@/lib/api";
+import { getExpenses, getMembers, getPersonalExpenses, getTripBalances, requireTripMember } from "@/lib/api";
+import type { Member, PersonalExpense, Trip } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
-import { equalShareAmount, groupExpensesByDay } from "@/lib/expenses";
+import { equalShareAmount, groupExpensesByDay, personalTotals } from "@/lib/expenses";
+import { paymentMethodLabel } from "@/lib/labels";
 
-export default async function ExpensesPage({ params }: PageProps<"/trips/[tripId]/expenses">) {
+type View = "group" | "personal";
+
+/** กลุ่ม | ส่วนตัว switch; state lives in `?view=personal`. */
+function ViewSwitch({ base, view }: { base: string; view: View }) {
+  return (
+    <Segmented
+      label="มุมมองค่าใช้จ่าย"
+      value={view}
+      options={[
+        { value: "group", label: "กลุ่ม", href: `${base}/expenses` },
+        { value: "personal", label: "ส่วนตัว", href: `${base}/expenses?view=personal` },
+      ]}
+    />
+  );
+}
+
+export default async function ExpensesPage({ params, searchParams }: PageProps<"/trips/[tripId]/expenses">) {
   const { tripId } = await params;
+  const view: View = (await searchParams).view === "personal" ? "personal" : "group";
   const { trip, me } = await requireTripMember(tripId);
+  if (view === "personal") return <PersonalView trip={trip} me={me} />;
   const [expenses, members, balances] = await Promise.all([getExpenses(tripId), getMembers(tripId), getTripBalances(tripId)]);
 
   const base = `/trips/${encodeURIComponent(tripId)}`;
@@ -25,6 +46,7 @@ export default async function ExpensesPage({ params }: PageProps<"/trips/[tripId
   return (
     <>
       <TabPageHeader caption={trip.name} title="ค่าใช้จ่าย">
+        <ViewSwitch base={base} view="group" />
         <section aria-label="ยอดรวม" className="mt-0.5 grid grid-cols-2 gap-2.5">
           <div className="flex flex-col gap-1 rounded-tile bg-ink p-3.5 text-surface">
             <span className="text-[13px] text-on-ink-muted">ยอดรวมทั้งทริป</span>
@@ -130,5 +152,104 @@ export default async function ExpensesPage({ params }: PageProps<"/trips/[tripId
 
       <Fab href={`${base}/expenses/new`} label="เพิ่มค่าใช้จ่าย" />
     </>
+  );
+}
+
+/**
+ * ส่วนตัว view: what this trip cost me (my group Shares + my Personal Expenses)
+ * and my own records by day. Personal Expenses never reach group totals.
+ */
+async function PersonalView({ trip, me }: { trip: Trip; me: Member }) {
+  const [records, balances] = await Promise.all([getPersonalExpenses(trip.id), getTripBalances(trip.id)]);
+  const base = `/trips/${encodeURIComponent(trip.id)}`;
+  const groupShare = balances.rows.find((r) => r.member.id === me.id)?.share ?? 0;
+  const personal = personalTotals(records);
+  const days = groupExpensesByDay(records, trip);
+
+  return (
+    <>
+      <TabPageHeader caption={trip.name} title="ค่าใช้จ่าย">
+        <ViewSwitch base={base} view="personal" />
+        <section aria-label="ยอดที่ฉันใช้" className="mt-0.5 flex flex-col gap-1 rounded-tile bg-ink p-3.5 text-surface">
+          <span className="text-[13px] text-on-ink-muted">ทริปนี้ฉันใช้</span>
+          <Money value={groupShare + personal.total} className="text-[22px] font-semibold" />
+          <span className="text-xs text-on-ink-muted">
+            ส่วนในกลุ่ม <Money value={groupShare} className="font-sans" /> · ส่วนตัว <Money value={personal.total} className="font-sans" />
+          </span>
+          {personal.byCategory.length ? (
+            <ul aria-label="ค่าใช้จ่ายส่วนตัวตามหมวด" className="m-0 mt-2 flex list-none flex-col gap-1 border-t border-ink-divider p-0 pt-2.5 text-[13px] text-on-ink-soft">
+              {personal.byCategory.map((c) => (
+                <li key={c.category} className="flex justify-between gap-3">
+                  <span>{expenseCategoryStyle[c.category].label}</span>
+                  <Money value={c.amount} className="font-sans" />
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </section>
+      </TabPageHeader>
+
+      <main className="flex flex-col gap-[18px] px-5 pt-1 pb-24">
+        {days.length ? (
+          <p className="m-0 -mb-2 flex items-center gap-1 text-xs text-ink-muted">
+            <Icon name="lock" size={14} />
+            เห็นแค่คุณคนเดียว ไม่นับรวมในยอดของกลุ่ม
+          </p>
+        ) : null}
+        {days.map((d) => (
+          <section key={d.date} aria-labelledby={`pday-${d.date}`} className="flex flex-col gap-2">
+            <h2 id={`pday-${d.date}`} className="m-0 flex justify-between text-sm font-semibold text-ink-muted">
+              <span>{d.label}</span>
+              <Money value={d.total} className="font-sans" />
+            </h2>
+            <ul className="m-0 flex list-none flex-col overflow-hidden rounded-tile bg-surface p-0">
+              {d.items.map((r) => (
+                <PersonalRow key={r.id} record={r} href={`${base}/expenses/personal/${encodeURIComponent(r.id)}`} />
+              ))}
+            </ul>
+          </section>
+        ))}
+        {!days.length ? (
+          <div className="flex flex-col items-center gap-2 rounded-tile bg-surface px-5 py-8 text-center">
+            <span className="flex size-11 items-center justify-center rounded-chip bg-primary-soft text-primary">
+              <Icon name="wallet" size={22} />
+            </span>
+            <p className="m-0 font-semibold">ยังไม่มีค่าใช้จ่ายส่วนตัว</p>
+            <p className="m-0 text-[13px] text-ink-muted">จดของที่ซื้อเอง เช่น ของฝาก ช็อปปิ้ง เห็นแค่คุณคนเดียว และไม่นำไปหารกับใคร</p>
+          </div>
+        ) : null}
+      </main>
+
+      <Fab href={`${base}/expenses/personal/new`} label="เพิ่มรายการส่วนตัว" />
+    </>
+  );
+}
+
+function PersonalRow({ record, href }: { record: PersonalExpense; href: string }) {
+  const style = expenseCategoryStyle[record.category];
+  return (
+    <li className="border-b border-line-soft last:border-b-0">
+      <Link href={href} className="flex items-center gap-3 p-3.5 text-ink no-underline hover:bg-surface-alt hover:text-ink">
+        <span
+          aria-hidden="true"
+          className={cn(
+            "flex size-[42px] shrink-0 items-center justify-center rounded-chip font-display font-semibold",
+            style.abbr.length > 4 ? "text-[11px]" : "text-[13px]",
+            style.tint,
+            style.ink,
+          )}
+        >
+          {style.abbr}
+        </span>
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="font-semibold">{record.title}</span>
+          <span className="text-[13px] text-ink-muted">
+            <span className="sr-only">{style.label} · </span>
+            {paymentMethodLabel[record.method]}
+          </span>
+        </span>
+        <Money value={record.amount} className="shrink-0 text-base font-semibold" />
+      </Link>
+    </li>
   );
 }
