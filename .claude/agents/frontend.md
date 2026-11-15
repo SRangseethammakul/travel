@@ -5,7 +5,7 @@ skills:
   - frontend-design:frontend-design
   - ui-ux-pro-max:ui-ux-pro-max
   - ui-ux-pro-max:ui-styling
-model: inherit
+model: sonnet
 color: cyan
 ---
 

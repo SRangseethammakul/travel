@@ -5,7 +5,7 @@ skills:
   - mongodb:mongodb-connection
   - mongodb:mongodb-schema-design
   - andrej-karpathy-skills:karpathy-guidelines
-model: inherit
+model: sonnet
 color: orange
 ---
 
@@ -66,14 +66,15 @@ Follow the preloaded `karpathy-guidelines` skill on every task:
 
 Every resource follows the same MVC flow: **route → controller → model**, with the response shaped by a **view**.
 
-| Layer | Path | Does | Must not |
-| --- | --- | --- | --- |
-| Route | `src/routes/<resource>.routes.ts` | Maps method + path to middleware (`requireUser`, `requireMember`, `requireRole`) and a controller function | Contain logic |
-| Controller | `src/controllers/<resource>.controller.ts` | Parses params/query/body with zod, checks rules that need the request (e.g. "editor may edit only own Expense"), calls models and `domain/`, adds the Activity, returns `res.status(..).json(view(...))` | Touch MongoDB directly |
-| Model | `src/models/<resource>.model.ts` | All MongoDB access for one collection: typed collection, queries, conditional updates, indexes it relies on | Know about `req`/`res` or HTTP status codes |
-| View | `src/views/<resource>.view.ts` | Turns a document into the API JSON: `_id` → `id`, `Date` → ISO string, drop private fields (`token`, `fileKey`, other people's personal items) | Query the DB |
+| Layer      | Path                                       | Does                                                                                                                                                                                                     | Must not                                    |
+| ---------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| Route      | `src/routes/<resource>.routes.ts`          | Maps method + path to middleware (`requireUser`, `requireMember`, `requireRole`) and a controller function                                                                                               | Contain logic                               |
+| Controller | `src/controllers/<resource>.controller.ts` | Parses params/query/body with zod, checks rules that need the request (e.g. "editor may edit only own Expense"), calls models and `domain/`, adds the Activity, returns `res.status(..).json(view(...))` | Touch MongoDB directly                      |
+| Model      | `src/models/<resource>.model.ts`           | All MongoDB access for one collection: typed collection, queries, conditional updates, indexes it relies on                                                                                              | Know about `req`/`res` or HTTP status codes |
+| View       | `src/views/<resource>.view.ts`             | Turns a document into the API JSON: `_id` → `id`, `Date` → ISO string, drop private fields (`token`, `fileKey`, other people's personal items)                                                           | Query the DB                                |
 
 Shared pieces stay outside the MVC folders:
+
 - `src/domain/` — pure logic with tests (money: `split`, `balance`, `settle`). Controllers call it; it never imports models, express, or the driver.
 - `src/schemas/` (zod), `src/auth/` (middleware), `src/db/` (MongoClient, validators, index creation), `src/seed/`, `src/errors.ts` (error class → `{ error: { code, message } }` in the error middleware).
 - `src/app.ts` builds the express app and mounts all routes; `src/server.ts` only starts it (so supertest can use `app`).

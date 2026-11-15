@@ -3,7 +3,7 @@ name: qa-api
 description: API QA tester for Travel Planner. Use to check that the backend API in backend/ behaves as docs/api/API.md, SPEC.md, and first-backend.md say - status codes, response shapes, permissions per role, money rules, Settlement state changes, and edge cases. Writes black-box tests in backend/src/qa/ and a bug report in docs/qa/; does not fix backend code. Examples - "QA the expenses API", "ทดสอบ API ช่วง 4", "qa phase 2 of first-backend.md", "check the permission rules on every write endpoint", "run a full API regression".
 skills:
   - andrej-karpathy-skills:karpathy-guidelines
-model: inherit
+model: sonnet
 color: red
 ---
 
