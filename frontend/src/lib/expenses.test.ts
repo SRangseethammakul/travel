@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createSeed, memberId, TRIP_IDS } from "@/test/fixtures/seed";
 import { outstandingBalances } from "@/lib/money/balance";
 import { suggestTransfers } from "@/lib/money/settle";
-import { categoryTotals, equalShareAmount, groupExpensesByDay, personalTotals, shareBreakdown, suggestedRow, transferRows, unreadCount } from "./expenses";
+import { categoryTotals, equalShareAmount, expenseEditHint, groupExpensesByDay, personalTotals, shareBreakdown, shareCaption, suggestedRow, transferRows, unreadCount } from "./expenses";
 
 const seed = createSeed(new Date("2026-11-11T10:00:00Z"));
 const T = TRIP_IDS.tokyo;
@@ -33,6 +33,31 @@ describe("equalShareAmount", () => {
     const shares = [{ memberId: "a", amount: 3_334 }, { memberId: "b", amount: 3_333 }, { memberId: "c", amount: 3_333 }];
     expect(equalShareAmount({ amount: 10_000, shares })).toBe(3_333);
     expect(equalShareAmount({ amount: 10_000, shares: [{ memberId: "a", amount: 7_000 }, { memberId: "b", amount: 3_000 }] })).toBeNull();
+  });
+});
+
+describe("shareCaption (APP-7)", () => {
+  it("keeps 'คนละ' for the Tokyo expenses (exact equal splits)", () => {
+    expect(expenses.map((e) => shareCaption(e, m("mint")))).toEqual(
+      [550_000, 35_000, 30_000, 70_000, 110_000].map((amount) => ({ kind: "each", amount, approx: false })),
+    );
+  });
+  it("shows my Share, or 'คนละ ~' when a satang remainder makes the split uneven", () => {
+    const e = { amount: 10_001, shares: [{ memberId: "adam", amount: 5_001 }, { memberId: "eva", amount: 5_000 }] };
+    expect(shareCaption(e, "adam")).toEqual({ kind: "mine", amount: 5_001 });
+    expect(shareCaption(e, "eva")).toEqual({ kind: "mine", amount: 5_000 });
+    expect(shareCaption(e, "n")).toEqual({ kind: "each", amount: 5_000, approx: true });
+    const uneven = { amount: 10_000, shares: [{ memberId: "a", amount: 7_000 }, { memberId: "b", amount: 3_000 }] };
+    expect(shareCaption(uneven, "n")).toEqual({ kind: "uneven" });
+  });
+});
+
+describe("expenseEditHint (APP-7)", () => {
+  it("does not tell a viewer that they (or a demoted creator) can edit", () => {
+    expect(expenseEditHint("viewer", { displayName: "Eva", role: "viewer" })).toBe("คุณดูได้อย่างเดียว แก้หรือลบรายการนี้ได้เฉพาะผู้จัดทริป");
+    expect(expenseEditHint("editor", { displayName: "Eva", role: "viewer" })).toBe("แก้หรือลบได้เฉพาะผู้จัดทริป");
+    expect(expenseEditHint("editor", { displayName: "Mint", role: "editor" })).toBe("แก้หรือลบได้เฉพาะ Mint ที่เพิ่มรายการนี้ หรือผู้จัดทริป");
+    expect(expenseEditHint("editor", undefined)).toBe("แก้หรือลบได้เฉพาะผู้จัดทริป");
   });
 });
 
@@ -113,13 +138,26 @@ describe("transferRows", () => {
     const settlements = seed.settlements.filter((s) => s.tripId === T);
     const suggested = suggestTransfers(outstandingBalances(members, expenses, settlements)).map((t) => ({
       ...t,
-      settlementStatus: settlements.find((s) => s.fromId === t.fromId && s.toId === t.toId && s.amount === t.amount)?.status ?? null,
+      sentAmount: settlements.find((s) => s.fromId === t.fromId && s.toId === t.toId && s.status === "sent")?.amount ?? null,
     }));
     expect(transferRows(members, settlements, suggested).map((r) => [r.fromId, r.toId, r.amount, r.status])).toEqual([
       [m("mint"), m("act"), 310_000, "confirmed"],
       [m("beam"), m("act"), 580_000, "sent"],
       [m("ploy"), m("act"), 515_000, "pending"],
     ]);
+  });
+
+  it("splits a partial report into the sent part and what is left (APP-4)", () => {
+    const rows = transferRows(["eva", "adam"], [], [{ fromId: "eva", toId: "adam", amount: 65_000, sentAmount: 40_000 }]);
+    expect(rows.map((r) => [r.key, r.amount, r.status])).toEqual([
+      ["eva>adam", 40_000, "sent"],
+      ["eva>adam:rest", 25_000, "waiting"],
+    ]);
+  });
+
+  it("has no waiting row when the full amount is reported", () => {
+    const rows = transferRows(["eva", "adam"], [], [{ fromId: "eva", toId: "adam", amount: 65_000, sentAmount: 65_000 }]);
+    expect(rows.map((r) => r.status)).toEqual(["sent"]);
   });
 });
 
@@ -135,10 +173,10 @@ describe("unreadCount", () => {
 describe("suggestedRow", () => {
   const t = { from: { id: "beam" }, to: { id: "act" }, amount: 580_000 };
   it("shows the suggestion when nothing is reported", () => {
-    expect(suggestedRow({ ...t, settlement: null })).toEqual({ fromId: "beam", toId: "act", amount: 580_000, settlementStatus: null });
+    expect(suggestedRow({ ...t, settlement: null })).toEqual({ fromId: "beam", toId: "act", amount: 580_000, sentAmount: null });
   });
-  it("shows the reported amount while a report is sent", () => {
-    expect(suggestedRow({ ...t, settlement: { amount: 280_000, status: "sent" } }).amount).toBe(280_000);
-    expect(suggestedRow({ ...t, settlement: { amount: 280_000, status: "pending" } }).amount).toBe(580_000);
+  it("keeps the transfer amount and the reported amount apart while a report is sent", () => {
+    expect(suggestedRow({ ...t, settlement: { amount: 280_000, status: "sent" } })).toMatchObject({ amount: 580_000, sentAmount: 280_000 });
+    expect(suggestedRow({ ...t, settlement: { amount: 280_000, status: "pending" } }).sentAmount).toBeNull();
   });
 });

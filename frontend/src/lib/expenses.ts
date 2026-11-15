@@ -1,7 +1,7 @@
 /**
  * Expenses list and Summary helpers (pure, money in satang).
  */
-import type { Activity, Expense, ExpenseCategory, ID, PersonalExpenseCategory, Settlement } from "@/lib/api/types";
+import type { Activity, Expense, ExpenseCategory, ID, Member, PersonalExpenseCategory, Role, Settlement } from "@/lib/api/types";
 import { daysBetween, formatDayMonth, type ISODate } from "@/lib/date";
 import type { Satang } from "@/lib/money/format";
 
@@ -50,6 +50,35 @@ export function equalShareAmount(e: Pick<Expense, "amount" | "shares">): Satang 
   const max = Math.max(...amounts);
   // Equal splits differ by at most (n − 1) satang, all of it on one person.
   return max - min <= amounts.length - 1 ? min : null;
+}
+
+/** Caption under an Expense row's amount (Expenses list). */
+export type ShareCaption =
+  | { kind: "each"; amount: Satang; approx: boolean }
+  | { kind: "mine"; amount: Satang }
+  | { kind: "uneven" };
+
+/**
+ * "คนละ ฿350" only when every Share is exactly the same. An equal split with a
+ * satang remainder (฿100.01 → 50.01 / 50.00) shows the viewer's own Share, or
+ * "คนละ ~฿50" when they are not in it. Uneven splits show the viewer's Share.
+ */
+export function shareCaption(e: Pick<Expense, "amount" | "shares">, meId: ID): ShareCaption {
+  const each = equalShareAmount(e);
+  const mine = e.shares.find((s) => s.memberId === meId)?.amount;
+  if (each !== null && e.shares.every((s) => s.amount === each)) return { kind: "each", amount: each, approx: false };
+  if (mine !== undefined) return { kind: "mine", amount: mine };
+  return each !== null ? { kind: "each", amount: each, approx: true } : { kind: "uneven" };
+}
+
+/**
+ * ExpenseDetail line shown when the viewer cannot edit: who can. A viewer is told
+ * their role; a creator who is now a viewer can no longer edit either.
+ */
+export function expenseEditHint(meRole: Role, creator: Pick<Member, "displayName" | "role"> | undefined): string {
+  if (meRole === "viewer") return "คุณดูได้อย่างเดียว แก้หรือลบรายการนี้ได้เฉพาะผู้จัดทริป";
+  if (creator?.role === "editor") return `แก้หรือลบได้เฉพาะ ${creator.displayName} ที่เพิ่มรายการนี้ หรือผู้จัดทริป`;
+  return "แก้หรือลบได้เฉพาะผู้จัดทริป";
 }
 
 export interface CategoryTotal<C extends string = ExpenseCategory> {
@@ -107,7 +136,12 @@ export function shareBreakdown(
   return out;
 }
 
-export type TransferStatus = "confirmed" | "sent" | "pending";
+/**
+ * "waiting": what is left of a pair while a partial report is still `sent`. The
+ * backend allows one open Settlement per pair (409 `already_sent`), so it can be
+ * reported only after the receiver confirms.
+ */
+export type TransferStatus = "confirmed" | "sent" | "pending" | "waiting";
 
 export interface TransferRow {
   key: string;
@@ -117,46 +151,54 @@ export interface TransferRow {
   status: TransferStatus;
 }
 
-/**
- * "ใครต้องโอนให้ใคร": Settlements that are already confirmed (เคลียร์แล้ว),
- * then the Suggested Transfers from Outstanding (รอยืนยัน when a matching
- * Settlement was sent, otherwise โอนเงิน). Ordered by the payer's member order.
- */
-/**
- * One Suggested Transfer as a `transferRows` input. While a report is `sent`
- * the row shows the reported amount (it may be lower than the suggestion).
- */
+/** A Suggested Transfer as a `transferRows` input; `sentAmount` is the open report, if any. */
+export interface SuggestedRow {
+  fromId: ID;
+  toId: ID;
+  /** What `fromId` still owes `toId` (from Outstanding; a `sent` report does not lower it). */
+  amount: Satang;
+  sentAmount: Satang | null;
+}
+
+/** One A14 transfer as a `transferRows` input. */
 export function suggestedRow(t: {
   from: { id: ID };
   to: { id: ID };
   amount: Satang;
   settlement: Pick<Settlement, "amount" | "status"> | null;
-}): { fromId: ID; toId: ID; amount: Satang; settlementStatus: Settlement["status"] | null } {
-  const sent = t.settlement?.status === "sent";
-  return { fromId: t.from.id, toId: t.to.id, amount: sent ? t.settlement!.amount : t.amount, settlementStatus: t.settlement?.status ?? null };
+}): SuggestedRow {
+  return { fromId: t.from.id, toId: t.to.id, amount: t.amount, sentAmount: t.settlement?.status === "sent" ? t.settlement.amount : null };
 }
 
+/**
+ * "ใครต้องโอนให้ใคร": Settlements that are already confirmed (เคลียร์แล้ว),
+ * then the Suggested Transfers from Outstanding (โอนเงิน). While a report is
+ * `sent` the pair shows the reported amount (รอยืนยัน), followed by what is
+ * left when the report was partial (waiting). Ordered by the payer's member order.
+ */
 export function transferRows(
   memberOrder: readonly ID[],
   settlements: readonly Pick<Settlement, "id" | "fromId" | "toId" | "amount" | "status">[],
-  suggested: readonly { fromId: ID; toId: ID; amount: Satang; settlementStatus: Settlement["status"] | null }[],
+  suggested: readonly SuggestedRow[],
 ): TransferRow[] {
-  const rows: TransferRow[] = [
-    ...settlements
-      .filter((s) => s.status === "confirmed")
-      .map((s) => ({ key: s.id, fromId: s.fromId, toId: s.toId, amount: s.amount, status: "confirmed" as const })),
-    ...suggested.map((t) => ({
-      key: `${t.fromId}>${t.toId}`,
-      fromId: t.fromId,
-      toId: t.toId,
-      amount: t.amount,
-      status: (t.settlementStatus === "sent" ? "sent" : "pending") as TransferStatus,
-    })),
-  ];
+  const rows: TransferRow[] = settlements
+    .filter((s) => s.status === "confirmed")
+    .map((s) => ({ key: s.id, fromId: s.fromId, toId: s.toId, amount: s.amount, status: "confirmed" as const }));
+  for (const t of suggested) {
+    const key = `${t.fromId}>${t.toId}`;
+    if (t.sentAmount === null) {
+      rows.push({ key, fromId: t.fromId, toId: t.toId, amount: t.amount, status: "pending" });
+      continue;
+    }
+    rows.push({ key, fromId: t.fromId, toId: t.toId, amount: t.sentAmount, status: "sent" });
+    const left = t.amount - t.sentAmount;
+    if (left > 0) rows.push({ key: `${key}:rest`, fromId: t.fromId, toId: t.toId, amount: left, status: "waiting" });
+  }
   const rank = (id: ID) => {
     const i = memberOrder.indexOf(id);
     return i < 0 ? memberOrder.length : i;
   };
+  // Stable sort: a pair's sent row stays before its waiting row.
   return rows.sort((a, b) => rank(a.fromId) - rank(b.fromId));
 }
 

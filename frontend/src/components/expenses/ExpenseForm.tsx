@@ -53,7 +53,7 @@ const methodIcon: Record<PaymentMethod, IconName> = { cash: "cash", promptpay: "
 const MODES: SplitMode[] = ["equal", "amount", "shares"];
 
 const fieldClass =
-  "h-12 w-full rounded-icon border border-line-strong bg-surface px-3.5 text-[15px] text-ink placeholder:text-ink-muted/70 transition-colors hover:border-ink-muted focus-visible:border-primary";
+  "h-12 w-full rounded-icon border border-line-strong bg-surface px-3.5 text-base text-ink placeholder:text-ink-muted/70 transition-colors hover:border-ink-muted focus-visible:border-primary";
 
 /** AddExpense (page 4) and its edit mode: amount, title, category, payer, payment method and the split. */
 export function ExpenseForm({ tripId, expenseId, members, trip, initial, transitId }: ExpenseFormProps) {
@@ -388,7 +388,7 @@ export function ExpenseForm({ tripId, expenseId, members, trip, initial, transit
                         placeholder="0"
                         value={custom[m.id] ?? ""}
                         onChange={(e) => setCustom((prev) => ({ ...prev, [m.id]: formatBahtInput(e.target.value) }))}
-                        className="w-full min-w-0 border-0 bg-transparent p-0 text-right font-display text-[15px] font-semibold text-ink tabular-nums outline-none focus-visible:outline-none"
+                        className="w-full min-w-0 border-0 bg-transparent p-0 text-right font-display text-base font-semibold text-ink tabular-nums outline-none focus-visible:outline-none"
                       />
                     </span>
                   ) : (

@@ -37,26 +37,30 @@ export function daysBetween(from: ISODate, to: ISODate): number {
   return Math.round((parseISODate(to).getTime() - parseISODate(from).getTime()) / DAY_MS);
 }
 
-const fmt = (options: Intl.DateTimeFormatOptions) =>
-  new Intl.DateTimeFormat("th-TH", { ...options, timeZone: "UTC" });
-
-const fullFmt = fmt({ weekday: "short", day: "numeric", month: "short", year: "numeric" });
-const weekdayLongFmt = fmt({ weekday: "long" });
-const monthYearFmt = fmt({ month: "short", year: "numeric" });
+/*
+ * Thai names come from fixed tables, not Intl: Node and browsers ship different
+ * ICU data ("พฤหัส" vs "พฤ."), which breaks hydration of client components.
+ */
+const WEEKDAY_SHORT = ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."] as const;
+const WEEKDAY_LONG = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"] as const;
+const MONTH_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."] as const;
 
 interface Parts {
   weekday: string;
   day: string;
   month: string;
+  /** Buddhist era. */
   year: string;
 }
 
 function parts(date: ISODate): Parts {
-  const out: Parts = { weekday: "", day: "", month: "", year: "" };
-  for (const p of fullFmt.formatToParts(parseISODate(date))) {
-    if (p.type === "weekday" || p.type === "day" || p.type === "month" || p.type === "year") out[p.type] = p.value;
-  }
-  return out;
+  const d = parseISODate(date);
+  return {
+    weekday: WEEKDAY_SHORT[d.getUTCDay()],
+    day: String(d.getUTCDate()),
+    month: MONTH_SHORT[d.getUTCMonth()],
+    year: String(d.getUTCFullYear() + 543),
+  };
 }
 
 /** "ส. 12 ธ.ค. 2569" */
@@ -80,13 +84,13 @@ export function formatDayMonth(date: ISODate): string {
 /** "เสาร์ 12 ธ.ค." — Planner day title. */
 export function formatLongDayMonth(date: ISODate): string {
   const p = parts(date);
-  const weekday = weekdayLongFmt.format(parseISODate(date)).replace(/^วัน/, "");
-  return `${weekday} ${p.day} ${p.month}`;
+  return `${WEEKDAY_LONG[parseISODate(date).getUTCDay()]} ${p.day} ${p.month}`;
 }
 
 /** "มิ.ย. 2569" — past trips on the Trips page. */
 export function formatMonthYear(date: ISODate): string {
-  return monthYearFmt.format(parseISODate(date));
+  const p = parts(date);
+  return `${p.month} ${p.year}`;
 }
 
 /**
@@ -146,7 +150,6 @@ export function tripDayDate(start: ISODate, day: number): ISODate {
   return addDays(start, day - 1);
 }
 
-const stampDateFmt = new Intl.DateTimeFormat("th-TH", { day: "numeric", month: "short", year: "numeric", timeZone: APP_TIME_ZONE });
 const stampTimeFmt = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: APP_TIME_ZONE });
 
 /**
@@ -161,5 +164,6 @@ export function formatTimestamp(timestamp: string, now?: Date): string {
     if (diff === 0) return `วันนี้ ${time}`;
     if (diff === 1) return `เมื่อวาน ${time}`;
   }
-  return `${stampDateFmt.format(at)} ${time}`;
+  const p = parts(todayISO(at));
+  return `${p.day} ${p.month} ${p.year} ${time}`;
 }

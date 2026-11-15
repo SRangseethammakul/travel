@@ -189,7 +189,7 @@ export function ChecklistView({ tripId, scope, groups, people, suggestions, canA
             maxLength={MAX_CHECKLIST_TEXT}
             onChange={(e) => setDraft(e.target.value)}
             placeholder={isGroup ? "เพิ่มรายการของกลุ่ม" : "เพิ่มของที่ต้องเตรียม"}
-            className="h-[50px] min-w-0 flex-1 rounded-icon border border-line-strong bg-surface px-3.5 text-[15px] text-ink placeholder:text-ink-muted"
+            className="h-[50px] min-w-0 flex-1 rounded-icon border border-line-strong bg-surface px-3.5 text-base text-ink placeholder:text-ink-muted"
           />
           <Button type="submit" disabled={!draft.trim() || pending} aria-busy={pending || undefined} className="h-[50px] px-[18px]">
             เพิ่ม

@@ -15,8 +15,17 @@ export const TRIP_COVERS: readonly { key: ColorKey; label: string }[] = [
   { key: "purple", label: "สีม่วง" },
 ];
 
-/** Avatar colours for typed-in Members, cycled in order (mockup palette). */
-export const MEMBER_COLORS: readonly ColorKey[] = ["teal", "blue", "orange", "purple", "slate", "gray"];
+/** Avatar palette in the backend's order (B1 colours typed-in Members from it). */
+const MEMBER_PALETTE: readonly ColorKey[] = ["teal", "blue", "orange", "purple", "slate", "gray", "ink"];
+
+/**
+ * Colour B1 gives the i-th typed-in Member (0-based): the palette without the
+ * creator's colour, cycled. CreateTrip previews the same colour the trip will save.
+ */
+export function memberColor(index: number, creatorColor: ColorKey): ColorKey {
+  const colors = MEMBER_PALETTE.filter((c) => c !== creatorColor);
+  return colors[index % colors.length];
+}
 
 /** Ready-made document names (SPEC: "มีชื่อสำเร็จรูปให้กด"). */
 export const DOCUMENT_QUICK_NAMES = ["ใบจองโรงแรม", "ใบจองรถ", "ตั๋วเครื่องบิน", "ประกันเดินทาง", "ตั๋วกิจกรรม"] as const;
@@ -70,8 +79,15 @@ function validDate(value: string): boolean {
   }
 }
 
-/** Validate and normalise a draft. `creatorName` is used to drop a duplicate of the creator from memberNames. */
-export function checkTripDraft(draft: TripDraft, creatorName: string): CheckedTrip {
+/** What the owner can change after creating the trip ("แก้ไขทริป", B2). */
+export type TripDetails = Pick<TripDraft, "name" | "destination" | "startDate" | "endDate">;
+
+export type CheckedTripDetails =
+  | { ok: true; details: TripDetails }
+  | { ok: false; error: string; field: "name" | "destination" | "dates" };
+
+/** Name, destination and dates: shared by CreateTrip and "แก้ไขทริป". */
+export function checkTripDetails(draft: TripDetails): CheckedTripDetails {
   const name = clean(draft.name);
   if (!name) return { ok: false, error: "ใส่ชื่อทริป", field: "name" };
   if (name.length > MAX_NAME) return { ok: false, error: `ชื่อทริปยาวเกิน ${MAX_NAME} ตัวอักษร`, field: "name" };
@@ -82,6 +98,14 @@ export function checkTripDraft(draft: TripDraft, creatorName: string): CheckedTr
   const nights = daysBetween(draft.startDate, draft.endDate);
   if (nights < 0) return { ok: false, error: "วันกลับต้องไม่ก่อนวันไป", field: "dates" };
   if (nights + 1 > MAX_TRIP_DAYS) return { ok: false, error: `ทริปยาวได้ไม่เกิน ${MAX_TRIP_DAYS} วัน`, field: "dates" };
+  return { ok: true, details: { name, destination, startDate: draft.startDate, endDate: draft.endDate } };
+}
+
+/** Validate and normalise a draft. `creatorName` is used to drop a duplicate of the creator from memberNames. */
+export function checkTripDraft(draft: TripDraft, creatorName: string): CheckedTrip {
+  const details = checkTripDetails(draft);
+  if (!details.ok) return details;
+  const { name, destination } = details.details;
   if (draft.budget !== null && (!Number.isSafeInteger(draft.budget) || draft.budget < 0)) {
     return { ok: false, error: "งบประมาณไม่ถูกต้อง", field: "budget" };
   }

@@ -133,7 +133,7 @@ export function JoinTripForm({ token, options, initialPick, initialName, signedI
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="เช่น Ploy"
-              className="h-12 rounded-icon border border-line-strong bg-surface px-3.5 text-[15px] text-ink placeholder:text-ink-muted"
+              className="h-12 rounded-icon border border-line-strong bg-surface px-3.5 text-base text-ink placeholder:text-ink-muted"
             />
           </div>
         ) : null}

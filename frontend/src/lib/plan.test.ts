@@ -77,6 +77,18 @@ describe("dayCardCaption", () => {
     expect(days.map((d, i) => dayCardCaption(d, i + 1, 4))).toEqual(["3 ที่", "3 ที่", "2 ที่", "เดินทางกลับ"]);
     expect(dayCardCaption([], 2, 9)).toBe("ยังว่าง");
   });
+
+  it("does not count a Transit without a linked Place as a place (APP-6)", () => {
+    const flight: TransitPlanItem = {
+      kind: "transit", id: "f", tripId: "t", mode: "plane", fromText: "สุวรรณภูมิ", toText: "เชียงใหม่",
+      departAt: "2026-12-18T10:15", arriveAt: "2026-12-18T11:30", docIds: [], createdBy: "u",
+    };
+    expect(dayCardCaption([flight], 1, 3)).toBe("เดินทางไป");
+    expect(dayCardCaption([flight], 2, 3)).toBe("วันเดินทาง");
+    expect(dayCardCaption([flight], 3, 3)).toBe("เดินทางกลับ");
+    expect(dayCardCaption([flight, tokyoItems[1]], 1, 3)).toBe("1 ที่");
+    expect(dayCardCaption([{ ...flight, toPlaceId: "p-airport" }], 1, 3)).toBe("1 ที่");
+  });
 });
 
 describe("text helpers", () => {

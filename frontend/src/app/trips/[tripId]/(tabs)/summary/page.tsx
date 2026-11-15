@@ -11,7 +11,8 @@ import { cn } from "@/lib/cn";
 import { categoryTotals, shareBreakdown, suggestedRow, transferRows, type TransferStatus } from "@/lib/expenses";
 import { formatMoney } from "@/lib/money/format";
 
-const statusStyle: Record<TransferStatus, { label: string; className: string }> = {
+// "waiting" has no button: the remainder can be reported only after the open report is confirmed.
+const statusStyle: Record<Exclude<TransferStatus, "waiting">, { label: string; className: string }> = {
   confirmed: { label: "เคลียร์แล้ว", className: "border-primary bg-primary-soft text-primary hover:text-primary-hover" },
   sent: { label: "รอยืนยัน", className: "border-todo-line bg-todo-soft text-todo hover:text-todo" },
   pending: { label: "โอนเงิน", className: "border-primary bg-primary text-surface hover:bg-primary-hover hover:text-surface" },
@@ -88,6 +89,7 @@ export default async function SummaryPage({ params }: PageProps<"/trips/[tripId]
               paid: r.paid,
               share: r.share,
               net: r.net,
+              outstanding: r.outstanding,
               lines: shareBreakdown(r.member.id, expenses),
             }))}
           />
@@ -99,7 +101,7 @@ export default async function SummaryPage({ params }: PageProps<"/trips/[tripId]
           {transfers.map((t) => {
             const from = members.get(t.fromId)!;
             const to = members.get(t.toId)!;
-            const s = statusStyle[t.status];
+            const s = t.status === "waiting" ? null : statusStyle[t.status];
             return (
               <div key={t.key} className="flex items-center gap-2.5 border-t border-line-soft py-2.5">
                 <Avatar name={from.displayName} color={from.color} size="sm" />
@@ -110,17 +112,22 @@ export default async function SummaryPage({ params }: PageProps<"/trips/[tripId]
                     {from.displayName} → {to.displayName}
                   </span>
                   <Money value={t.amount} className="text-[15px] font-semibold" />
+                  {!s ? (
+                    <span className="text-xs text-ink-muted">ส่วนที่เหลือ · แจ้งโอนได้หลัง {to.displayName} ยืนยันยอดที่รออยู่</span>
+                  ) : null}
                 </span>
-                <Link
-                  href={`${base}/summary/settle?from=${encodeURIComponent(t.fromId)}&to=${encodeURIComponent(t.toId)}`}
-                  aria-label={`${s.label}: ${from.displayName} โอนให้ ${to.displayName} ${formatMoney(t.amount)}`}
-                  className={cn(
-                    "relative flex min-h-10 shrink-0 items-center rounded-chip border px-3 text-[13px] font-semibold no-underline before:absolute before:inset-x-0 before:-inset-y-0.5 before:content-['']",
-                    s.className,
-                  )}
-                >
-                  {s.label}
-                </Link>
+                {s ? (
+                  <Link
+                    href={`${base}/summary/settle?from=${encodeURIComponent(t.fromId)}&to=${encodeURIComponent(t.toId)}`}
+                    aria-label={`${s.label}: ${from.displayName} โอนให้ ${to.displayName} ${formatMoney(t.amount)}`}
+                    className={cn(
+                      "relative flex min-h-10 shrink-0 items-center rounded-chip border px-3 text-[13px] font-semibold no-underline before:absolute before:inset-x-0 before:-inset-y-0.5 before:content-['']",
+                      s.className,
+                    )}
+                  >
+                    {s.label}
+                  </Link>
+                ) : null}
               </div>
             );
           })}

@@ -1,12 +1,15 @@
 "use client";
 
-import { useRef, useState, useTransition, type ReactNode } from "react";
+import { useId, useRef, useState, useTransition, type ReactNode } from "react";
 import { SlipPicker } from "@/components/expenses/SlipPicker";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { confirmTransfer, markTransferSent, replaceTransferSlip } from "@/lib/api/settlement-actions";
 import type { ID } from "@/lib/api/types";
 import { MAX_SLIP_BYTES } from "@/lib/expense-draft";
+import { formatMoney, type Satang } from "@/lib/money/format";
+import { formatBahtInput, satangToInput } from "@/lib/money/input";
+import { settleAmount } from "@/lib/settle-view";
 
 function slipForm(file: File): FormData {
   const form = new FormData();
@@ -23,20 +26,41 @@ function ErrorText({ children }: { children: ReactNode }) {
 }
 
 /**
- * Payer, pending: QR card (server-rendered `children`) + attach slip, and the
- * fixed "แจ้งว่าโอนแล้ว" button. Rendered as the page body + footer.
+ * Payer, pending: QR card (server-rendered `children`), the amount (defaults to
+ * `remaining`, what I still owe this person; lower it to report part), attach
+ * slip, and the fixed "แจ้งว่าโอนแล้ว" button. Rendered as the page body + footer.
  */
-export function PayerPendingView({ tripId, toId, top, children }: { tripId: ID; toId: ID; top: ReactNode; children: ReactNode }) {
+export function PayerPendingView({
+  tripId,
+  toId,
+  remaining,
+  top,
+  children,
+}: {
+  tripId: ID;
+  toId: ID;
+  remaining: Satang;
+  top: ReactNode;
+  children: ReactNode;
+}) {
+  const ids = useId();
+  const [amountText, setAmountText] = useState(satangToInput(remaining));
   const [slip, setSlip] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
 
-  const send = () =>
+  const send = () => {
+    const checked = settleAmount(amountText, remaining);
+    if ("error" in checked) {
+      setError(checked.error);
+      return;
+    }
     startTransition(async () => {
       setError("");
-      const result = await markTransferSent(tripId, toId, slip && slipForm(slip));
+      const result = await markTransferSent(tripId, toId, checked.amount, slip && slipForm(slip));
       if (result?.error) setError(result.error);
     });
+  };
 
   return (
     <>
@@ -44,6 +68,30 @@ export function PayerPendingView({ tripId, toId, top, children }: { tripId: ID; 
         {top}
         <section aria-label="ช่องทางโอน" className="flex flex-col items-center gap-3 rounded-[22px] bg-surface px-4 py-[18px]">
           {children}
+          <div className="flex w-full flex-col items-center gap-1 border-t border-line-soft pt-3">
+            <label htmlFor={`${ids}-amount`} className="text-[13px] text-ink-muted">
+              ยอดที่โอน (บาท)
+            </label>
+            <div className="flex items-baseline gap-1">
+              <span aria-hidden="true" className="font-display text-[22px] font-semibold text-ink-muted">
+                ฿
+              </span>
+              <input
+                id={`${ids}-amount`}
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                placeholder="0"
+                value={amountText}
+                aria-describedby={`${ids}-amount-hint`}
+                onChange={(e) => setAmountText(formatBahtInput(e.target.value))}
+                className="min-h-11 w-full max-w-[200px] rounded-chip border-0 bg-transparent p-0 text-center font-display text-[32px] font-semibold text-ink tabular-nums placeholder:text-line-strong focus-visible:outline-offset-4"
+              />
+            </div>
+            <span id={`${ids}-amount-hint`} className="text-xs text-ink-muted">
+              ค้างอยู่ {formatMoney(remaining)} · โอนบางส่วนก่อนได้
+            </span>
+          </div>
           <SlipPicker label="แนบสลิปการโอน" value={slip} onPick={setSlip} onRemove={() => setSlip(null)} />
         </section>
       </main>

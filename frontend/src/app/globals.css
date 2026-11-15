@@ -112,6 +112,28 @@
   textarea {
     font: inherit;
   }
+  /* iOS Safari zooms the page when a focused field is under 16px. Utilities
+     (e.g. the 44px amount field) still override this. */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+  /* iOS Safari sizes date/time fields to their native control, ignoring
+     w-full, so they spill out of grid columns. Drop the native look and let
+     the field shrink; keep the value left-aligned and the empty field tall. */
+  input[type="date"],
+  input[type="time"] {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+  }
+  input::-webkit-date-and-time-value {
+    text-align: left;
+    min-height: 1.5em;
+  }
   a {
     @apply text-primary hover:text-primary-hover;
   }

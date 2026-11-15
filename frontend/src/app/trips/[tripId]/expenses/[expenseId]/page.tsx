@@ -12,7 +12,7 @@ import { getDocument, getDocumentUrl, getExpense, getMembers, requireTripMember 
 import type { PaymentMethod } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
 import { daysBetween, formatDate, formatTimestamp } from "@/lib/date";
-import { equalShareAmount } from "@/lib/expenses";
+import { equalShareAmount, expenseEditHint } from "@/lib/expenses";
 import { expenseCategoryFormLabel, paymentMethodLabel, splitModeLabel } from "@/lib/labels";
 import { formatMoney } from "@/lib/money/format";
 import { canEditExpense } from "@/lib/permissions";
@@ -41,6 +41,8 @@ export default async function ExpenseDetailPage({ params }: PageProps<"/trips/[t
   const offset = daysBetween(trip.startDate, expense.date);
   const inTrip = offset >= 0 && expense.date <= trip.endDate;
   const each = expense.splitMode === "equal" ? equalShareAmount(expense) : null;
+  // A satang remainder on the payer: "คนละ ~฿50" (the exact Shares are listed below).
+  const approx = each !== null && expense.shares.some((s) => s.amount !== each);
   const totalWeight = expense.shares.reduce((s, x) => s + (x.weight ?? 0), 0);
   const method = methodStyle[expense.method];
 
@@ -95,7 +97,7 @@ export default async function ExpenseDetailPage({ params }: PageProps<"/trips/[t
               {splitModeLabel[expense.splitMode].title} {expense.shares.length} คน
             </h2>
             <span className="text-[13px] text-ink-muted">
-              {each !== null ? `คนละ ${formatMoney(each)}` : expense.splitMode === "shares" ? `รวม ${totalWeight} ส่วน` : null}
+              {each !== null ? `คนละ ${approx ? "~" : ""}${formatMoney(each)}` : expense.splitMode === "shares" ? `รวม ${totalWeight} ส่วน` : null}
             </span>
           </div>
           <ul className="m-0 flex list-none flex-col p-0">
@@ -146,7 +148,7 @@ export default async function ExpenseDetailPage({ params }: PageProps<"/trips/[t
           <DeleteExpenseButton tripId={tripId} expenseId={expense.id} title={expense.title} />
         ) : (
           <p className="m-0 rounded-icon bg-surface px-4 py-3 text-center text-[13px] text-ink-muted">
-            แก้หรือลบได้เฉพาะ {name(expense.createdBy)} ที่เพิ่มรายการนี้ หรือผู้จัดทริป
+            {expenseEditHint(me.role, byId.get(expense.createdBy))}
           </p>
         )}
       </main>

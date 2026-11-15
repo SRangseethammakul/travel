@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { checkTripDraft, TRIP_COVERS, type TripDraft } from "@/lib/trip-form";
+import { checkTripDetails, checkTripDraft, TRIP_COVERS, type TripDetails, type TripDraft } from "@/lib/trip-form";
 import { actionError, apiFetch, tripPath } from "./http";
 import { getCurrentUser } from "./session";
 import type { Invite, Trip } from "./types";
@@ -47,4 +47,22 @@ export async function createTripAction(draft: TripDraft, then: "trip" | "members
   revalidatePath("/", "layout");
   const base = `/trips/${encodeURIComponent(trip.id)}`;
   return { tripId: trip.id, href: then === "members" ? `${base}/members` : base };
+}
+
+/**
+ * "แก้ไขทริป" (owner): B2 with name, destination and dates only. The backend
+ * decides permission and date rules (e.g. City Legs outside the new dates) and
+ * its Thai message is shown as is.
+ */
+export async function updateTripAction(tripId: string, draft: TripDetails): Promise<{ error: string } | { href: string }> {
+  const checked = checkTripDetails(draft);
+  if (!checked.ok) return { error: checked.error };
+  const { name, destination, startDate, endDate } = checked.details;
+  try {
+    await apiFetch<Trip>(tripPath(tripId), { method: "PATCH", json: { name, destination, startDate, endDate } });
+  } catch (e) {
+    return { error: actionError(e).error };
+  }
+  revalidatePath("/", "layout");
+  return { href: `/trips/${encodeURIComponent(tripId)}` };
 }

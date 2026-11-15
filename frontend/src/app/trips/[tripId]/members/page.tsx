@@ -44,7 +44,7 @@ export default async function MembersPage({ params }: PageProps<"/trips/[tripId]
       m.status === "pending"
         ? `รออนุมัติ${m.joinedVia ? ` · ${m.joinedVia === "line" ? "LINE" : "Google"}` : ""}`
         : m.userId === null
-        ? `ยังไม่เข้าร่วม${invite ? " · ส่งลิงก์แล้ว" : ""}`
+        ? "ยังไม่เข้าร่วม"
         : m.joinedVia
           ? `เข้าสู่ระบบด้วย ${m.joinedVia === "line" ? "LINE" : "Google"}`
           : "เข้าร่วมแล้ว",

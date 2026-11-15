@@ -24,6 +24,7 @@ import { cn } from "@/lib/cn";
 import { formatCountdown, formatDateRange, formatDayMonth, formatTripLength, formatWeekdayDay, todayISO, tripDayDate, tripPhase } from "@/lib/date";
 import { unreadCount } from "@/lib/expenses";
 import { memberRoleLine, transitModeLabel } from "@/lib/labels";
+import { canEditTripStructure } from "@/lib/permissions";
 import { dayCardCaption, itemsByDay, resolveDay } from "@/lib/plan";
 
 export default async function TripPage({ params }: PageProps<"/trips/[tripId]">) {
@@ -55,6 +56,7 @@ export default async function TripPage({ params }: PageProps<"/trips/[tripId]">)
           ทริปของฉัน
         </Link>
         <div className="flex gap-2">
+          {canEditTripStructure(me) ? <IconLink href={`${base}/edit`} icon="edit" label="แก้ไขทริป" /> : null}
           <IconLink
             href={`${base}/activity`}
             icon="bell"

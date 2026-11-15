@@ -78,7 +78,7 @@ export function PickPlaceForm({ tripId, sections, days, initialDay, initialPlace
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="ค้นหาชื่อ ย่าน หรือ tag"
-            className="min-w-0 flex-1 border-0 bg-transparent text-[15px] text-ink outline-none focus-visible:outline-none"
+            className="min-w-0 flex-1 border-0 bg-transparent text-base text-ink outline-none focus-visible:outline-none"
           />
         </label>
       </div>
@@ -153,7 +153,7 @@ export function PickPlaceForm({ tripId, sections, days, initialDay, initialPlace
             type="time"
             value={time}
             onChange={(e) => setTime(e.target.value)}
-            className="h-11 w-[120px] rounded-chip border border-line-strong bg-surface px-2.5 text-[15px] text-ink"
+            className="h-11 w-[120px] rounded-chip border border-line-strong bg-surface px-2.5 text-base text-ink"
           />
         </div>
         <fieldset className="m-0 flex flex-col border-0 p-0">

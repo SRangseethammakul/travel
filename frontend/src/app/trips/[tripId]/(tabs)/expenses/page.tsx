@@ -8,8 +8,9 @@ import { expenseCategoryStyle } from "@/components/ui/colors";
 import { getExpenses, getMembers, getPersonalExpenses, getTripBalances, requireTripMember } from "@/lib/api";
 import type { Member, PersonalExpense, Trip } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
-import { equalShareAmount, groupExpensesByDay, personalTotals } from "@/lib/expenses";
+import { groupExpensesByDay, personalTotals, shareCaption } from "@/lib/expenses";
 import { paymentMethodLabel } from "@/lib/labels";
+import { canAddExpense } from "@/lib/permissions";
 
 type View = "group" | "personal";
 
@@ -41,6 +42,7 @@ export default async function ExpensesPage({ params, searchParams }: PageProps<"
   // The card shows Outstanding (after confirmed Settlements), not Net Balance.
   const outstanding = mine?.outstanding ?? 0;
   const days = groupExpensesByDay(expenses, trip);
+  const canAdd = canAddExpense(me);
   const status = outstanding > 0 ? "จะได้คืน" : outstanding < 0 ? "ค้างจ่าย" : expenses.length ? "เคลียร์แล้ว" : "ยังไม่มียอด";
 
   return (
@@ -90,8 +92,7 @@ export default async function ExpensesPage({ params, searchParams }: PageProps<"
             <ul className="m-0 flex list-none flex-col overflow-hidden rounded-tile bg-surface p-0">
               {d.items.map((e) => {
                 const style = expenseCategoryStyle[e.category];
-                const each = equalShareAmount(e);
-                const myShare = e.shares.find((s) => s.memberId === me.id)?.amount;
+                const caption = shareCaption(e, me.id);
                 return (
                   <li key={e.id} className="border-b border-line-soft last:border-b-0">
                     <Link
@@ -119,13 +120,14 @@ export default async function ExpensesPage({ params, searchParams }: PageProps<"
                       <span className="flex shrink-0 flex-col items-end gap-0.5">
                         <Money value={e.amount} className="text-base font-semibold" />
                         <span className="text-xs text-ink-muted">
-                          {each !== null ? (
+                          {caption.kind === "each" ? (
                             <>
-                              คนละ <Money value={each} className="font-sans" />
+                              คนละ {caption.approx ? "~" : ""}
+                              <Money value={caption.amount} className="font-sans" />
                             </>
-                          ) : myShare !== undefined ? (
+                          ) : caption.kind === "mine" ? (
                             <>
-                              ส่วนคุณ <Money value={myShare} className="font-sans" />
+                              ส่วนคุณ <Money value={caption.amount} className="font-sans" />
                             </>
                           ) : (
                             "แบ่งไม่เท่ากัน"
@@ -145,12 +147,15 @@ export default async function ExpensesPage({ params, searchParams }: PageProps<"
               <Icon name="receipt" size={22} />
             </span>
             <p className="m-0 font-semibold">ยังไม่มีค่าใช้จ่าย</p>
-            <p className="m-0 text-[13px] text-ink-muted">ใครจ่ายอะไรไปก่อน กด &quot;เพิ่มค่าใช้จ่าย&quot; แล้วระบบจะหารให้</p>
+            {canAdd ? (
+              <p className="m-0 text-[13px] text-ink-muted">ใครจ่ายอะไรไปก่อน กด &quot;เพิ่มค่าใช้จ่าย&quot; แล้วระบบจะหารให้</p>
+            ) : null}
           </div>
         ) : null}
       </main>
 
-      <Fab href={`${base}/expenses/new`} label="เพิ่มค่าใช้จ่าย" />
+      {/* Viewers only look at group Expenses; their own Personal Expenses keep the FAB. */}
+      {canAdd ? <Fab href={`${base}/expenses/new`} label="เพิ่มค่าใช้จ่าย" /> : null}
     </>
   );
 }

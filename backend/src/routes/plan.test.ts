@@ -79,6 +79,11 @@ describe("PATCH / DELETE plan items and Hops — owner all, editor own only", ()
     expect((await request(app()).patch(`${T}/plan/${id}`).set(as("mint")).send({ time: "10:00" })).status).toBe(200);
     const hop = await request(app()).put(`${T}/plan/${id}/hop`).set(as("mint")).send({ mode: "walk", minutes: 5 });
     expect(hop.body.travelToNext).toEqual({ mode: "walk", minutes: 5 });
+    const hopActivity = (verb: string) =>
+      collections.activities().countDocuments({ tripId: "tokyo-winter", refId: id, text: { $regex: `^${verb}การเดินทางต่อจาก` } });
+    expect([await hopActivity("เพิ่ม"), await hopActivity("แก้")]).toEqual([1, 0]);
+    await request(app()).put(`${T}/plan/${id}/hop`).set(as("mint")).send({ mode: "taxi" });
+    expect([await hopActivity("เพิ่ม"), await hopActivity("แก้")]).toEqual([1, 1]);
     expect((await request(app()).delete(`${T}/plan/${id}/hop`).set(as("mint"))).status).toBe(200);
     expect((await request(app()).delete(`${T}/plan/${id}`).set(as("mint"))).status).toBe(204);
   });

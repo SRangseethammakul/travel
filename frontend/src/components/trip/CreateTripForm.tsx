@@ -17,7 +17,7 @@ import {
   DOCUMENT_QUICK_NAMES,
   fileBaseName,
   isAllowedDocument,
-  MEMBER_COLORS,
+  memberColor,
   TRIP_COVERS,
   type TripDocDraft,
 } from "@/lib/trip-form";
@@ -29,7 +29,7 @@ interface CreateTripFormProps {
 }
 
 const inputClass =
-  "h-12 w-full min-w-0 rounded-icon border border-line-strong bg-surface px-3.5 text-[15px] text-ink placeholder:text-ink-muted";
+  "h-12 w-full min-w-0 rounded-icon border border-line-strong bg-surface px-3.5 text-base text-ink placeholder:text-ink-muted";
 
 /** A picked document: what the form shows, plus the file to upload after the trip exists. */
 type DocItem = TripDocDraft & { file: File };
@@ -192,7 +192,7 @@ export function CreateTripForm({ me, defaultStart, defaultEnd }: CreateTripFormP
               value={destination}
               onChange={(e) => setDestination(e.target.value)}
               placeholder="เมือง หรือ ประเทศ"
-              className="min-w-0 flex-1 border-0 bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-muted"
+              className="min-w-0 flex-1 border-0 bg-transparent text-base text-ink outline-none placeholder:text-ink-muted"
             />
           </div>
         </div>
@@ -236,7 +236,7 @@ export function CreateTripForm({ me, defaultStart, defaultEnd }: CreateTripFormP
               value={budget}
               onChange={(e) => setBudget(formatBahtInput(e.target.value))}
               placeholder="0"
-              className="min-w-0 flex-1 border-0 bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-muted"
+              className="min-w-0 flex-1 border-0 bg-transparent text-base text-ink outline-none placeholder:text-ink-muted"
             />
           </div>
         </div>
@@ -252,7 +252,7 @@ export function CreateTripForm({ me, defaultStart, defaultEnd }: CreateTripFormP
             </li>
             {memberNames.map((n, i) => (
               <li key={n} className="flex min-h-10 items-center gap-2 rounded-full bg-bg py-1 pr-0.5 pl-1">
-                <Avatar name={n} color={MEMBER_COLORS[(i + 1) % MEMBER_COLORS.length]} size="sm" />
+                <Avatar name={n} color={memberColor(i, me.color)} size="sm" />
                 <span className="text-sm font-medium">{n}</span>
                 <button
                   type="button"

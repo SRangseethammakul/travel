@@ -275,7 +275,7 @@ export function PlaceForm({ tripId, userId, cities, areasByCity, legHints, defau
               aria-invalid={mapInvalid || undefined}
               aria-describedby={`${ids}-map-hint`}
               onChange={(e) => setMapUrl(e.target.value)}
-              className="min-w-0 flex-1 border-0 bg-transparent p-0 text-[15px] text-ink outline-none focus-visible:outline-none"
+              className="min-w-0 flex-1 border-0 bg-transparent p-0 text-base text-ink outline-none focus-visible:outline-none"
             />
             <button type="button" onClick={paste} className="min-h-11 shrink-0 cursor-pointer rounded-[10px] border-0 bg-bg px-3 text-[13px] font-semibold text-ink hover:bg-line">
               วาง
@@ -319,7 +319,7 @@ export function PlaceForm({ tripId, userId, cities, areasByCity, legHints, defau
               onChange={(e) => setDraftTag(e.target.value)}
               onKeyDown={onTagKey}
               placeholder={full ? `ครบ ${MAX_TAGS} อันแล้ว` : "พิมพ์ tag ใหม่"}
-              className="h-8 min-w-[100px] flex-1 border-0 bg-transparent px-1 text-[15px] text-ink outline-none focus-visible:outline-none"
+              className="h-8 min-w-[100px] flex-1 border-0 bg-transparent px-1 text-base text-ink outline-none focus-visible:outline-none"
             />
           </div>
           {canCreate && !full ? (

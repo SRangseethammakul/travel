@@ -96,10 +96,21 @@ export function resolveDay(param: string | string[] | undefined, trip: TripDates
   return 1;
 }
 
-/** Day card caption on the trip page: "3 ที่", last day with a flight home → "เดินทางกลับ". */
+/**
+ * Day card caption on the trip page: "3 ที่", last day with a flight home → "เดินทางกลับ".
+ * Counts Places, not Plan Items: a Transit counts only through a Place it is linked to
+ * (Tokyo day 1: Haneda + 2 visits = "3 ที่"). A day with only unlinked Transit is
+ * "เดินทางไป" on day 1, else "วันเดินทาง".
+ */
 export function dayCardCaption(dayItems: readonly PlanItem[], day: number, dayCount: number): string {
-  if (day === dayCount && dayCount > 1 && dayItems.some((i) => i.kind === "transit")) return "เดินทางกลับ";
-  return dayItems.length ? `${dayItems.length} ที่` : "ยังว่าง";
+  const hasTransit = dayItems.some((i) => i.kind === "transit");
+  if (day === dayCount && dayCount > 1 && hasTransit) return "เดินทางกลับ";
+  const placeIds = new Set(
+    dayItems.flatMap((i) => (i.kind === "place" ? [i.placeId] : [i.fromPlaceId, i.toPlaceId].filter((id): id is string => Boolean(id)))),
+  );
+  if (placeIds.size) return `${placeIds.size} ที่`;
+  if (hasTransit) return day === 1 ? "เดินทางไป" : "วันเดินทาง";
+  return "ยังว่าง";
 }
 
 /** Hop chip text: "รถไฟ · ~40 นาที · ไปชินจูกุ". */

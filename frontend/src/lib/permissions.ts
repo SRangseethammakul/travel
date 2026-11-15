@@ -55,7 +55,7 @@ export function canEditPlanEntry(me: Me, entry: { createdBy: string }): boolean 
   return me.role === "editor" && entry.createdBy === me.id;
 }
 
-/** Renaming / merging Areas (ManageTags) and editing City Legs (TripRoute): owner only. */
+/** Renaming / merging Areas (ManageTags), editing City Legs (TripRoute) and "แก้ไขทริป": owner only. */
 export function canEditTripStructure(me: Me): boolean {
   return me.role === "owner";
 }
