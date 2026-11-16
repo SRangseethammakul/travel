@@ -342,13 +342,14 @@ export async function saveTransit(tripId: ID, draft: TransitDraft, cost: number 
 
 /** B26 — save an edited Transit, then open the planner on its departure day. A linked expense stays linked. */
 export async function updateTransitAction(tripId: ID, itemId: ID, draft: TransitDraft): Promise<ActionResult> {
-  const [trip, docs] = await Promise.all([getTrip(tripId), getDocuments(tripId)]);
+  const [trip, docs, items] = await Promise.all([getTrip(tripId), getDocuments(tripId), getPlanItems(tripId)]);
   if (!trip) return { error: "ไม่พบทริปนี้" };
   const checked = checkTransitDraft(draft, trip, docs.map((d) => d.id));
   if (!checked.ok) return { error: checked.error };
+  const prev = items.find((i): i is TransitPlanItem => i.id === itemId && i.kind === "transit");
   let item: TransitPlanItem;
   try {
-    item = await apiFetch<TransitPlanItem>(`${tripPath(tripId)}/plan/${encodeURIComponent(itemId)}`, { method: "PATCH", json: transitPatchBody(checked, draft) });
+    item = await apiFetch<TransitPlanItem>(`${tripPath(tripId)}/plan/${encodeURIComponent(itemId)}`, { method: "PATCH", json: transitPatchBody(checked, draft, prev) });
   } catch (e) {
     return { error: actionError(e).error };
   }

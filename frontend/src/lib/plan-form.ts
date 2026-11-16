@@ -206,7 +206,13 @@ export function transitDraftFromItem(item: TransitPlanItem): TransitDraft {
  * B26 body for a Transit edit. Every editable field is sent so what the user cleared is cleared:
  * `null` removes an optional field (code, booking ref, seat, Place link). `expenseId` is left alone.
  */
-export function transitPatchBody(checked: Extract<TransitResult, { ok: true }>, draft: Pick<TransitDraft, "mode" | "fromPlaceId" | "toPlaceId">) {
+export function transitPatchBody(
+  checked: Extract<TransitResult, { ok: true }>,
+  draft: Pick<TransitDraft, "mode" | "fromPlaceId" | "toPlaceId">,
+  prev?: Pick<TransitPlanItem, "departAt" | "arriveAt">,
+) {
+  // The form has no duration field: a stored duration is wrong once the times move, so drop it.
+  const moved = !prev || prev.departAt !== checked.departAt || prev.arriveAt !== checked.arriveAt;
   return {
     mode: draft.mode,
     fromText: checked.fromText,
@@ -220,6 +226,7 @@ export function transitPatchBody(checked: Extract<TransitResult, { ok: true }>, 
     docIds: checked.docIds,
     fromPlaceId: draft.fromPlaceId ?? null,
     toPlaceId: draft.toPlaceId ?? null,
+    ...(moved ? { durationMinutes: null } : {}),
   };
 }
 

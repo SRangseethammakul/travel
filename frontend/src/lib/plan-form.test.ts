@@ -82,14 +82,15 @@ describe("transit edit", () => {
   it("round-trips unchanged and sends null for cleared optional fields, never expenseId", () => {
     const draft = transitDraftFromItem(saved);
     const same = checkTransitDraft(draft, trip, ["doc-flight"]);
-    expect(same.ok && transitPatchBody(same, draft)).toEqual({
+    expect(same.ok && transitPatchBody(same, draft, saved)).toEqual({
       mode: "plane", fromText: "สนามบินฮาเนดะ", toText: "สุวรรณภูมิ", fromCode: "HND", toCode: "BKK", departAt: "2026-12-15T18:00", arriveAt: "2026-12-15T23:30",
       bookingRef: "ABC123", seatInfo: null, docIds: ["doc-flight"], fromPlaceId: "hnd", toPlaceId: null,
     });
     const cleared = { ...draft, fromText: "ฮาเนดะ", bookingRef: "", docIds: [], fromPlaceId: undefined, seatInfo: "12A", departTime: "19:15" };
     const r = checkTransitDraft(cleared, trip, []);
-    const body = r.ok ? transitPatchBody(r, cleared) : null;
-    expect(body).toMatchObject({ fromCode: null, bookingRef: null, docIds: [], fromPlaceId: null, seatInfo: "12A", departAt: "2026-12-15T19:15" });
+    const body = r.ok ? transitPatchBody(r, cleared, saved) : null;
+    // New times: the stored duration no longer fits, so it is cleared.
+    expect(body).toMatchObject({ fromCode: null, bookingRef: null, docIds: [], fromPlaceId: null, seatInfo: "12A", departAt: "2026-12-15T19:15", durationMinutes: null });
     expect(body).not.toHaveProperty("expenseId");
   });
 });
