@@ -32,7 +32,6 @@ services:
     networks:
       - bangkok
     environment:
-      # Must match the rewrite baked into the image (http://travel-backend:3000).
       BACKEND_URL: http://travel-backend:3000
 
 networks:
