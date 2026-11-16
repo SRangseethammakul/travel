@@ -102,6 +102,19 @@ export const StayDoc = z
   })
   .refine((s) => s.checkOut > s.checkIn, { message: "checkOut must be after checkIn", path: ["checkOut"] });
 
+/** A photo attached to a Place; the file lives in object storage under `fileKey`. */
+export const PlacePhotoDoc = z.strictObject({
+  _id: Id,
+  fileKey: text(500),
+  mime: z.enum(["image/jpeg", "image/png", "image/heic", "image/webp"]),
+  size: z.int().min(1).max(20_971_520),
+  uploadedBy: Id,
+  createdAt: z.date(),
+});
+
+/** At most this many photos on one Place. */
+export const MAX_PLACE_PHOTOS = 10;
+
 export const PlaceDoc = z.strictObject({
   _id: Id,
   tripId: Id,
@@ -114,6 +127,8 @@ export const PlaceDoc = z.strictObject({
   note: text(2000),
   costPerPerson: Satang.optional(),
   stay: StayDoc.optional(),
+  /** Absent on Places made before photos existed — read as []. */
+  photos: z.array(PlacePhotoDoc).max(MAX_PLACE_PHOTOS).optional(),
   createdBy: Id,
   createdAt: z.date(),
   updatedAt: z.date().optional(),
@@ -265,6 +280,7 @@ export type MemberDoc = z.infer<typeof MemberDoc>;
 export type Role = z.infer<typeof Role>;
 export type InviteDoc = z.infer<typeof InviteDoc>;
 export type DocumentDoc = z.infer<typeof DocumentDoc>;
+export type PlacePhotoDoc = z.infer<typeof PlacePhotoDoc>;
 export type PlaceDoc = z.infer<typeof PlaceDoc>;
 export type TagDoc = z.infer<typeof TagDoc>;
 export type PlanItemDoc = z.infer<typeof PlanItemDoc>;

@@ -15,12 +15,14 @@ import {
 } from "../models/place.model.js";
 import { expenseExists } from "../models/reference.model.js";
 import { countTransitsAtPlace, deleteVisitsOfPlace, scheduledPlaceIds } from "../models/plan.model.js";
+import { removeFiles } from "../storage/files.js";
 import { findTripById } from "../models/trip.model.js";
 import { findTagsByIds, findTagsByOwner, insertTags } from "../models/tag.model.js";
 import type { PlaceDoc, TagDoc } from "../schemas/models.js";
 import { AreaRenameBody, PlaceCreateBody, PlaceListQuery, PlaceUpdateBody } from "../schemas/places.js";
 import { placeGroupsView, placeView } from "../views/place.view.js";
 import { param } from "./params.js";
+import { placeWithPhotos, signedPhotosByPlace } from "./place-photo.controller.js";
 
 const notYours = "คุณแก้หรือลบได้เฉพาะสถานที่ที่ตัวเองเพิ่ม";
 const placeNotFound = () => new HttpError(404, "place_not_found", "ไม่พบสถานที่นี้");
@@ -73,13 +75,14 @@ export const listPlaces: RequestHandler = async (req, res) => {
     tagIds: q.tags,
     excludeIds: q.unscheduled === "1" ? [...scheduled] : undefined,
   });
-  res.json(q.group ? placeGroupsView(places, q.group, scheduled) : places.map(placeView));
+  const photos = await signedPhotosByPlace(places);
+  res.json(q.group ? placeGroupsView(places, q.group, scheduled, photos) : places.map((p) => placeView(p, photos.get(p._id))));
 };
 
 export const getPlace: RequestHandler = async (req, res) => {
   const place = await findPlace(currentMember(req).tripId, param(req, "placeId"));
   if (!place) throw placeNotFound();
-  res.json(placeView(place));
+  res.json(await placeWithPhotos(place));
 };
 
 /** B15 — editor+. */
@@ -96,6 +99,7 @@ export const createPlace: RequestHandler = async (req, res) => {
     city: body.city,
     area: body.area,
     tagIds,
+    photos: [],
     ...(body.mapUrl ? { mapUrl: body.mapUrl } : {}),
     note: body.note,
     ...(body.costPerPerson !== undefined ? { costPerPerson: body.costPerPerson } : {}),
@@ -111,7 +115,7 @@ export const createPlace: RequestHandler = async (req, res) => {
     refId: place._id,
     text: `เพิ่มสถานที่ "${place.name}"${place.area ? ` ใน ${place.area}` : ""}`,
   });
-  res.status(201).json(placeView(place));
+  res.status(201).json(await placeWithPhotos(place));
 };
 
 /** B16 — owner, or the editor who added the Place. */
@@ -141,7 +145,7 @@ export const patchPlace: RequestHandler = async (req, res) => {
   const place = await updatePlace(me.tripId, placeId, set, unset);
   if (!place) throw placeNotFound();
   await addActivity({ tripId: me.tripId, actorId: me._id, type: "plan", refId: place._id, text: `แก้ไขสถานที่ "${place.name}"` });
-  res.json(placeView(place));
+  res.json(await placeWithPhotos(place));
 };
 
 /** B17 — owner, or the editor who added the Place. Removes its visits from the plan; 409 while a Transit starts or ends there. */
@@ -156,6 +160,7 @@ export const removePlace: RequestHandler = async (req, res) => {
   }
   await deleteVisitsOfPlace(me.tripId, placeId);
   await deletePlace(me.tripId, placeId);
+  await removeFiles((place.photos ?? []).map((p) => p.fileKey));
   await addActivity({ tripId: me.tripId, actorId: me._id, type: "plan", refId: null, text: `ลบสถานที่ "${place.name}"` });
   res.status(204).end();
 };

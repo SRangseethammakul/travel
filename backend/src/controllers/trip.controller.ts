@@ -13,7 +13,7 @@ import { deleteTripCascade, findTripById, findTripsByIds, insertTrip, updateTrip
 import type { ColorKey } from "../schemas/common.js";
 import type { MemberDoc, TripDoc } from "../schemas/models.js";
 import { CreateTripInput, TripListQuery, UpdateTripInput } from "../schemas/trip.inputs.js";
-import { removeFile } from "../storage/files.js";
+import { removeFiles } from "../storage/files.js";
 import { memberView } from "../views/member.view.js";
 import { tripView } from "../views/trip.view.js";
 import { setAndUnset } from "./fields.js";
@@ -159,6 +159,6 @@ export const updateTripDetails: RequestHandler = async (req, res) => {
 /** B3 DELETE /api/trips/:tripId (owner) — trip first, then everything in it, then the files. */
 export const deleteTrip: RequestHandler = async (req, res) => {
   const fileKeys = await deleteTripCascade(currentMember(req).tripId);
-  await Promise.all(fileKeys.map((key) => removeFile(key)));
+  await removeFiles(fileKeys);
   res.status(204).end();
 };

@@ -30,7 +30,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const invite = await inviteContext(next);
   // The backend's OAuth callback comes back with ?error=cancelled when the User backs out.
   const cancelled = first(query.error) === "cancelled";
-  // Development signs in with the mock buttons (`mock-user`); production goes through LINE / Google.
+  // Development signs in with the mock buttons (`mock-user`); production goes through Google.
+  // LINE is hidden until its channel is set up — add its ProviderButton back next to Google.
   const mock = process.env.NODE_ENV === "development";
   const oauthHref = (provider: "line" | "google") => `/api/auth/${provider}?next=${encodeURIComponent(next)}`;
 
@@ -75,13 +76,11 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         {mock ? (
           <form action={signIn} className="flex flex-col gap-2.5">
             <input type="hidden" name="next" value={next} />
-            <ProviderButton provider="line" />
             <ProviderButton provider="google" />
             <p className="m-0 mt-1 text-center text-xs leading-normal text-ink-muted">ใช้แค่ชื่อ อีเมล และรูปโปรไฟล์ ไม่โพสต์อะไรแทนคุณ</p>
           </form>
         ) : (
           <div className="flex flex-col gap-2.5">
-            <ProviderButton provider="line" href={oauthHref("line")} />
             <ProviderButton provider="google" href={oauthHref("google")} />
             <p className="m-0 mt-1 text-center text-xs leading-normal text-ink-muted">ใช้แค่ชื่อ อีเมล และรูปโปรไฟล์ ไม่โพสต์อะไรแทนคุณ</p>
           </div>

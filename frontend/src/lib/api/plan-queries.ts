@@ -3,12 +3,14 @@
  * AddTransit, TripRoute). Same rules as queries.ts: backend reads only.
  */
 import { apiFetch, nullOn404, tripPath } from "./http";
+import { localizePlacePhotos } from "./place-photos";
 import { getUserTags } from "./queries";
 import type { ID, Place, Tag } from "./types";
 
 /** GET /api/trips/:tripId/places/:placeId, or null. */
 export async function getPlace(tripId: ID, placeId: ID): Promise<Place | null> {
-  return nullOn404(apiFetch<Place>(`${tripPath(tripId)}/places/${encodeURIComponent(placeId)}`));
+  const place = await nullOn404(apiFetch<Place>(`${tripPath(tripId)}/places/${encodeURIComponent(placeId)}`));
+  return place ? localizePlacePhotos(place) : null;
 }
 
 /**

@@ -2,6 +2,7 @@
  * Read functions (docs/api/API.md Part A). Components get data only through
  * lib/api; every read goes to the backend through apiFetch (docs/adr/0001).
  */
+import { localizePlacePhotos } from "./place-photos";
 import { redirect } from "next/navigation";
 import { itemDay } from "@/lib/plan";
 import { ApiError, apiFetch, nullOn404, tripPath } from "./http";
@@ -81,7 +82,7 @@ export async function getDocument(tripId: ID, docId: ID): Promise<TripDocument |
 
 /** A7 GET /api/trips/:tripId/places */
 export async function getPlaces(tripId: ID): Promise<Place[]> {
-  return apiFetch<Place[]>(`${tripPath(tripId)}/places`);
+  return (await apiFetch<Place[]>(`${tripPath(tripId)}/places`)).map(localizePlacePhotos);
 }
 
 /** A8 GET /api/trips/:tripId/tags — tags used on any Place in the trip (the Places filter). */

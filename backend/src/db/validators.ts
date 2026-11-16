@@ -207,6 +207,23 @@ export const collectionDefs: CollectionDef[] = [
               expenseId: id,
             },
           },
+          photos: {
+            bsonType: "array",
+            maxItems: 10,
+            items: {
+              bsonType: "object",
+              additionalProperties: false,
+              required: ["_id", "fileKey", "mime", "size", "uploadedBy", "createdAt"],
+              properties: {
+                _id: id,
+                fileKey: text(500),
+                mime: { enum: ["image/jpeg", "image/png", "image/heic", "image/webp"] },
+                size: { bsonType: ["int", "long"], minimum: 1, maximum: 20971520 },
+                uploadedBy: id,
+                createdAt: date,
+              },
+            },
+          },
           createdBy: id,
           createdAt: date,
           updatedAt: date,

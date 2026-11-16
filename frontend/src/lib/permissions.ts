@@ -92,3 +92,14 @@ export function canUploadDocument(me: Me): boolean {
 export function canDeleteDocument(me: Me, doc: { uploadedBy: string }): boolean {
   return me.role === "owner" || doc.uploadedBy === me.id;
 }
+
+/** Adding photos to a Place: owner and editor, on any Place (not only the ones they added). */
+export function canAddPlacePhoto(me: Me): boolean {
+  return me.role === "owner" || me.role === "editor";
+}
+
+/** Deleting a photo: the owner, or the Member who uploaded it (and can still edit). */
+export function canDeletePlacePhoto(me: Me, photo: { uploadedBy: string }): boolean {
+  if (me.role === "owner") return true;
+  return me.role === "editor" && photo.uploadedBy === me.id;
+}

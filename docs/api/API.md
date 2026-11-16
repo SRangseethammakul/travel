@@ -15,7 +15,7 @@ Types (`Trip`, `Member`, `Expense`, …) refer to `frontend/src/lib/api/types.ts
 - The **Current Member** is always derived on the server from the session + `tripId`. The client never sends "who I am".
 - Not a Member of the trip → `404` (don't reveal the trip exists). Wrong role → `403`.
 - Errors: `{ "error": { "code": string, "message": string } }` with 400 / 401 / 403 / 404 / 409. `message` is Thai. Also `413` (`file_too_large`, uploads) and `429` (`rate_limited`).
-- Rate limits (30 per 15 min): OAuth start/callback per client IP (needs `TRUST_PROXY` set to the proxies in front, see backend `config.ts`); uploads (B12) per User; logout (B42) not limited.
+- Rate limits (30 per 15 min): OAuth start/callback per client IP (needs `TRUST_PROXY` set to the proxies in front, see backend `config.ts`); uploads (B12, B15a) per User; logout (B42) not limited.
 - Net Balance, Outstanding, and Suggested Transfers are computed per request, never stored.
 - Every write adds an `Activity`.
 
@@ -33,7 +33,7 @@ Roles column: **any** = any Member of the trip · **editor+** = owner or editor 
 | A4 | `GET /api/trips/:tripId/members` | any | `getMembers()` | `Member[]` |
 | A5 | `GET /api/trips/:tripId/invite` | owner | `getInvite()` | `Invite \| null` |
 | A6 | `GET /api/trips/:tripId/documents` | any | `getDocuments()` | `TripDocument[]` (no file URLs) |
-| A7 | `GET /api/trips/:tripId/places` | any | `getPlaces()` | `Place[]` |
+| A7 | `GET /api/trips/:tripId/places` | any | `getPlaces()` | `Place[]` (each with `photos`, see B15a) |
 | A8 | `GET /api/trips/:tripId/tags` | any | `getTripTags()` | `Tag[]` — every tag used on a Place in this trip (Places filter) |
 | A9 | `GET /api/me/tags` | signed in | `getUserTags(userId)` | `Tag[]` — the current User's tags only (ManageTags) |
 | A10 | `GET /api/trips/:tripId/plan` | any | `getPlanItems()` | `PlanItem[]` sorted by day, then time (untimed last), then insertion order |
@@ -98,14 +98,31 @@ Slips for Expenses and Settlements use B12 and then pass `slipDocId`.
 | # | Method & path | Role | Body → Response |
 | --- | --- | --- | --- |
 | B15 | `POST /api/trips/:tripId/places` | editor+ | `{ name, type, city, area, tagIds?, newTags?: string[], mapUrl?, note, costPerPerson?, stay? }` → `Place` (`stay` = `{ checkIn, checkOut, price?, bookingRef?, address?, expenseId? }`, only for `type: "stay"`, dates `YYYY-MM-DD` inside the trip, `checkOut > checkIn`, else 400; `stay.expenseId` must be an Expense of this trip else 400 `unknown_expense`, and deleting that Expense (B31) unsets it) (`newTags` creates Tags owned by the current User; picking another Member's tag reuses its id) |
+| B15a | `POST /api/trips/:tripId/places/:placeId/photos` | editor+ | multipart `file` (JPEG/PNG/WebP/HEIC, type read from the bytes, 10 MB, max 10 photos per Place) → `201` `PlacePhoto`. `400 unsupported_file_type`, `413 file_too_large`, `409 photo_limit` when the Place already has 10 photos. Activity `เพิ่มรูป "<place name>"`. |
+| B15b | `DELETE /api/trips/:tripId/places/:placeId/photos/:photoId` | owner or uploader | → `204` (`403` for anyone else, `404 photo_not_found`). Activity `ลบรูป "<place name>"`. |
 | B16 | `PATCH /api/trips/:tripId/places/:placeId` | editor+ | partial → `Place` (`stay: null` removes it; `stay` is replaced whole, so omitting `expenseId` in a PATCH unlinks the Expense) |
-| B17 | `DELETE /api/trips/:tripId/places/:placeId` | editor+ | → `204` (also removes its place Plan Items; returns 409 if a Transit references it as from/to) |
+| B17 | `DELETE /api/trips/:tripId/places/:placeId` | editor+ | → `204` (also removes its place Plan Items and its photo files; returns 409 if a Transit references it as from/to) |
 | B18 | `GET /api/trips/:tripId/tags/suggest?q=` | any | → `{ mine: Tag[]; others: Tag[] }` — my tags first, then other tags used in this trip |
 | B19 | `POST /api/me/tags` | signed in | `{ name, group? }` → `Tag` |
 | B20 | `PATCH /api/me/tags/:tagId` | tag owner | `{ name?, group? }` → `Tag` |
 | B21 | `DELETE /api/me/tags/:tagId` | tag owner | → `{ removedFromPlaces: number }` (removes the tag from every Place; the confirm dialog shows this count — get it first from B22) |
 | B22 | `GET /api/me/tags/usage` | signed in | → `Record<tagId, number>` — Places (in any trip) per tag, for the current User's tags only; tags on no Place are left out (matches `getTagUsage(userId)` in `frontend/src/lib/api/plan-queries.ts`) |
 | B23 | `PATCH /api/trips/:tripId/areas` | editor+ | `{ city, from, to }` → `{ updatedPlaces: number }` (rename or merge an Area) |
+
+**Place photos.** Every `Place` response (A7 list, `?group=` groups, get one, B15, B16) has `photos: PlacePhoto[]` (`[]` when none), oldest first:
+
+```ts
+PlacePhoto = {
+  id: string; mime: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/heic';
+  size: number;            // bytes
+  uploadedBy: string;      // Member id
+  createdAt: string;       // ISO
+  url: string;             // signed, opens the image directly (use as <img src>); no session needed
+  urlExpiresAt: string;    // ISO — about 15 minutes after the response; re-fetch the Place for fresh URLs
+}
+```
+
+The file key is never returned. Storage is `STORAGE_DRIVER=local` (dev: `url` is `${PUBLIC_API_URL}/api/files/places/:placeId/photos/:photoId?exp&sig`, an HMAC link served by the backend) or `s3` (`url` is a presigned DigitalOcean Spaces GET link on the bucket host). Documents (B12–B14) use the same storage. Deleting a Trip (B3) deletes all its Documents and photo files.
 
 ### Plan (phase 4: PickPlace 13, AddTransit 18, TripRoute 16)
 

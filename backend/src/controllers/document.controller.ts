@@ -7,7 +7,7 @@ import { addActivity } from "../models/activity.model.js";
 import { deleteDocument, findDocument, findDocumentById, insertDocument, isUsedAsSlip, listDocuments } from "../models/document.model.js";
 import { SignedFileQuery, UploadDocumentInput } from "../schemas/document.inputs.js";
 import type { DocumentDoc } from "../schemas/models.js";
-import { readStoredFile, removeFile, saveFile, signedFileUrl, verifyFileSignature } from "../storage/files.js";
+import { readStoredFile, removeFiles, saveFile, signedFileUrl, verifyFileSignature } from "../storage/files.js";
 import { documentView } from "../views/document.view.js";
 import { param } from "./params.js";
 
@@ -54,7 +54,7 @@ export const uploadDocument: RequestHandler = async (req, res) => {
     uploadedBy: me._id,
     createdAt: new Date(),
   };
-  await saveFile(doc.fileKey, file.buffer);
+  await saveFile(doc.fileKey, file.buffer, mime);
   await insertDocument(doc);
   await addActivity({ tripId: me.tripId, actorId: me._id, type: "plan", refId: _id, text: `อัปโหลดเอกสาร "${doc.name}"` });
   res.status(201).json(documentView(doc));
@@ -63,7 +63,12 @@ export const uploadDocument: RequestHandler = async (req, res) => {
 /** B13 GET /api/trips/:tripId/documents/:docId/url → { url, expiresAt } (expires in 5 minutes). */
 export const getDocumentUrl: RequestHandler = async (req, res) => {
   const doc = await loadDocument(currentMember(req).tripId, param(req, "docId"));
-  const { url, expiresAt } = signedFileUrl(doc._id);
+  const { url, expiresAt } = await signedFileUrl({
+    fileKey: doc.fileKey,
+    mime: doc.mime,
+    filename: doc.name,
+    local: { path: `/api/files/${encodeURIComponent(doc._id)}`, subject: doc._id },
+  });
   res.json({ url, expiresAt: expiresAt.toISOString() });
 };
 
@@ -76,7 +81,7 @@ export const removeDocument: RequestHandler = async (req, res) => {
     throw new HttpError(409, "document_in_use", "เอกสารนี้เป็นสลิปของรายการค่าใช้จ่ายหรือการโอน");
   }
   await deleteDocument(me.tripId, doc._id);
-  await removeFile(doc.fileKey);
+  await removeFiles([doc.fileKey]);
   await addActivity({ tripId: me.tripId, actorId: me._id, type: "plan", refId: null, text: `ลบเอกสาร "${doc.name}"` });
   res.status(204).end();
 };

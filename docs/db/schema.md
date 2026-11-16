@@ -207,6 +207,14 @@ Metadata only; the file is in object storage behind a signed URL.
   note: string;
   costPerPerson?: int;         // satang
   stay?: { checkIn: string; checkOut: string; price?: int; bookingRef?: string; address?: string; expenseId?: Id }; // type "stay" only; dates YYYY-MM-DD within trip, checkOut > checkIn; price satang
+  photos?: {                   // max 10; absent on older Places = []
+    _id: string;
+    fileKey: string;           // object-storage key `${tripId}/places/${placeId}/${photoId}`, never a URL
+    mime: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/heic';
+    size: int;                 // bytes
+    uploadedBy: string;        // Member id
+    createdAt: Date;
+  }[];
   createdBy: string;           // Member id
   createdAt: Date;
   updatedAt?: Date;
@@ -216,7 +224,8 @@ Metadata only; the file is in object storage behind a signed URL.
 - **Places are not embedded in Trip**: a trip can have hundreds, they are filtered and edited one by one, and Plan Items reference them.
 - **`tagIds` are references, not embedded tag names**: a Tag is renamed/regrouped by its owner and must change everywhere at once (owner edits one Tag document). Bounded per Place (validator: max 30).
 - **Unscheduled** is derived (`_id` not in the trip's `planItems.placeId` / `fromPlaceId` / `toPlaceId`); not stored, so it can never drift from the plan.
-- Size: 10–300 per trip, < 1 KB each.
+- **`photos` are embedded**: bounded (max 10, enforced by the validator and by an atomic conditional `$push` on `photos.9` not existing), always read with the Place, never queried on their own. Only metadata is stored; the bytes live in object storage (local disk or a private DigitalOcean Spaces bucket, `STORAGE_DRIVER`) behind expiring signed URLs.
+- Size: 10–300 per trip, < 1 KB each (+ ~250 B per photo).
 
 ### 2.7 `tags`
 
@@ -585,6 +594,11 @@ const hop = {
     costPerPerson: money,
     stay: { bsonType: "object", additionalProperties: false, required: ["checkIn","checkOut"],
             properties: { checkIn: text(10), checkOut: text(10), price: money, bookingRef: text(100), address: text(300), expenseId: id } },
+    photos: { bsonType: 'array', maxItems: 10, items: {
+      bsonType: 'object', additionalProperties: false,
+      required: ['_id', 'fileKey', 'mime', 'size', 'uploadedBy', 'createdAt'],
+      properties: { _id: id, fileKey: text(500), mime: { enum: ['image/jpeg', 'image/png', 'image/heic', 'image/webp'] },
+                    size: { bsonType: ['int', 'long'], minimum: 1, maximum: 20971520 }, uploadedBy: id, createdAt: { bsonType: 'date' } } } },
     createdBy: id, createdAt: { bsonType: 'date' }, updatedAt: { bsonType: 'date' },
   },
 } }
@@ -803,7 +817,7 @@ Race: an Expense can be added for this Member between step 2 and step 3/4. Accep
 1. Owner only.
 2. `trips.deleteOne({ _id: tripId })` first — from now on every endpoint returns 404 because the trip lookup fails.
 3. `deleteMany({ tripId })` on `members`, `invites`, `places`, `planItems`, `expenses`, `settlements`, `personalExpenses`, `checklistItems`, `activities`, `documents` (each uses its `tripId`-leading index).
-4. Delete the files of the removed `documents` from object storage (collect `fileKey`s before step 3).
+4. Delete the files of the removed `documents` and the `photos` embedded in the removed `places` from object storage (collect the `fileKey`s before step 3).
 
 `tags` are owned by Users and are **not** deleted. No transaction (could be large); every step is idempotent, so a crash is fixed by re-running, and a periodic "orphans whose `tripId` has no trip" sweep is a safety net.
 
@@ -811,7 +825,7 @@ Race: an Expense can be added for this Member between step 2 and step 3/4. Accep
 
 | Delete | Also do |
 | --- | --- |
-| Place (B17) | 409 if any Transit has `fromPlaceId`/`toPlaceId` = it (API.md); else `planItems.deleteMany({ tripId, kind: 'place', placeId })` |
+| Place (B17) | 409 if any Transit has `fromPlaceId`/`toPlaceId` = it (API.md); else `planItems.deleteMany({ tripId, kind: 'place', placeId })`, then delete its `photos` files from object storage |
 | Expense (B31) | `planItems.updateMany({ tripId, expenseId }, { $unset: { expenseId: '' } })` |
 | Document (B14) | `planItems.updateMany({ tripId, docIds: docId }, { $pull: { docIds: docId } })`; slip in use by an Expense/Settlement → proposed 409 (open question); then delete the file |
 

@@ -22,6 +22,7 @@ export default async function PlacesPage({ params, searchParams }: PageProps<"/t
     tagIds: p.tagIds,
     days: days.get(p.id) ?? [],
     note: p.note,
+    ...(p.photos[0] ? { photo: { id: p.photos[0].id, url: p.photos[0].url } } : {}),
     ...(p.stay ? { stay: { checkIn: p.stay.checkIn, checkOut: p.stay.checkOut } } : {}),
   }));
   const cities = tripCities(rows, trip.legs);

@@ -21,11 +21,15 @@ export function updateTrip(tripId: string, update: UpdateFilter<TripDoc>): Promi
 /**
  * Delete Trip (docs/db/schema.md §5.5): the trip first, so every endpoint 404s from then on,
  * then every trip-scoped collection. Idempotent; no transaction. Tags are not deleted.
- * Returns the file keys of the deleted Documents so the caller can remove the files.
+ * Returns the file keys of the deleted Documents and Place photos so the caller can remove the files.
  */
 export async function deleteTripCascade(tripId: string): Promise<string[]> {
   await collections.trips().deleteOne({ _id: tripId });
-  const fileKeys = (await collections.documents().find({ tripId }, { projection: { fileKey: 1 } }).toArray()).map((d) => d.fileKey);
+  const [docs, places] = await Promise.all([
+    collections.documents().find({ tripId }, { projection: { fileKey: 1 } }).toArray(),
+    collections.places().find({ tripId, "photos.0": { $exists: true } }, { projection: { photos: 1 } }).toArray(),
+  ]);
+  const fileKeys = [...docs.map((d) => d.fileKey), ...places.flatMap((p) => (p.photos ?? []).map((ph) => ph.fileKey))];
   await Promise.all([
     collections.members().deleteMany({ tripId }),
     collections.invites().deleteMany({ tripId }),

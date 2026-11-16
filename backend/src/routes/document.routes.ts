@@ -1,26 +1,8 @@
-import { Router, type RequestHandler } from "express";
-import multer from "multer";
+import { Router } from "express";
 import { getDocument, getDocumentUrl, getDocuments, removeDocument, serveSignedFile, uploadDocument } from "../controllers/document.controller.js";
-import { HttpError } from "../errors.js";
-import { MAX_UPLOAD_BYTES } from "../schemas/document.inputs.js";
+import { servePlacePhoto } from "../controllers/place-photo.controller.js";
 import { userLimiter } from "./rate-limit.js";
-
-const multerSingle = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_UPLOAD_BYTES, files: 1 } }).single("file");
-
-/** multer with its errors turned into the API error shape. */
-const singleFile: RequestHandler = (req, res, next) => {
-  multerSingle(req, res, (err: unknown) => {
-    if (err instanceof multer.MulterError) {
-      next(
-        err.code === "LIMIT_FILE_SIZE"
-          ? new HttpError(413, "file_too_large", "ไฟล์ใหญ่เกิน 10 MB")
-          : new HttpError(400, "invalid_upload", "อัปโหลดไฟล์ไม่สำเร็จ"),
-      );
-      return;
-    }
-    next(err);
-  });
-};
+import { singleFile } from "./upload.js";
 
 /** Per User (not IP): this router is mounted behind `requireUser` in app.ts — keep it that way. */
 const uploadLimiter = userLimiter();
@@ -35,4 +17,5 @@ documentRoutes.delete("/:docId", removeDocument);
 
 /** Mounted at /api/files — signed URLs only, no session needed. */
 export const fileRoutes = Router();
+fileRoutes.get("/places/:placeId/photos/:photoId", servePlacePhoto);
 fileRoutes.get("/:docId", serveSignedFile);

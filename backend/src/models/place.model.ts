@@ -1,6 +1,6 @@
 import type { Filter } from "mongodb";
 import { collections } from "../db/collections.js";
-import type { PlaceDoc } from "../schemas/models.js";
+import { MAX_PLACE_PHOTOS, type PlaceDoc, type PlacePhotoDoc } from "../schemas/models.js";
 
 export interface PlaceFilter {
   city?: string;
@@ -89,4 +89,23 @@ export async function countPlacesPerTag(tagIds: string[]): Promise<Record<string
     ])
     .toArray();
   return Object.fromEntries(rows.map((r) => [r._id, r.n]));
+}
+
+/** Appends a photo unless the Place already has the maximum. False = Place gone or full. */
+export async function pushPlacePhoto(tripId: string, placeId: string, photo: PlacePhotoDoc): Promise<boolean> {
+  const r = await collections
+    .places()
+    .updateOne({ _id: placeId, tripId, [`photos.${MAX_PLACE_PHOTOS - 1}`]: { $exists: false } }, { $push: { photos: photo } });
+  return r.modifiedCount === 1;
+}
+
+/** Removes a photo from a Place. False = nothing removed (Place or photo already gone). */
+export async function pullPlacePhoto(tripId: string, placeId: string, photoId: string): Promise<boolean> {
+  const r = await collections.places().updateOne({ _id: placeId, tripId }, { $pull: { photos: { _id: photoId } } });
+  return r.modifiedCount === 1;
+}
+
+/** Place by id alone, for the signed-URL route (no session there). */
+export function findPlaceById(placeId: string): Promise<PlaceDoc | null> {
+  return collections.places().findOne({ _id: placeId });
 }

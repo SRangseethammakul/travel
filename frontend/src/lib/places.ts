@@ -31,6 +31,8 @@ export interface PlaceRow {
   note?: string;
   /** Hotel dates, shown as "เช็คอิน 12 – เช็คเอาท์ 15". */
   stay?: { checkIn: string; checkOut: string };
+  /** First photo (oldest), shown as a small thumbnail. */
+  photo?: { id: ID; url: string };
 }
 
 export const PLACE_TYPE_LABEL: Record<PlaceType, string> = {

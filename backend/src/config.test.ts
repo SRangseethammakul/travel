@@ -24,4 +24,21 @@ describe("loadConfig", () => {
   it("treats empty optional values as unset", () => {
     expect(loadConfig({ ...valid, LINE_CHANNEL_ID: "" }).LINE_CHANNEL_ID).toBeUndefined();
   });
+
+  it("defaults to local storage and needs every S3 value when STORAGE_DRIVER=s3", () => {
+    expect(loadConfig(valid).STORAGE_DRIVER).toBe("local");
+    expect(loadConfig({ ...valid, S3_BUCKET: "" }).S3_BUCKET).toBeUndefined();
+    expect(() => loadConfig({ ...valid, STORAGE_DRIVER: "s3" })).toThrow(/S3_BUCKET/);
+    const s3 = {
+      ...valid,
+      STORAGE_DRIVER: "s3",
+      S3_ENDPOINT: "https://sgp1.digitaloceanspaces.com",
+      S3_BUCKET: "trips",
+      S3_ACCESS_KEY_ID: "k",
+      S3_SECRET_ACCESS_KEY: "s",
+    };
+    expect(loadConfig(s3).S3_REGION).toBe("us-east-1");
+    expect(() => loadConfig({ ...s3, S3_SECRET_ACCESS_KEY: "" })).toThrow(/S3_SECRET_ACCESS_KEY/);
+    expect(() => loadConfig({ ...s3, STORAGE_DRIVER: "gcs" })).toThrow(/STORAGE_DRIVER/);
+  });
 });

@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { Money } from "@/components/ui/Money";
 import { placeTypeStyle } from "@/components/ui/colors";
-import type { Place } from "@/lib/api/types";
+import type { Member, Place } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
 import { formatDayMonth } from "@/lib/date";
+import { canAddPlacePhoto } from "@/lib/permissions";
 import { stayNights } from "@/lib/place-form";
+import { PlacePhotos } from "./PlacePhotos";
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -16,7 +18,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 /** Read-only Place (viewers, and editors on places they did not add). Shows the note, which the list only previews. */
-export function PlaceDetail({ tripId, place, tagNames, linkedExpense }: { tripId: string; place: Place; tagNames: string[]; linkedExpense?: { id: string; amount: number } | null }) {
+export function PlaceDetail({ tripId, place, me, tagNames, linkedExpense }: { tripId: string; place: Place; me: Pick<Member, "id" | "role">; tagNames: string[]; linkedExpense?: { id: string; amount: number } | null }) {
   const style = placeTypeStyle[place.type];
   const stay = place.stay;
   return (
@@ -31,6 +33,9 @@ export function PlaceDetail({ tripId, place, tagNames, linkedExpense }: { tripId
           </span>
         </div>
       </section>
+      {place.photos.length || canAddPlacePhoto(me) ? (
+        <PlacePhotos tripId={tripId} placeId={place.id} placeName={place.name} photos={place.photos} me={me} className="rounded-tile bg-surface p-3.5" />
+      ) : null}
       <dl className="m-0 rounded-tile bg-surface px-3.5">
         {stay ? (
           <>

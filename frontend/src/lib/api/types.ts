@@ -115,6 +115,22 @@ export interface Place {
   /** Hotel details; only on type "stay". */
   stay?: PlaceStay;
   createdBy: ID; // Member id
+  /** Photos, oldest first ([] when none, max 10). Each `url` is signed and expires (see PlacePhoto). */
+  photos: PlacePhoto[];
+}
+
+export type PlacePhotoMime = "image/jpeg" | "image/png" | "image/webp" | "image/heic";
+
+export interface PlacePhoto {
+  id: ID;
+  mime: PlacePhotoMime;
+  size: number; // bytes
+  uploadedBy: ID; // Member id
+  createdAt: string; // ISO
+  /** Signed link, usable as <img src> with no cookie. Same-origin path for the local driver, absolute for S3. */
+  url: string;
+  /** ISO; about 15 minutes after the response. Re-fetch the Place for fresh links. */
+  urlExpiresAt: string;
 }
 
 export interface PlaceStay {

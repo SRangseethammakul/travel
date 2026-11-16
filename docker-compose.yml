@@ -24,6 +24,9 @@ services:
         condition: service_healthy
     ports:
       - "4000:4000"
+    # STORAGE_DRIVER / S3_* (DigitalOcean Spaces) come from here; `environment` below wins for the rest.
+    env_file:
+      - ./backend/.env
     environment:
       MONGODB_URI: mongodb://mongo:27017/travel-planner
       PORT: 4000

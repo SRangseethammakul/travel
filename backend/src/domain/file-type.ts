@@ -4,6 +4,14 @@ export type DocumentMime = "application/pdf" | "image/jpeg" | "image/png" | "ima
 
 const HEIC_BRANDS = new Set(["heic", "heix", "hevc", "hevx", "mif1", "msf1"]);
 
+export type ImageMime = Exclude<DocumentMime, "application/pdf">;
+
+/** Like sniffDocumentMime but images only (Place photos). */
+export function sniffImageMime(bytes: Uint8Array): ImageMime | null {
+  const mime = sniffDocumentMime(bytes);
+  return mime === null || mime === "application/pdf" ? null : mime;
+}
+
 export function sniffDocumentMime(bytes: Uint8Array): DocumentMime | null {
   const ascii = (start: number, end: number) => String.fromCharCode(...bytes.subarray(start, end));
   if (ascii(0, 5) === "%PDF-") return "application/pdf";

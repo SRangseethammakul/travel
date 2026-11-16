@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { PlaceForm } from "@/components/places/PlaceForm";
 import { PlaceDetail } from "@/components/places/PlaceDetail";
+import { PlacePhotos } from "@/components/places/PlacePhotos";
 import { BackHeader } from "@/components/ui/BackHeader";
 import { getCurrentUserId, getMembers, getPlaces, getTripTags, getUserTags, requireTripMember } from "@/lib/api";
 import { getExpense } from "@/lib/api/queries";
@@ -27,7 +28,7 @@ export default async function PlaceDetailPage({ params }: PageProps<"/trips/[tri
     return (
       <div className="flex min-h-dvh flex-1 flex-col bg-bg">
         <BackHeader title={place.name} href={back} />
-        <PlaceDetail tripId={tripId} place={place} linkedExpense={linkedExpense} tagNames={place.tagIds.flatMap((id) => tagNames.get(id) ?? [])} />
+        <PlaceDetail tripId={tripId} place={place} me={me} linkedExpense={linkedExpense} tagNames={place.tagIds.flatMap((id) => tagNames.get(id) ?? [])} />
       </div>
     );
   }
@@ -45,6 +46,7 @@ export default async function PlaceDetailPage({ params }: PageProps<"/trips/[tri
   return (
     <div className="flex min-h-dvh flex-1 flex-col bg-surface">
       <BackHeader title="แก้ไขสถานที่" subtitle={place.name} href={back} kind="close" />
+      <PlacePhotos tripId={tripId} placeId={place.id} placeName={place.name} photos={place.photos} me={me} className="mx-5 mt-1 rounded-tile border border-line bg-bg/60 p-3.5" />
       <PlaceForm
         key={placeId}
         tripId={tripId}

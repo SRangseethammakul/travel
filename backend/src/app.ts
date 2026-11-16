@@ -32,7 +32,21 @@ import { initFileStore } from "./storage/files.js";
  * Controllers read the trip from `currentMember(req).tripId`.
  */
 export function createApp(config: Config) {
-  initFileStore({ dir: config.UPLOAD_DIR, urlSecret: config.FILE_URL_SECRET, publicApiUrl: config.PUBLIC_API_URL });
+  const common = { urlSecret: config.FILE_URL_SECRET, publicApiUrl: config.PUBLIC_API_URL };
+  initFileStore(
+    config.STORAGE_DRIVER === "s3"
+      ? {
+          ...common,
+          driver: "s3",
+          // loadConfig guarantees these when STORAGE_DRIVER=s3
+          endpoint: config.S3_ENDPOINT!,
+          region: config.S3_REGION,
+          bucket: config.S3_BUCKET!,
+          accessKeyId: config.S3_ACCESS_KEY_ID!,
+          secretAccessKey: config.S3_SECRET_ACCESS_KEY!,
+        }
+      : { ...common, driver: "local", dir: config.UPLOAD_DIR },
+  );
   const app = express();
   app.disable("x-powered-by");
   if (config.TRUST_PROXY > 0) app.set("trust proxy", config.TRUST_PROXY);

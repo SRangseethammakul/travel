@@ -8,6 +8,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Segmented } from "@/components/ui/Segmented";
 import { Switch } from "@/components/ui/Switch";
 import { placeTypeStyle } from "@/components/ui/colors";
+import { PlacePhotoImg } from "./PlacePhotoImg";
 import type { ID } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
 import { formatDayMonth } from "@/lib/date";
@@ -135,6 +136,9 @@ export function PlacesView({ rows, tags, cities, filters, base, canEdit }: Place
               {g.items.map((p) => (
                 <li key={p.id} className="flex items-center gap-3 border-b border-line-soft px-3.5 py-3 last:border-b-0">
                   <span aria-hidden="true" className={cn("w-1.5 shrink-0 self-stretch rounded-full", placeTypeStyle[p.type].bar)} />
+                  {p.photo ? (
+                    <PlacePhotoImg photo={p.photo} alt="" className="size-12 shrink-0 rounded-[10px] bg-line-soft object-cover" />
+                  ) : null}
                   <div className="flex min-w-0 flex-1 flex-col gap-1">
                     <h3 className="m-0 text-[15px] leading-[1.35] font-semibold">
                       <Link href={`${base}/places/${encodeURIComponent(p.id)}`} className="-my-1 flex min-h-11 items-center text-ink no-underline hover:text-primary">

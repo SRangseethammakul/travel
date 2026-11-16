@@ -25,6 +25,8 @@ export const testConfig: Config = {
   CORS_ORIGIN: "http://localhost:3000",
   PUBLIC_API_URL: "http://localhost:4000",
   UPLOAD_DIR: ".data/test-uploads",
+  STORAGE_DRIVER: "local",
+  S3_REGION: "us-east-1",
   TRUST_PROXY: 0,
 };
 

@@ -256,7 +256,7 @@ export function createSeed(now: Date = new Date()): SeedData {
     tagIds: string[] = [],
     by = "act",
     note = "",
-  ): Place => ({ id, tripId, name, type, city, area, tagIds, note, createdBy: memberId(tripId, by) });
+  ): Place => ({ id, tripId, name, type, city, area, tagIds, note, createdBy: memberId(tripId, by), photos: [] });
 
   const places: Place[] = [
     // Tokyo — 12 places, 5 areas, 3 unscheduled (Places.dc.html)
