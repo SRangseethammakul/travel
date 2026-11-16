@@ -1,5 +1,6 @@
-# Local stack: MongoDB + backend API (:4000) + frontend (:3000).
-#   docker compose up --build
+# Stack: MongoDB + backend API (:4000) + frontend (:3000), from the images CI pushes to Docker Hub.
+#   docker compose pull && docker compose up -d
+#   IMAGE_TAG=sha-abc1234 docker compose up -d       # pin a version (default: latest)
 #   docker compose exec backend node dist/seed/run.js   # load the 4 seed trips
 # Override secrets/settings in a root .env file (see .env.example).
 services:
@@ -17,7 +18,7 @@ services:
       retries: 20
 
   backend:
-    build: ./backend
+    image: suttipongra/travel-backend:${IMAGE_TAG:-latest}
     restart: unless-stopped
     depends_on:
       mongo:
@@ -53,11 +54,8 @@ services:
       retries: 10
 
   frontend:
-    build:
-      context: ./frontend
-      args:
-        # rewrites() in next.config.ts are fixed at build time, so the build needs it too.
-        BACKEND_URL: http://backend:4000
+    # Built with BACKEND_URL=http://backend:4000 baked into rewrites(), so the service must stay named `backend`.
+    image: suttipongra/travel-frontend:${IMAGE_TAG:-latest}
     restart: unless-stopped
     depends_on:
       backend:
