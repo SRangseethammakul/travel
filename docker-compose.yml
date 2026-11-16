@@ -1,7 +1,7 @@
 # Stack: MongoDB + backend API (host :4000 -> container :3000) + frontend (:3000), from the images CI pushes to Docker Hub.
 #   docker compose pull && docker compose up -d
-#   IMAGE_TAG=sha-abc1234 docker compose up -d       # pin a version (default: latest)
-#   docker compose exec backend node dist/seed/run.js   # load the 4 seed trips
+#   TRAVEL_BACKEND_TAG=sha-abc1234 docker compose up -d   # pin a version (default: latest)
+#   docker compose exec travel-backend node dist/seed/run.js   # load the 4 seed trips
 # Override secrets/settings in a root .env file (see .env.example).
 services:
   mongo:
@@ -17,8 +17,9 @@ services:
       timeout: 5s
       retries: 20
 
-  backend:
-    image: suttipongra/travel-backend:${IMAGE_TAG:-latest}
+  travel-backend:
+    image: suttipongra/travel-backend:${TRAVEL_BACKEND_TAG:-latest}
+    container_name: travel-backend
     restart: unless-stopped
     depends_on:
       mongo:
@@ -45,10 +46,6 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       LINE_CHANNEL_ID: ${LINE_CHANNEL_ID:-}
       LINE_CHANNEL_SECRET: ${LINE_CHANNEL_SECRET:-}
-    networks:
-      default:
-        # The frontend image rewrites /api/* to http://travel-backend:3000 (baked at build time).
-        aliases: [travel-backend]
     volumes:
       - uploads:/app/.data/uploads
     healthcheck:
@@ -57,14 +54,16 @@ services:
       timeout: 5s
       retries: 10
 
-  frontend:
-    image: suttipongra/travel-frontend:${IMAGE_TAG:-latest}
+  travel-frontend:
+    image: suttipongra/travel-frontend:${TRAVEL_FRONTEND_TAG:-latest}
+    container_name: travel-frontend
     restart: unless-stopped
     depends_on:
-      backend:
+      travel-backend:
         condition: service_healthy
     environment:
       # Server-side only: Next calls the backend and rewrites /api/* to it (docs/adr/0001).
+      # Must match the rewrite baked into the image (http://travel-backend:3000).
       BACKEND_URL: http://travel-backend:3000
     ports:
       - "3000:3000"
