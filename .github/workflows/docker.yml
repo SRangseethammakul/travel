@@ -65,6 +65,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           # Frontend only: rewrites() bake the backend address in at build time (repo variable BACKEND_URL).
           build-args: |
-            BACKEND_URL=${{ vars.BACKEND_URL || 'http://backend:4000' }}
+            BACKEND_URL=${{ vars.BACKEND_URL || 'http://travel-backend:3000' }}
           # PRs only warm the cache; everything else pushes to Docker Hub.
           outputs: ${{ github.event_name == 'pull_request' && 'type=cacheonly' || 'type=registry' }}

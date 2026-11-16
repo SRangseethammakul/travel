@@ -3,7 +3,7 @@ FROM node:24.22.3-alpine AS build
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 # rewrites() in next.config.ts are resolved at build time.
-ARG BACKEND_URL=http://backend:4000
+ARG BACKEND_URL=http://travel-backend:3000
 ENV BACKEND_URL=$BACKEND_URL
 COPY package.json package-lock.json ./
 RUN npm ci

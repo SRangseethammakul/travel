@@ -1,4 +1,4 @@
-# Stack: MongoDB + backend API (:4000) + frontend (:3000), from the images CI pushes to Docker Hub.
+# Stack: MongoDB + backend API (host :4000 -> container :3000) + frontend (:3000), from the images CI pushes to Docker Hub.
 #   docker compose pull && docker compose up -d
 #   IMAGE_TAG=sha-abc1234 docker compose up -d       # pin a version (default: latest)
 #   docker compose exec backend node dist/seed/run.js   # load the 4 seed trips
@@ -24,13 +24,13 @@ services:
       mongo:
         condition: service_healthy
     ports:
-      - "4000:4000"
+      - "4000:3000"
     # STORAGE_DRIVER / S3_* (DigitalOcean Spaces) come from here; `environment` below wins for the rest.
     env_file:
       - ./backend/.env
     environment:
       MONGODB_URI: mongodb://mongo:27017/travel-planner
-      PORT: 4000
+      PORT: 3000
       # development keeps the `mock-user` cookie and seeding working; use production for real deploys.
       NODE_ENV: ${BACKEND_NODE_ENV:-development}
       SESSION_SECRET: ${SESSION_SECRET:-dev-only-session-secret-change-me-0000}
@@ -45,16 +45,19 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       LINE_CHANNEL_ID: ${LINE_CHANNEL_ID:-}
       LINE_CHANNEL_SECRET: ${LINE_CHANNEL_SECRET:-}
+    networks:
+      default:
+        # The frontend image rewrites /api/* to http://travel-backend:3000 (baked at build time).
+        aliases: [travel-backend]
     volumes:
       - uploads:/app/.data/uploads
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:4000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
       timeout: 5s
       retries: 10
 
   frontend:
-    # Built with BACKEND_URL=http://backend:4000 baked into rewrites(), so the service must stay named `backend`.
     image: suttipongra/travel-frontend:${IMAGE_TAG:-latest}
     restart: unless-stopped
     depends_on:
@@ -62,7 +65,7 @@ services:
         condition: service_healthy
     environment:
       # Server-side only: Next calls the backend and rewrites /api/* to it (docs/adr/0001).
-      BACKEND_URL: http://backend:4000
+      BACKEND_URL: http://travel-backend:3000
     ports:
       - "3000:3000"
 
