@@ -1,53 +1,19 @@
-# Stack: MongoDB + backend API (host :4000 -> container :3000) + frontend (:3000), from the images CI pushes to Docker Hub.
+# Deploy: backend + frontend from the images CI pushes to Docker Hub, on the shared `bangkok` network.
 #   docker compose pull && docker compose up -d
 #   TRAVEL_BACKEND_TAG=sha-abc1234 docker compose up -d   # pin a version (default: latest)
-#   docker compose exec travel-backend node dist/seed/run.js   # load the 4 seed trips
-# Override secrets/settings in a root .env file (see .env.example).
+# .env.travel holds the backend settings (see backend/.env.example): MONGODB_URI, NODE_ENV=production,
+# SESSION_SECRET, FILE_URL_SECRET, CORS_ORIGIN, PUBLIC_API_URL, TRUST_PROXY, STORAGE_DRIVER / S3_*, OAuth.
 services:
-  mongo:
-    image: mongo:9.0.8
-    restart: unless-stopped
-    ports:
-      - "${MONGO_HOST_PORT:-27017}:27017"
-    volumes:
-      - mongo-data:/data/db
-    healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-
   travel-backend:
-    image: suttipongra/travel-backend:${TRAVEL_BACKEND_TAG:-latest}
+    image: suttipongra/travel-backend:${TRAVEL_BACKEND_TAG-latest}
     container_name: travel-backend
     restart: unless-stopped
-    depends_on:
-      mongo:
-        condition: service_healthy
-    ports:
-      - "4000:3000"
-    # STORAGE_DRIVER / S3_* (DigitalOcean Spaces) come from here; `environment` below wins for the rest.
+    expose:
+      - "3000"
+    networks:
+      - bangkok
     env_file:
-      - ./backend/.env
-    environment:
-      MONGODB_URI: mongodb://mongo:27017/travel-planner
-      PORT: 3000
-      # development keeps the `mock-user` cookie and seeding working; use production for real deploys.
-      NODE_ENV: ${BACKEND_NODE_ENV:-development}
-      SESSION_SECRET: ${SESSION_SECRET:-dev-only-session-secret-change-me-0000}
-      FILE_URL_SECRET: ${FILE_URL_SECRET:-dev-only-file-url-secret-change-me-000}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
-      # The web origin: Next rewrites /api/* to this backend (docs/adr/0001).
-      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:3000}
-      # Reverse proxies in front of the backend that append X-Forwarded-For (Next does not count). 0 here: nothing in front.
-      TRUST_PROXY: ${TRUST_PROXY:-0}
-      UPLOAD_DIR: .data/uploads
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      LINE_CHANNEL_ID: ${LINE_CHANNEL_ID:-}
-      LINE_CHANNEL_SECRET: ${LINE_CHANNEL_SECRET:-}
-    volumes:
-      - uploads:/app/.data/uploads
+      - .env.travel
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
@@ -55,19 +21,20 @@ services:
       retries: 10
 
   travel-frontend:
-    image: suttipongra/travel-frontend:${TRAVEL_FRONTEND_TAG:-latest}
+    image: suttipongra/travel-frontend:${TRAVEL_FRONTEND_TAG-latest}
     container_name: travel-frontend
     restart: unless-stopped
     depends_on:
       travel-backend:
         condition: service_healthy
+    expose:
+      - "3000"
+    networks:
+      - bangkok
     environment:
-      # Server-side only: Next calls the backend and rewrites /api/* to it (docs/adr/0001).
       # Must match the rewrite baked into the image (http://travel-backend:3000).
       BACKEND_URL: http://travel-backend:3000
-    ports:
-      - "3000:3000"
 
-volumes:
-  mongo-data:
-  uploads:
+networks:
+  bangkok:
+    external: true
