@@ -17,7 +17,7 @@ import {
   DOCUMENT_QUICK_NAMES,
   fileBaseName,
   isAllowedDocument,
-  MEMBER_COLORS,
+  memberColor,
   TRIP_COVERS,
   type TripDocDraft,
 } from "@/lib/trip-form";
@@ -29,7 +29,7 @@ interface CreateTripFormProps {
 }
 
 const inputClass =
-  "h-12 w-full min-w-0 rounded-icon border border-line-strong bg-surface px-3.5 text-[15px] text-ink placeholder:text-ink-muted";
+  "h-12 w-full min-w-0 rounded-icon border border-line-strong bg-surface px-3.5 text-base text-ink placeholder:text-ink-muted";
 
 /** A picked document: what the form shows, plus the file to upload after the trip exists. */
 type DocItem = TripDocDraft & { file: File };
@@ -192,7 +192,7 @@ export function CreateTripForm({ me, defaultStart, defaultEnd }: CreateTripFormP
               value={destination}
               onChange={(e) => setDestination(e.target.value)}
               placeholder="เมือง หรือ ประเทศ"
-              className="min-w-0 flex-1 border-0 bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-muted"
+              className="min-w-0 flex-1 border-0 bg-transparent text-base text-ink outline-none placeholder:text-ink-muted"
             />
           </div>
         </div>
@@ -236,15 +236,16 @@ export function CreateTripForm({ me, defaultStart, defaultEnd }: CreateTripFormP
               value={budget}
               onChange={(e) => setBudget(formatBahtInput(e.target.value))}
               placeholder="0"
-              className="min-w-0 flex-1 border-0 bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-muted"
+              className="min-w-0 flex-1 border-0 bg-transparent text-base text-ink outline-none placeholder:text-ink-muted"
             />
           </div>
         </div>
 
-        <section aria-labelledby={`${ids.member}-h`} className="flex flex-col gap-2.5">
+        <section aria-labelledby={`${ids.member}-h`} className="flex flex-col gap-2.5 rounded-tile border-[1.5px] border-primary bg-primary-soft/40 p-3.5">
           <h2 id={`${ids.member}-h`} className="m-0 text-sm font-semibold">
-            สมาชิก ({count})
+            คนไปด้วย ({count})
           </h2>
+          <p className="m-0 text-[13px] leading-normal text-ink-subtle">พิมพ์ชื่อเพื่อนที่จะไปด้วยแล้วกด “เพิ่ม” จะได้หารค่าใช้จ่ายกันได้ ถ้าทริปมีแค่คุณคนเดียว จะหารเงินกับใครไม่ได้</p>
           <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
             <li className="flex min-h-10 items-center gap-2 rounded-full bg-bg py-1 pr-3 pl-1">
               <Avatar name={me.name} color={me.color} size="sm" />
@@ -252,7 +253,7 @@ export function CreateTripForm({ me, defaultStart, defaultEnd }: CreateTripFormP
             </li>
             {memberNames.map((n, i) => (
               <li key={n} className="flex min-h-10 items-center gap-2 rounded-full bg-bg py-1 pr-0.5 pl-1">
-                <Avatar name={n} color={MEMBER_COLORS[(i + 1) % MEMBER_COLORS.length]} size="sm" />
+                <Avatar name={n} color={memberColor(i, me.color)} size="sm" />
                 <span className="text-sm font-medium">{n}</span>
                 <button
                   type="button"

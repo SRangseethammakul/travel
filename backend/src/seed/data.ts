@@ -13,6 +13,7 @@ import type {
   ExpenseDoc,
   InviteDoc,
   MemberDoc,
+  PersonalExpenseDoc,
   PlaceDoc,
   PlanItemDoc,
   SettlementDoc,
@@ -39,6 +40,7 @@ export interface SeedData {
   planItems: PlanItemDoc[];
   expenses: ExpenseDoc[];
   settlements: SettlementDoc[];
+  personalExpenses: PersonalExpenseDoc[];
   checklistItems: ChecklistItemDoc[];
   activities: ActivityDoc[];
 }
@@ -64,6 +66,9 @@ export function createSeed(now: Date = new Date()): SeedData {
     { _id: "beam", name: "Beam", email: "beam@example.com", provider: "line", color: "orange", createdAt: SEEDED_AT },
     { _id: "ploy", name: "Ploy", email: "ploy@example.com", provider: "line", color: "purple", createdAt: SEEDED_AT },
     { _id: "n", name: "N", email: "n@example.com", provider: "google", color: "slate", createdAt: SEEDED_AT },
+    // QA Users in no trip, for testing from an empty account.
+    { _id: "adam", name: "Adam", email: "adam@example.com", provider: "google", color: "gray", createdAt: SEEDED_AT },
+    { _id: "eva", name: "Eva", email: "eva@example.com", provider: "line", color: "ink", createdAt: SEEDED_AT },
   ];
   const userById = new Map(users.map((u) => [u._id, u]));
 
@@ -392,6 +397,26 @@ export function createSeed(now: Date = new Date()): SeedData {
     { _id: "s-l-ploy", tripId: L, fromId: memberId(L, "ploy"), toId: memberId(L, "act"), amount: 50_000, status: "confirmed", createdAt: at("2026-08-10T06:00:00.000Z"), sentAt: at("2026-08-10T06:00:00.000Z"), confirmedAt: at("2026-08-10T08:00:00.000Z") },
   ];
 
+  // ── Personal Expenses (private to Act; never part of the group totals) ──
+  const personalExpense = (_id: string, title: string, category: PersonalExpenseDoc["category"], method: PersonalExpenseDoc["method"], amountBaht: number, date: string): PersonalExpenseDoc => ({
+    _id,
+    tripId: T,
+    ownerId: memberId(T, "act"),
+    title,
+    category,
+    amount: amountBaht * 100,
+    currency: "THB",
+    baseAmount: amountBaht * 100,
+    method,
+    date,
+    createdAt: SEEDED_AT,
+  });
+  const personalExpenses: PersonalExpenseDoc[] = [
+    personalExpense("pe-donki", "ของฝาก Don Quijote", "shopping", "card", 3000, "2026-12-13"),
+    personalExpense("pe-coffee", "กาแฟเช้า", "food", "cash", 180, "2026-12-12"),
+    personalExpense("pe-taxi", "แท็กซี่กลับโรงแรม", "transport", "wallet", 650, "2026-12-14"),
+  ];
+
   // ── Checklist ──
   let checklistSeq = 0;
   const group = (text: string, category: string, assignee: string | null, done: boolean): ChecklistItemDoc => {
@@ -448,5 +473,5 @@ export function createSeed(now: Date = new Date()): SeedData {
     { _id: "a-6", tripId: T, actorId: memberId(T, "mint"), type: "plan", refId: "t-cafe", text: 'เพิ่มสถานที่ "คาเฟ่ใต้ทางรถไฟ" ใน Akihabara', createdAt: hoursAgo(now, 32), readBy: ["act"] },
   ];
 
-  return { users, trips, members, invites, documents, places, tags, planItems, expenses, settlements, checklistItems, activities };
+  return { users, trips, members, invites, documents, places, tags, planItems, expenses, settlements, personalExpenses, checklistItems, activities };
 }

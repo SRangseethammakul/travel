@@ -36,6 +36,10 @@ _Avoid_: Bill, transaction, payment
 The portion of one **Expense** a given **Member** is responsible for. All Shares of an Expense sum exactly to its amount.
 _Avoid_: Split, portion
 
+**Personal Expense**:
+Money one **Member** spent only for themself, recorded so they can follow their own trip spending. Only that Member sees it. It has no **Shares** and never affects the group's money (**Net Balance**, **Outstanding**, **Settlements**).
+_Avoid_: private expense, solo expense
+
 **Net Balance**:
 What a **Member** paid minus the sum of their **Shares**, across all Expenses in the Trip. Positive means they are owed money. Not affected by **Settlements**.
 _Avoid_: Balance, total
@@ -95,4 +99,4 @@ _Avoid_: Backlog, unplanned
 > **Dev:** Act's **Net Balance** is +฿14,050 and Mint already paid him ฿3,100. What does Act's trip card show?
 > **Domain expert:** His **Outstanding**: +฿10,950. The Summary table still shows the **Net Balance** of +฿14,050, because that comes from expenses only.
 > **Dev:** And if Beam marked his ฿5,800 as sent but Act hasn't confirmed it?
-> **Domain expert:** Still counts toward Outstanding. The **Settlement** shows "รอยืนยัน" until Act confirms.
+> **Domain expert:** Beam's **Outstanding** stays −฿5,800 — a sent Settlement does not count yet. The **Settlement** shows "รอยืนยัน" until Act confirms, and only then does Beam reach 0.

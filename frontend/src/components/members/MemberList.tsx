@@ -14,7 +14,7 @@ import { roleLabel } from "@/lib/labels";
 const ROLES: Role[] = ["owner", "editor", "viewer"];
 
 export interface MemberRow extends Pick<Member, "id" | "displayName" | "color" | "role"> {
-  /** "เข้าสู่ระบบด้วย LINE" or "ยังไม่เข้าร่วม · ส่งลิงก์แล้ว". */
+  /** "เข้าสู่ระบบด้วย LINE" or "ยังไม่เข้าร่วม" (the app cannot know whether a link was sent). */
   login: string;
   unclaimed: boolean;
   /** Joined through the invite and waiting for the owner's approval (B11). */

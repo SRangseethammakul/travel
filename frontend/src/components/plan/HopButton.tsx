@@ -20,7 +20,7 @@ interface HopButtonProps {
   title: string;
 }
 
-const small = "h-11 min-w-0 rounded-chip border border-line-strong bg-surface px-3 text-[15px] text-ink";
+const small = "h-11 min-w-0 rounded-chip border border-line-strong bg-surface px-3 text-base text-ink";
 
 /** Hop chip between two Plan Items; opens the travel sheet (Planner mockup). */
 export function HopButton({ tripId, itemId, hop, title }: HopButtonProps) {

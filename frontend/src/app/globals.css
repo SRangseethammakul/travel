@@ -7,6 +7,9 @@
  * components never need raw hex values.
  */
 @theme {
+  /* App frame: mockups are drawn at 390px, the app stretches up to 640px (tablets). Use max-w-app. */
+  --container-app: 40rem;
+
   /* Core palette */
   --color-bg: #f3f5f7;
   --color-surface: #ffffff;
@@ -52,6 +55,8 @@
   --color-transit-ink: #6e2f82;
   --color-transit-ink-strong: #4a3352;
   --color-stay-soft: #eef1f4;
+  --color-shopping-soft: #fbe5f1; /* ช็อปปิ้ง badge tint (Personal Expenses) */
+  --color-shopping-ink: #a8226b; /* magenta, 5.66:1 on shopping-soft; not the danger rose */
   --color-chart-food: #e08a3e; /* อาหาร slice in the Summary category bar (not text) */
 
   /* Radii */
@@ -106,6 +111,28 @@
   select,
   textarea {
     font: inherit;
+  }
+  /* iOS Safari zooms the page when a focused field is under 16px. Utilities
+     (e.g. the 44px amount field) still override this. */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+  /* iOS Safari sizes date/time fields to their native control, ignoring
+     w-full, so they spill out of grid columns. Drop the native look and let
+     the field shrink; keep the value left-aligned and the empty field tall. */
+  input[type="date"],
+  input[type="time"] {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+  }
+  input::-webkit-date-and-time-value {
+    text-align: left;
+    min-height: 1.5em;
   }
   a {
     @apply text-primary hover:text-primary-hover;

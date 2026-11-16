@@ -3,6 +3,8 @@
  */
 import type { ID } from "@/lib/api/types";
 import type { TransferRow } from "@/lib/expenses";
+import { formatMoney, type Satang } from "@/lib/money/format";
+import { parseBahtInput } from "@/lib/money/input";
 
 /**
  * The transfer for `?from=&to=`, or — without params — the most useful one for
@@ -10,7 +12,9 @@ import type { TransferRow } from "@/lib/expenses";
  * for my confirmation, then one I am waiting to receive, then anything done.
  * An open (pending/sent) row wins over a confirmed one for the same pair.
  */
-export function pickSettleRow(rows: readonly TransferRow[], meId: ID, pair?: { from?: string; to?: string }): TransferRow | null {
+export function pickSettleRow(all: readonly TransferRow[], meId: ID, pair?: { from?: string; to?: string }): TransferRow | null {
+  // A waiting remainder cannot be acted on; the page shows it under its pair's sent row.
+  const rows = all.filter((r) => r.status !== "waiting");
   const open = (r: TransferRow) => r.status !== "confirmed";
   if (pair?.from && pair.to) {
     const same = rows.filter((r) => r.fromId === pair.from && r.toId === pair.to);
@@ -37,7 +41,25 @@ export function settleViewer(row: Pick<TransferRow, "fromId" | "toId">, meId: ID
   return "other";
 }
 
-/** Other transfers that involve me, for the small switcher under the header. */
+/** Other transfers that involve me, for the small switcher under the header (other pairs only). */
 export function myOtherRows(rows: readonly TransferRow[], meId: ID, current: TransferRow): TransferRow[] {
-  return rows.filter((r) => r !== current && r.status !== "confirmed" && (r.fromId === meId || r.toId === meId));
+  const samePair = (r: TransferRow) => r.fromId === current.fromId && r.toId === current.toId;
+  return rows.filter((r) => !samePair(r) && (r.status === "pending" || r.status === "sent") && (r.fromId === meId || r.toId === meId));
+}
+
+/** What is left of the pair while its partial report waits for confirmation (0 when nothing). */
+export function waitingAmount(rows: readonly TransferRow[], current: Pick<TransferRow, "fromId" | "toId">): Satang {
+  return rows.find((r) => r.status === "waiting" && r.fromId === current.fromId && r.toId === current.toId)?.amount ?? 0;
+}
+
+/**
+ * The amount the payer types on SettleUp: more than 0, at most what they still
+ * owe this person (`remaining`), at most 2 decimals. Thai message when not.
+ */
+export function settleAmount(text: string, remaining: Satang): { amount: Satang } | { error: string } {
+  const amount = parseBahtInput(text);
+  if (amount === null) return { error: "ใส่ยอดเป็นตัวเลข ทศนิยมไม่เกิน 2 ตำแหน่ง" };
+  if (amount <= 0) return { error: "ใส่ยอดที่โอน" };
+  if (amount > remaining) return { error: `ยอดโอนต้องไม่เกินยอดที่ค้าง ${formatMoney(remaining)}` };
+  return { amount };
 }

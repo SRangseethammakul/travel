@@ -29,7 +29,7 @@ interface TransitFormProps {
   canAddExpense: boolean;
 }
 
-const smallField = "h-10 min-w-0 rounded-[10px] border border-line bg-surface px-2 text-sm text-ink";
+const smallField = "h-10 min-w-0 rounded-[10px] border border-line bg-surface px-2 text-base text-ink";
 
 /** AddTransit (18): a booked journey shown as a purple card in the Planner. */
 export function TransitForm({ tripId, trip, defaultDate, documents, placeOptions, canAddExpense }: TransitFormProps) {
@@ -269,7 +269,7 @@ export function TransitForm({ tripId, trip, defaultDate, documents, placeOptions
                   placeholder="ค่าโดยสารรวม"
                   value={costText}
                   onChange={(e) => setCostText(formatBahtInput(e.target.value))}
-                  className="min-w-0 flex-1 border-0 bg-transparent text-[15px] text-ink outline-none focus-visible:outline-none"
+                  className="min-w-0 flex-1 border-0 bg-transparent text-base text-ink outline-none focus-visible:outline-none"
                 />
               </div>
             ) : null}

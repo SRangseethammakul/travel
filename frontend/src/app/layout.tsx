@@ -32,8 +32,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="th" className={`${prompt.variable} ${plexThai.variable}`}>
       <body>
-        {/* Designed at 390px; wider screens keep the phone frame centred. */}
-        <div className="relative mx-auto flex min-h-dvh w-full max-w-[390px] flex-col bg-bg">
+        {/* Mockups are drawn at 390px; the frame stretches up to 640px (--container-app) and stays centred beyond that. */}
+        <div className="relative mx-auto flex min-h-dvh w-full max-w-app flex-col bg-bg">
           {process.env.NODE_ENV === "development" ? <UserSwitcher /> : null}
           {children}
         </div>

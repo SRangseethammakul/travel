@@ -1,4 +1,4 @@
-import type { ColorKey, ExpenseCategory, PlaceType } from "@/lib/api/types";
+import type { ColorKey, PersonalExpenseCategory, PlaceType } from "@/lib/api/types";
 
 /**
  * Data colour keys → token classes. Literal strings so Tailwind can see them.
@@ -26,11 +26,13 @@ export const placeTypeStyle: Record<PlaceType, { label: string; bar: string; tex
 /**
  * Expense category → Summary label, Expenses list badge (abbr on a tint) and
  * Summary bar colour. Badge colours follow Expenses.dc.html, bar colours Summary.dc.html.
+ * `shopping` is used by Personal Expenses only (no mockup; own magenta tokens so it doesn't read as ค้างจ่าย / delete).
  */
-export const expenseCategoryStyle: Record<ExpenseCategory, { label: string; abbr: string; tint: string; ink: string; bar: string }> = {
+export const expenseCategoryStyle: Record<PersonalExpenseCategory, { label: string; abbr: string; tint: string; ink: string; bar: string }> = {
   stay: { label: "ที่พัก", abbr: "พัก", tint: "bg-primary-soft", ink: "text-primary", bar: "bg-primary" },
   food: { label: "อาหาร", abbr: "กิน", tint: "bg-todo-soft", ink: "text-type-food", bar: "bg-chart-food" },
   activity: { label: "กิจกรรม", abbr: "ตั๋ว", tint: "bg-transit-soft", ink: "text-type-transit", bar: "bg-type-transit" },
   transport: { label: "เดินทาง", abbr: "เดินทาง", tint: "bg-interest-soft", ink: "text-type-interest", bar: "bg-type-interest" },
   other: { label: "อื่นๆ", abbr: "อื่นๆ", tint: "bg-stay-soft", ink: "text-type-stay", bar: "bg-type-stay" },
+  shopping: { label: "ช็อปปิ้ง", abbr: "ช็อป", tint: "bg-shopping-soft", ink: "text-shopping-ink", bar: "bg-shopping-ink" },
 };

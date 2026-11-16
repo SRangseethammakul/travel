@@ -4,9 +4,10 @@ import { PickPlaceForm } from "@/components/plan/PickPlaceForm";
 import { getPlaces, getPlanItems, getTripTags, requireTripMember } from "@/lib/api";
 import { formatWeekdayDay, todayISO, tripDayDate } from "@/lib/date";
 import { canEditPlan } from "@/lib/permissions";
-import { resolveDay, tripDayCount } from "@/lib/plan";
+import { legCity, resolveDay, tripDayCount } from "@/lib/plan";
+import { stayTripDays } from "@/lib/place-form";
 import { pickSections } from "@/lib/plan-form";
-import { tripCities } from "@/lib/places";
+import { citySlug, tripCities } from "@/lib/places";
 
 export default async function PickPlacePage({ params, searchParams }: PageProps<"/trips/[tripId]/plan/add">) {
   const { tripId } = await params;
@@ -30,12 +31,18 @@ export default async function PickPlacePage({ params, searchParams }: PageProps<
   }));
   const dayCount = tripDayCount(trip);
   const placeParam = typeof sp.place === "string" ? sp.place : null;
+  // Tick a day only when the user came from one (?day=) or the place is a hotel with stay dates; never a surprise day 1.
+  const chosenPlace = placeParam ? byId.get(placeParam) : undefined;
+  const stayDays = chosenPlace?.stay ? stayTripDays(chosenPlace.stay, trip) : [];
+  const explicitDay = typeof sp.day === "string" && Number.isInteger(Number(sp.day)) && Number(sp.day) >= 1 && Number(sp.day) <= dayCount;
+  const initialDays = stayDays.length ? stayDays : explicitDay ? [day] : [];
+  const dayCity = trip.legs?.length ? legCity(trip.legs, day) : null;
 
   return (
     <div className="flex min-h-dvh flex-1 flex-col bg-surface">
       <AddToPlanHeader
         title={`เพิ่มกิจกรรม · วันที่ ${day}`}
-        subtitle="เลือกจากสถานที่ในลิสต์ของทริป"
+        subtitle="เลือกจากสถานที่ที่บันทึกไว้ในทริป"
         closeHref={`${base}/plan?day=${day}`}
         planBase={`${base}/plan`}
         day={day}
@@ -46,10 +53,10 @@ export default async function PickPlacePage({ params, searchParams }: PageProps<
         tripId={tripId}
         sections={sections}
         days={Array.from({ length: dayCount }, (_, i) => ({ day: i + 1, sub: formatWeekdayDay(tripDayDate(trip.startDate, i + 1)) }))}
-        initialDay={day}
+        initialDays={initialDays}
         initialPlaceId={placeParam}
         showCity={tripCities(places, trip.legs).length > 1}
-        newPlaceHref={`${base}/places/new`}
+        newPlaceHref={`${base}/places/new?day=${day}${dayCity ? `&city=${encodeURIComponent(citySlug(dayCity))}` : ""}`}
       />
     </div>
   );

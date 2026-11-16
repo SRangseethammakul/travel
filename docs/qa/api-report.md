@@ -70,3 +70,31 @@ Tests in `backend/src/qa/`: `auth.qa.test.ts`, `members.qa.test.ts`, `places-pla
 - Activity paging (`before`, `limit`) and `POST /activity/read`. These are phase 4, now with the other QA pass.
 - Phase 1 schema validators / indexes (`db/schema.test.ts` covers them; not re-tested black-box).
 - Rate limiting and security headers (phase 5).
+
+## Personal Expenses (B44–B47) — 2026-11-13
+
+Owner: qa-api (task T3 in `wondrous-dancing-torvalds.md`). Sources: API.md "Personal Expenses (ค่าใช้จ่ายส่วนตัว)", CONTEXT.md "Personal Expense", docs/db/schema.md Personal Expense section.
+
+**Tests:** `backend/src/qa/personal-expenses.qa.test.ts`, 56 tests, **56 passed**. Full `npm test`: 29 files, 639 tests, all passed. `npm run lint` and `npx tsc --noEmit` pass.
+
+**Covered:**
+- Shape: `id` (not `_id`), `tripId`, `ownerId` = Current Member, `currency: 'THB'`, `baseAmount = amount`, `YYYY-MM-DD` date, ISO `createdAt`, `updatedAt` only after PATCH, no `note` key when unset, no payer/Shares/slip. POST 201, PATCH 200, DELETE 204 with an empty body. A second DELETE → 404.
+- Sort: by `date`, then `createdAt` (same-day records stay in insert order).
+- Auth: signed out → 401 on all 4 endpoints. Non-member, `pending` and `removed` Members, and unknown trips → 404.
+- Privacy: other Members' GET never includes my records, including the trip owner's. Owner, editor or viewer PATCH/DELETE on someone else's record → 404 `personal_expense_not_found`, and the record is unchanged. That 404 body is identical to the one for an unknown id. My own record from another trip, used via this trip's path → 404. A Personal Expense id under `/expenses/:id` → 404. `ownerId` in the body → 400.
+- Viewer: creates, edits and deletes their own records; gets 404 on the owner's.
+- 400 cases: bad or wrong-type category; bad method; amount 0, negative, 1.5, `"100"` or over ฿20,000,000; missing, blank or 201-char title; note over 2000 characters; date as `2026/12/13`, `2026-02-30` or missing; date one day before or after the trip (`date_outside_trip`, on both POST and PATCH); server-owned fields (`tripId`, `currency`, `baseAmount`, `id`, `createdAt`, `payerId`); malformed JSON; empty PATCH; invalid PATCH fields, with nothing changed afterwards. Boundaries that are accepted: amount 1 and ฿20,000,000, the first and last trip days, a 200-char title, and all 6 categories. Group Expense POST or PATCH with `shopping` → 400.
+- Group money: snapshots of `/expenses`, `/balances` (total ฿30,350, Net, Outstanding, Suggested Transfers), `/settlements`, `/summary`, `/activity`, the Activity count and the trip itself are deep-equal before and after these steps: add (by owner, editor and viewer, including a ฿20M record), edit, and delete a seed record. Each Member's own `/balances` view is also unchanged.
+- Cleanup:
+  - A hard-deleted Member (N, viewer, no Expenses) loses their records. Other Members' records stay, and so do N's records in another trip.
+  - A soft-removed Member (Mint, who is referenced by Expenses and has Outstanding 0) keeps their records in the DB, but gets 404 on GET and POST.
+  - Deleting a trip removes all of its records and leaves other trips' records alone.
+
+**Bugs:** none found.
+
+**Spec questions (Personal Expenses):**
+11. **Soft-removed Member's records:** the task says "removing a Member deletes their records". The backend and schema.md (open question 11) delete them only on a hard delete. On a soft remove, which happens whenever the Member appears in an Expense or Settlement, the records are kept but nobody can see them. This matches the documented proposal. API.md says "(hard delete)", so the documents agree, but it should be confirmed as the final decision.
+12. **Empty note:** `note: ""` is accepted and stored as an empty string, and `note: null` on POST → 400. Only PATCH accepts `null`. Decide whether `""` should be treated as "no note".
+13. **Title whitespace:** `title` is trimmed and inner whitespace is collapsed (same `label()` as Places). API.md doesn't mention this.
+
+**No coverage:** a Claimed Unclaimed Member's records (an Unclaimed Member can't sign in, so it can't own records today); concurrent edits of the same record; live-stack curl (not run in this pass).

@@ -1,7 +1,9 @@
 /**
  * AddPlace (pages 8 / 15) and ManageTags (page 17) helpers. Pure.
  */
-import type { CityLeg, ID, Place, PlaceType, Tag } from "@/lib/api/types";
+import type { CityLeg, ID, Place, PlaceStay, PlaceType, Tag, Trip } from "@/lib/api/types";
+import { addDays, daysBetween, tripDayDate } from "@/lib/date";
+import { parseBahtInput } from "@/lib/money/input";
 
 export const PLACE_TYPES: readonly PlaceType[] = ["sight", "food", "interest", "stay", "transit"];
 export const MAX_PLACE_NAME = 80;
@@ -12,7 +14,8 @@ export const MAX_TAGS = 10;
 export interface PlaceDraft {
   name: string;
   mapUrl: string;
-  type: PlaceType;
+  /** "" = not chosen yet (no default, so a hotel is never saved as a restaurant by accident). */
+  type: PlaceType | "";
   city: string;
   /** "" = ไม่ระบุย่าน */
   area: string;
@@ -21,10 +24,28 @@ export interface PlaceDraft {
   /** Tags typed by the user that do not exist yet (or might, by name). */
   newTagNames: string[];
   note: string;
+  /** Hotel fields (type "stay" only); "" = not filled. Price is baht as typed. */
+  checkIn?: string;
+  checkOut?: string;
+  price?: string;
+  bookingRef?: string;
+  address?: string;
 }
 
 export type PlaceDraftResult =
-  | { ok: true; name: string; mapUrl?: string; city: string; area: string | null; note: string; tagIds: ID[]; newTagNames: string[] }
+  | {
+      ok: true;
+      name: string;
+      type: PlaceType;
+      mapUrl?: string;
+      city: string;
+      area: string | null;
+      note: string;
+      tagIds: ID[];
+      newTagNames: string[];
+      /** Present only for a "stay" with dates. */
+      stay?: PlaceStay;
+    }
   | { ok: false; error: string };
 
 /** Collapse spaces and trim (names, areas, cities). */
@@ -51,7 +72,7 @@ export function checkPlaceDraft(draft: PlaceDraft): PlaceDraftResult {
   const name = cleanLabel(draft.name);
   if (!name) return { ok: false, error: "ใส่ชื่อสถานที่" };
   if (name.length > MAX_PLACE_NAME) return { ok: false, error: `ชื่อสถานที่ยาวได้ไม่เกิน ${MAX_PLACE_NAME} ตัวอักษร` };
-  if (!PLACE_TYPES.includes(draft.type)) return { ok: false, error: "เลือกประเภท" };
+  if (draft.type === "" || !PLACE_TYPES.includes(draft.type)) return { ok: false, error: "เลือกประเภทสถานที่ (ที่เที่ยว ที่กิน น่าสนใจ ที่พัก เดินทาง)" };
   const city = cleanLabel(draft.city);
   if (!city) return { ok: false, error: "เลือกเมือง" };
   if (city.length > 40) return { ok: false, error: "ชื่อเมืองยาวเกินไป" };
@@ -72,7 +93,53 @@ export function checkPlaceDraft(draft: PlaceDraft): PlaceDraftResult {
   }
   if (tagIds.length + newTagNames.length > MAX_TAGS) return { ok: false, error: `ใส่ tag ได้ไม่เกิน ${MAX_TAGS} อัน` };
 
-  return { ok: true, name, ...(mapUrl ? { mapUrl } : {}), city, area: area || null, note, tagIds, newTagNames };
+  const stay = checkStayDraft(draft);
+  if (stay && "error" in stay) return { ok: false, error: stay.error };
+
+  return { ok: true, name, type: draft.type, ...(mapUrl ? { mapUrl } : {}), city, area: area || null, note, tagIds, newTagNames, ...(stay ? { stay: stay.stay } : {}) };
+}
+
+/** Hotel fields → `stay`; undefined when the type is not "stay" or no dates were filled. */
+export function checkStayDraft(draft: PlaceDraft): { stay: PlaceStay } | { error: string } | undefined {
+  if (draft.type !== "stay") return undefined;
+  const checkIn = (draft.checkIn ?? "").trim();
+  const checkOut = (draft.checkOut ?? "").trim();
+  const price = (draft.price ?? "").trim();
+  const bookingRef = cleanLabel(draft.bookingRef ?? "");
+  const address = cleanLabel(draft.address ?? "");
+  if (!checkIn && !checkOut) return price || bookingRef || address ? { error: "ใส่วันเช็คอินและเช็คเอาท์ก่อน จึงจะบันทึกราคาหรือเลขจองได้" } : undefined;
+  if (!checkIn) return { error: "ใส่วันเช็คอิน" };
+  if (!checkOut) return { error: "ใส่วันเช็คเอาท์" };
+  if (checkOut <= checkIn) return { error: "วันเช็คเอาท์ต้องหลังวันเช็คอิน" };
+  const satang = parseBahtInput(price);
+  if (satang === null) return { error: "ราคาที่พักไม่ถูกต้อง" };
+  if (bookingRef.length > 100) return { error: "เลขจองยาวเกินไป" };
+  if (address.length > 300) return { error: "ที่อยู่ยาวเกินไป" };
+  return {
+    stay: { checkIn, checkOut, ...(satang > 0 ? { price: satang } : {}), ...(bookingRef ? { bookingRef } : {}), ...(address ? { address } : {}) },
+  };
+}
+
+/** Trip days a stay covers, check-in day through check-out day (the last one shows "เช็คเอาท์"), clamped to the trip. */
+export function stayTripDays(stay: Pick<PlaceStay, "checkIn" | "checkOut">, trip: Pick<Trip, "startDate" | "endDate">): number[] {
+  const count = daysBetween(trip.startDate, trip.endDate) + 1;
+  const from = Math.max(1, daysBetween(trip.startDate, stay.checkIn) + 1);
+  const to = Math.min(count, daysBetween(trip.startDate, stay.checkOut) + 1);
+  const days: number[] = [];
+  for (let d = from; d <= to; d++) days.push(d);
+  return days;
+}
+
+/** Where a stay Place sits on a calendar date: check-in day, a night in between, or check-out day. */
+export function stayPhase(stay: Pick<PlaceStay, "checkIn" | "checkOut">, date: string): "in" | "night" | "out" | null {
+  if (date === stay.checkIn) return "in";
+  if (date === stay.checkOut) return "out";
+  return date > stay.checkIn && date < stay.checkOut ? "night" : null;
+}
+
+/** "3 คืน" */
+export function stayNights(stay: Pick<PlaceStay, "checkIn" | "checkOut">): number {
+  return daysBetween(stay.checkIn, stay.checkOut);
 }
 
 /**
@@ -170,4 +237,73 @@ export function tagUsage(places: readonly Pick<Place, "tagIds">[]): Map<ID, numb
   const counts = new Map<ID, number>();
   for (const p of places) for (const id of p.tagIds) counts.set(id, (counts.get(id) ?? 0) + 1);
   return counts;
+}
+
+/** Minimal view of a plan item the stay sync needs (a Place visit on one trip day). */
+export interface StayVisit {
+  id: ID;
+  day: number;
+  time: string | null;
+  note: string;
+}
+
+/**
+ * Keeps the plan in step when a hotel's stay dates change (or the stay is removed).
+ *
+ * Visits the stay put on the plan have no time and no note, but a visit the user
+ * added by hand looks the same, so it cannot be told apart for certain. Rule:
+ *  - add: every day of the new stay that has no visit of this Place yet;
+ *  - remove: visits on days of the OLD stay that fall outside the new one, and only
+ *    if they are still untouched (no time, no note). Days outside the old stay
+ *    (manual placements) and visits the user timed or annotated are never removed.
+ */
+export function stayPlanSync(
+  visits: readonly StayVisit[],
+  oldStay: Pick<PlaceStay, "checkIn" | "checkOut"> | null | undefined,
+  newStay: Pick<PlaceStay, "checkIn" | "checkOut"> | null | undefined,
+  trip: Pick<Trip, "startDate" | "endDate">,
+): { addDays: number[]; removeIds: ID[] } {
+  const oldDays = oldStay ? stayTripDays(oldStay, trip) : [];
+  const newDays = newStay ? stayTripDays(newStay, trip) : [];
+  const have = new Set(visits.map((v) => v.day));
+  return {
+    addDays: newDays.filter((d) => !have.has(d)),
+    removeIds: visits.filter((v) => oldDays.includes(v.day) && !newDays.includes(v.day) && v.time === null && !v.note.trim()).map((v) => v.id),
+  };
+}
+
+/** Check-in = the plan day the user came from, check-out = next day (left empty when that is past the trip's last day). */
+export function defaultStayDates(trip: Pick<Trip, "startDate" | "endDate">, fromDay: number | undefined): { checkIn: string; checkOut: string } {
+  if (!fromDay || fromDay < 1) return { checkIn: "", checkOut: "" };
+  const checkIn = tripDayDate(trip.startDate, fromDay);
+  if (checkIn < trip.startDate || checkIn > trip.endDate) return { checkIn: "", checkOut: "" };
+  const next = addDays(checkIn, 1);
+  return { checkIn, checkOut: next <= trip.endDate ? next : "" };
+}
+
+/** The Expense a hotel is linked to, as far as the sync needs it. */
+export interface LinkedStayExpense {
+  id: ID;
+  amount: number;
+  splitMode: "equal" | "amount" | "shares";
+  /** The viewer may edit it (owner, or the editor who created it). */
+  canEdit: boolean;
+}
+
+/**
+ * What to do with the linked cost when the hotel's price is saved.
+ *  - null: nothing to ask (no link, price not changed, cleared, or already equal to the cost)
+ *  - "update": ask, then PATCH the amount (equal split: the server re-splits among the same Members)
+ *  - "manual": custom / ratio split, send the user to the expense edit page instead of guessing
+ *  - "locked": the user may not edit that expense (someone else's), just tell them
+ */
+export function stayExpenseSync(
+  prev: Pick<PlaceStay, "price"> | null | undefined,
+  next: Pick<PlaceStay, "price"> | null | undefined,
+  linked: LinkedStayExpense | null | undefined,
+): "update" | "manual" | "locked" | null {
+  if (!linked || !next?.price) return null;
+  if (next.price === prev?.price || next.price === linked.amount) return null;
+  if (!linked.canEdit) return "locked";
+  return linked.splitMode === "equal" ? "update" : "manual";
 }

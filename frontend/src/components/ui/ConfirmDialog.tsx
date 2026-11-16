@@ -14,6 +14,9 @@ interface ConfirmDialogProps {
   tone?: "danger" | "primary";
   pending?: boolean;
   onConfirm: () => void;
+  /** Optional middle choice (e.g. "ลบเฉพาะที่พัก"), shown between the main button and cancel. */
+  secondaryLabel?: string;
+  onSecondary?: () => void;
   onCancel: () => void;
 }
 
@@ -27,6 +30,8 @@ export function ConfirmDialog({
   tone = "danger",
   pending,
   onConfirm,
+  secondaryLabel,
+  onSecondary,
   onCancel,
 }: ConfirmDialogProps) {
   const titleId = useId();
@@ -43,6 +48,11 @@ export function ConfirmDialog({
         <Button variant={tone} size="lg" block onClick={onConfirm} disabled={pending} aria-busy={pending || undefined}>
           {pending ? "กำลังดำเนินการ…" : confirmLabel}
         </Button>
+        {secondaryLabel && onSecondary ? (
+          <Button variant="secondary" size="lg" block onClick={onSecondary} disabled={pending}>
+            {secondaryLabel}
+          </Button>
+        ) : null}
         <Button variant="soft" block onClick={onCancel} data-autofocus>
           {cancelLabel}
         </Button>

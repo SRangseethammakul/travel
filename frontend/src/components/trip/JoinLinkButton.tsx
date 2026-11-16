@@ -78,7 +78,7 @@ export function JoinLinkButton() {
             placeholder="วางลิงก์ที่ได้รับ"
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? `${inputId}-error` : undefined}
-            className="h-12 rounded-icon border border-line-strong bg-surface px-3.5 text-[15px] text-ink placeholder:text-ink-muted"
+            className="h-12 rounded-icon border border-line-strong bg-surface px-3.5 text-base text-ink placeholder:text-ink-muted"
           />
           {error ? (
             <p id={`${inputId}-error`} role="alert" className="m-0 text-[13px] font-semibold text-danger">

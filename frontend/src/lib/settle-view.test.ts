@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TransferRow } from "./expenses";
-import { myOtherRows, pickSettleRow, settleViewer } from "./settle-view";
+import { myOtherRows, pickSettleRow, settleAmount, settleViewer, waitingAmount } from "./settle-view";
 
 // Tokyo trip: Mint → Act confirmed ฿3,100, Beam → Act sent ฿5,800, Ploy → Act pending ฿5,150.
 const rows: TransferRow[] = [
@@ -36,5 +36,46 @@ describe("settleViewer / myOtherRows", () => {
   it("lists other open transfers that involve me", () => {
     expect(myOtherRows(rows, "act", rows[1]).map((r) => r.key)).toEqual(["ploy>act"]);
     expect(myOtherRows(rows, "ploy", rows[2])).toEqual([]);
+  });
+});
+
+// QA plan step 7a: Eva owes Adam ฿650 and reports ฿400; ฿250 waits for Adam's confirmation.
+const partial: TransferRow[] = [
+  { key: "eva>adam", fromId: "eva", toId: "adam", amount: 40_000, status: "sent" },
+  { key: "eva>adam:rest", fromId: "eva", toId: "adam", amount: 25_000, status: "waiting" },
+];
+
+describe("partial report", () => {
+  it("opens on the sent row, never the waiting remainder", () => {
+    expect(pickSettleRow(partial, "eva")?.key).toBe("eva>adam");
+    expect(pickSettleRow(partial, "adam", { from: "eva", to: "adam" })?.key).toBe("eva>adam");
+    expect(pickSettleRow([partial[1]], "eva")).toBeNull();
+  });
+  it("does not list the remainder of the same pair as another transfer", () => {
+    expect(myOtherRows(partial, "eva", partial[0])).toEqual([]);
+  });
+  it("finds what is left of the pair", () => {
+    expect(waitingAmount(partial, partial[0])).toBe(25_000);
+    expect(waitingAmount(rows, rows[1])).toBe(0);
+  });
+});
+
+describe("settleAmount", () => {
+  it("accepts any amount up to what is still owed", () => {
+    expect(settleAmount("400", 65_000)).toEqual({ amount: 40_000 });
+    expect(settleAmount("650", 65_000)).toEqual({ amount: 65_000 });
+    expect(settleAmount("0.01", 65_000)).toEqual({ amount: 1 });
+    expect(settleAmount("5,150.50", 515_050)).toEqual({ amount: 515_050 });
+  });
+  it("refuses empty or zero", () => {
+    expect(settleAmount("", 65_000)).toEqual({ error: "ใส่ยอดที่โอน" });
+    expect(settleAmount("0", 65_000)).toEqual({ error: "ใส่ยอดที่โอน" });
+  });
+  it("refuses more than what is owed, naming the limit", () => {
+    expect(settleAmount("650.01", 65_000)).toEqual({ error: "ยอดโอนต้องไม่เกินยอดที่ค้าง ฿650" });
+  });
+  it("refuses more than 2 decimals or non-numbers", () => {
+    expect(settleAmount("12.345", 65_000)).toEqual({ error: "ใส่ยอดเป็นตัวเลข ทศนิยมไม่เกิน 2 ตำแหน่ง" });
+    expect(settleAmount("abc", 65_000)).toEqual({ error: "ใส่ยอดเป็นตัวเลข ทศนิยมไม่เกิน 2 ตำแหน่ง" });
   });
 });

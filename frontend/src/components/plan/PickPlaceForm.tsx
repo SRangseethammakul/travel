@@ -31,7 +31,8 @@ interface PickPlaceFormProps {
   sections: PickSectionView[];
   /** Day chips: "วัน 2" over "อา. 13". */
   days: { day: number; sub: string }[];
-  initialDay: number;
+  /** Days ticked at the start: only a day the user asked for, or a stay's own days. */
+  initialDays: number[];
   initialPlaceId: ID | null;
   /** Show the city in row meta (multi-city trips). */
   showCity: boolean;
@@ -39,12 +40,12 @@ interface PickPlaceFormProps {
 }
 
 /** PickPlace (13): choose a Place from the trip's list, a time, and one or more days. */
-export function PickPlaceForm({ tripId, sections, days, initialDay, initialPlaceId, showCity, newPlaceHref }: PickPlaceFormProps) {
+export function PickPlaceForm({ tripId, sections, days, initialDays, initialPlaceId, showCity, newPlaceHref }: PickPlaceFormProps) {
   const ids = useId();
   const all = sections.flatMap((s) => s.rows);
   const [selId, setSelId] = useState<ID | null>(all.some((r) => r.id === initialPlaceId) ? initialPlaceId : null);
   const [time, setTime] = useState("");
-  const [picked, setPicked] = useState<number[]>([initialDay]);
+  const [picked, setPicked] = useState<number[]>(initialDays);
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
@@ -78,7 +79,7 @@ export function PickPlaceForm({ tripId, sections, days, initialDay, initialPlace
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="ค้นหาชื่อ ย่าน หรือ tag"
-            className="min-w-0 flex-1 border-0 bg-transparent text-[15px] text-ink outline-none focus-visible:outline-none"
+            className="min-w-0 flex-1 border-0 bg-transparent text-base text-ink outline-none focus-visible:outline-none"
           />
         </label>
       </div>
@@ -135,7 +136,7 @@ export function PickPlaceForm({ tripId, sections, days, initialDay, initialPlace
         ) : null}
         <Link href={newPlaceHref} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl border-[1.5px] border-dashed border-control text-sm font-medium text-ink no-underline hover:border-ink-muted hover:text-ink">
           <Icon name="plus" size={16} />
-          ไม่มีในลิสต์? สร้างสถานที่ใหม่
+          ไม่มีในรายการ? เพิ่มสถานที่ใหม่
         </Link>
       </main>
 
@@ -153,7 +154,7 @@ export function PickPlaceForm({ tripId, sections, days, initialDay, initialPlace
             type="time"
             value={time}
             onChange={(e) => setTime(e.target.value)}
-            className="h-11 w-[120px] rounded-chip border border-line-strong bg-surface px-2.5 text-[15px] text-ink"
+            className="h-11 w-[120px] rounded-chip border border-line-strong bg-surface px-2.5 text-base text-ink"
           />
         </div>
         <fieldset className="m-0 flex flex-col border-0 p-0">
@@ -189,7 +190,7 @@ export function PickPlaceForm({ tripId, sections, days, initialDay, initialPlace
           </p>
         ) : null}
         <Button size="lg" block disabled={!ok} onClick={save} aria-busy={pending || undefined}>
-          {pending ? "กำลังเพิ่ม…" : ok ? `เพิ่มลงแผน ${dayList.length} วัน` : "เลือกสถานที่และวัน"}
+          {pending ? "กำลังเพิ่ม…" : ok ? `เพิ่มลงแผน ${dayList.length} วัน` : chosen ? "เลือกวันที่จะไป" : "เลือกสถานที่และวัน"}
         </Button>
       </footer>
     </>

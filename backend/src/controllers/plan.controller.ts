@@ -158,9 +158,11 @@ export const patchPlanItem: RequestHandler = async (req, res) => {
 export const putHop: RequestHandler = async (req, res) => {
   const me = currentMember(req);
   const hop = HopBody.parse(req.body);
-  const item = await updatePlanItem(me.tripId, (await ownItem(req))._id, { travelToNext: hop }, []);
+  const existing = await ownItem(req);
+  const item = await updatePlanItem(me.tripId, existing._id, { travelToNext: hop }, []);
   if (!item) throw itemNotFound();
-  await addActivity({ tripId: me.tripId, actorId: me._id, type: "plan", refId: item._id, text: `แก้การเดินทางต่อจาก ${await itemLabel(item)}` });
+  const verb = existing.travelToNext ? "แก้" : "เพิ่ม";
+  await addActivity({ tripId: me.tripId, actorId: me._id, type: "plan", refId: item._id, text: `${verb}การเดินทางต่อจาก ${await itemLabel(item)}` });
   res.json(planItemView(item));
 };
 

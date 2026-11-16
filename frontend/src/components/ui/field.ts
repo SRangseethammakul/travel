@@ -2,7 +2,7 @@ import { cn } from "@/lib/cn";
 
 /** 48px text field on white (mockup inputs: 1px #D5DDE3 border, radius 14). */
 export const fieldClass =
-  "h-12 w-full rounded-icon border border-line-strong bg-surface px-3.5 text-[15px] text-ink placeholder:text-ink-muted/70 transition-colors hover:border-ink-muted focus-visible:border-primary";
+  "h-12 w-full rounded-icon border border-line-strong bg-surface px-3.5 text-base text-ink placeholder:text-ink-muted/70 transition-colors hover:border-ink-muted focus-visible:border-primary";
 
 /** Multi-line version of fieldClass. */
 export const textareaClass = cn(fieldClass, "h-auto min-h-20 resize-none py-3 leading-normal");

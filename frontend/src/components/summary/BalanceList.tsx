@@ -6,6 +6,9 @@ import { Money } from "@/components/ui/Money";
 import type { ColorKey, ID } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
 import type { ShareLine } from "@/lib/expenses";
+import { balanceLabel, type BalanceTone } from "@/lib/summary-view";
+
+const toneClass: Record<BalanceTone, string> = { receive: "text-primary", pay: "text-danger", neutral: "text-ink-muted" };
 
 export interface BalanceRowView {
   id: ID;
@@ -16,11 +19,13 @@ export interface BalanceRowView {
   share: number;
   /** Net Balance (Expenses only). */
   net: number;
+  /** Outstanding (Net Balance after confirmed Settlements): picks the label under the Net Balance. */
+  outstanding: number;
   lines: ShareLine[];
 }
 
 /** "แต่ละคน": Net Balance per Member; tap a row to see which Shares make it up. Opens on the Current Member. */
-export function BalanceList({ rows, initialOpen }: { rows: BalanceRowView[]; initialOpen: ID | null }) {
+export function BalanceList({ rows, initialOpen, solo = false }: { rows: BalanceRowView[]; initialOpen: ID | null; solo?: boolean }) {
   const [open, setOpen] = useState<ID | null>(initialOpen);
   const baseId = useId();
 
@@ -29,8 +34,7 @@ export function BalanceList({ rows, initialOpen }: { rows: BalanceRowView[]; ini
       {rows.map((r) => {
         const isOpen = open === r.id;
         const panelId = `${baseId}-${r.id}`;
-        const label = r.net > 0 ? "ได้คืน" : r.net < 0 ? "ต้องจ่ายเพิ่ม" : "พอดี";
-        const tone = r.net > 0 ? "text-primary" : r.net < 0 ? "text-danger" : "text-ink-muted";
+        const label = solo ? { text: "ยังไม่มีคนหาร", tone: "neutral" as const } : balanceLabel(r.net, r.outstanding);
         return (
           <li
             key={r.id}
@@ -50,12 +54,12 @@ export function BalanceList({ rows, initialOpen }: { rows: BalanceRowView[]; ini
                   {r.isMe ? <span className="font-normal text-ink-muted"> (คุณ)</span> : null}
                 </span>
                 <span className="text-xs text-ink-muted">
-                  ส่วนที่ต้องจ่าย <Money value={r.share} className="font-sans" /> · จ่ายไปแล้ว <Money value={r.paid} className="font-sans" />
+                  จ่ายไป <Money value={r.paid} className="font-sans" /> · ส่วนของ{r.isMe ? "คุณ" : "เขา"} <Money value={r.share} className="font-sans" />
                 </span>
               </span>
-              <span className={cn("flex shrink-0 flex-col items-end", tone)}>
+              <span className={cn("flex shrink-0 flex-col items-end", toneClass[label.tone])}>
                 <Money value={r.net} sign="always" className="text-base font-semibold" />
-                <span className="text-xs">{label}</span>
+                <span className="text-xs">{label.text}</span>
               </span>
             </button>
             {isOpen ? (

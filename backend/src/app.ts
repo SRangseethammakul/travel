@@ -21,6 +21,7 @@ import { activityRoutes, balanceRoutes, expenseRoutes, settlementRoutes, summary
 import { authRoutes } from "./routes/auth.routes.js";
 import { checklistRoutes, checklistSuggestionRoutes } from "./routes/checklist.routes.js";
 import { documentRoutes, fileRoutes } from "./routes/document.routes.js";
+import { personalExpenseRoutes } from "./routes/personal-expense.routes.js";
 import { initFileStore } from "./storage/files.js";
 
 /**
@@ -54,6 +55,7 @@ export function createApp(config: Config) {
   app.use("/api/trips/:tripId/plan", requireUser, requireMember, planRoutes);
   app.use("/api/me/tags", requireUser, myTagRoutes);
   app.use("/api/trips/:tripId/expenses", requireUser, requireMember, expenseRoutes);
+  app.use("/api/trips/:tripId/personal-expenses", requireUser, requireMember, personalExpenseRoutes);
   app.use("/api/trips/:tripId/settlements", requireUser, requireMember, settlementRoutes);
   app.use("/api/trips/:tripId/balances", requireUser, requireMember, balanceRoutes);
   app.use("/api/trips/:tripId/summary", requireUser, requireMember, summaryRoutes);

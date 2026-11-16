@@ -14,9 +14,9 @@ import { cn } from "@/lib/cn";
 import { formatTimestamp } from "@/lib/date";
 import { suggestedRow, transferRows, type TransferStatus } from "@/lib/expenses";
 import { formatMoney } from "@/lib/money/format";
-import { myOtherRows, pickSettleRow, settleViewer } from "@/lib/settle-view";
+import { myOtherRows, pickSettleRow, settleViewer, waitingAmount } from "@/lib/settle-view";
 
-const STEPS: { status: TransferStatus; label: string }[] = [
+const STEPS: { status: Exclude<TransferStatus, "waiting">; label: string }[] = [
   { status: "pending", label: "รอโอน" },
   { status: "sent", label: "รอยืนยัน" },
   { status: "confirmed", label: "เสร็จสิ้น" },
@@ -111,6 +111,10 @@ export default async function SettleUpPage({ params, searchParams }: PageProps<"
   const myOutstanding = balances.rows.find((r) => r.member.id === me.id)?.outstanding ?? 0;
   const others = myOtherRows(rows, me.id, row);
   const amount = formatMoney(row.amount);
+  // What is left of this pair while a partial report waits for confirmation (APP-4).
+  const left = waitingAmount(rows, row);
+  // The header amount is the transfer itself, not the trip's Net Balance.
+  const amountCaption = row.status === "pending" ? "ยอดที่ยังต้องโอน" : row.status === "sent" ? "ยอดที่แจ้งโอน" : "ยอดที่โอนแล้ว";
 
   const top = (
     <>
@@ -121,7 +125,9 @@ export default async function SettleUpPage({ params, searchParams }: PageProps<"
           <Party member={to} isMe={to.id === me.id} />
         </div>
         <Money value={row.amount} className="text-4xl leading-[1.1] font-semibold" />
-        <span className="text-xs text-ink-muted">ยอดสุทธิทั้งทริป {trip.name}</span>
+        <span className="text-xs text-ink-muted">
+          {amountCaption} · ทริป {trip.name}
+        </span>
       </section>
 
       <ol aria-label="สถานะการโอน" className="m-0 grid list-none grid-cols-3 gap-1.5 p-0">
@@ -164,7 +170,7 @@ export default async function SettleUpPage({ params, searchParams }: PageProps<"
     return (
       <div className="flex min-h-dvh flex-1 flex-col">
         <BackHeader title="โอนเงินคืน" href={summaryHref} />
-        <PayerPendingView tripId={tripId} toId={to.id} top={<>{top}{switcher}</>}>
+        <PayerPendingView tripId={tripId} toId={to.id} remaining={row.amount} top={<>{top}{switcher}</>}>
           <h2 className="m-0 text-[15px] font-semibold">สแกนพร้อมเพย์ของ {to.displayName}</h2>
           <SampleQr label={`QR พร้อมเพย์ของ ${to.displayName} ภาพตัวอย่าง`} />
           <span className="text-xs text-ink-muted">[QR จริงสร้างจากเบอร์พร้อมเพย์และยอดเงิน]</span>
@@ -207,6 +213,14 @@ export default async function SettleUpPage({ params, searchParams }: PageProps<"
         }
         detail={sentDetail}
       >
+        {left ? (
+          <p className="m-0 rounded-chip bg-todo-soft px-3 py-2 text-[13px] text-todo">
+            ยังค้างอีก <Money value={left} className="font-sans font-semibold" />
+            {viewer === "payer"
+              ? ` · แจ้งโอนส่วนที่เหลือได้หลัง ${to.displayName} ยืนยันยอดนี้`
+              : ` · ${from.displayName} แจ้งโอนส่วนที่เหลือได้หลัง${viewer === "receiver" ? "คุณ" : ` ${to.displayName} `}ยืนยันยอดนี้`}
+          </p>
+        ) : null}
         {slip ? (
           <div className="flex justify-start">
             <SlipButton name={slip.name} size={slip.size} mime={slip.mime} label="ดูสลิป" url={slipUrl} />

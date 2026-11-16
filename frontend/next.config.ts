@@ -10,6 +10,10 @@ const BACKEND_URL = (process.env.BACKEND_URL || "http://localhost:4000").replace
 // revalidatePath is the model we use.
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  // Dev only: lets a phone/tablet on the LAN (http://192.168.x.x:3000) load the
+  // dev runtime. Without it Next 16 blocks /_next/webpack-hmr and the page never
+  // becomes interactive — links work, buttons don't.
+  allowedDevOrigins: ["192.168.*.*"],
   turbopack: {
     rules: {
       "*.css": {

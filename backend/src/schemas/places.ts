@@ -1,7 +1,7 @@
 /** Request schemas for Places, Tags and Areas (API.md A7, A8, B15–B23). */
 import { z } from "zod";
 import { Id, Satang } from "./common.js";
-import { PlaceType } from "./models.js";
+import { PlaceType, StayDoc } from "./models.js";
 
 /** Collapse whitespace and trim, then require 1..max characters. */
 export const label = (max: number) =>
@@ -37,6 +37,7 @@ export const PlaceCreateBody = z.strictObject({
   mapUrl: MapUrl.optional(),
   note: z.string().max(2000).default(""),
   costPerPerson: Satang.optional(),
+  stay: StayDoc.optional(),
 });
 
 /** PATCH: every field optional; `null` removes `mapUrl` / `costPerPerson`. */
@@ -50,6 +51,7 @@ export const PlaceUpdateBody = z.strictObject({
   mapUrl: MapUrl.nullable().optional(),
   note: z.string().max(2000).optional(),
   costPerPerson: Satang.nullable().optional(),
+  stay: StayDoc.nullable().optional(),
 });
 
 const commaList = z

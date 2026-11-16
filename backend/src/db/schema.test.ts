@@ -73,6 +73,7 @@ describe("indexes", () => {
       "tags_owner_name",
       "planItems_trip_day_time",
       "expenses_trip_date",
+      "personalExpenses_trip_owner_date",
       "settlements_trip",
       "settlements_open_pair",
       "checklist_trip_scope_owner",

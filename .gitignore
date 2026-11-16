@@ -17,3 +17,4 @@ backend/dist/
 backend/.data/
 backend/.env*
 !backend/.env.example
+docs/qa/screenshots

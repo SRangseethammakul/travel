@@ -40,6 +40,13 @@ describe("Thai date formatting", () => {
     expect(formatMonthYear("2026-06-13")).toBe("มิ.ย. 2569");
   });
 
+  it("uses fixed weekday names, the same on the server and in the browser (APP-9)", () => {
+    // Node's ICU says "พฤหัส" for a short Thursday, browsers say "พฤ.".
+    expect(formatDateRange("2026-11-26", "2026-11-29")).toBe("พฤ. 26 – อา. 29 พ.ย. 2569");
+    expect(["2026-11-23", "2026-11-24", "2026-11-25", "2026-11-26", "2026-11-27"].map(formatWeekdayDay)).toEqual(["จ. 23", "อ. 24", "พ. 25", "พฤ. 26", "ศ. 27"]);
+    expect(formatLongDayMonth("2026-11-26")).toBe("พฤหัสบดี 26 พ.ย.");
+  });
+
   it("formats trip length", () => {
     expect(formatTripLength("2026-12-12", "2026-12-15")).toBe("4 วัน 3 คืน");
     expect(formatTripLength("2026-06-13", "2026-06-13")).toBe("1 วัน");
@@ -56,6 +63,20 @@ describe("day counting", () => {
   it("adds days and finds trip day dates", () => {
     expect(addDays("2026-12-31", 1)).toBe("2027-01-01");
     expect(tripDayDate("2026-12-12", 4)).toBe("2026-12-15");
+  });
+
+  it("gives the same trip day date in any process timezone (no UTC/Bangkok off-by-one)", () => {
+    const prev = process.env.TZ;
+    try {
+      for (const tz of ["Asia/Bangkok", "UTC", "America/Los_Angeles", "Pacific/Auckland"]) {
+        process.env.TZ = tz;
+        expect(tripDayDate("2027-04-05", 4)).toBe("2027-04-08");
+        expect(addDays("2027-04-05", 3)).toBe("2027-04-08");
+      }
+    } finally {
+      if (prev === undefined) delete process.env.TZ;
+      else process.env.TZ = prev;
+    }
   });
 
   it("works out the countdown from the real date (not the mockup's 34 days)", () => {

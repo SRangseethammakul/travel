@@ -5,6 +5,7 @@ import { deleteDocumentQuietly, slipFile, uploadSlip } from "./documents";
 import type { ActionResult } from "./expense-actions";
 import { actionError, apiFetch, tripPath } from "./http";
 import { isStaleSettlementError } from "./settlement-errors";
+import type { Satang } from "@/lib/money/format";
 import type { ID, Settlement } from "./types";
 
 const settlementsPath = (tripId: ID) => `${tripPath(tripId)}/settlements`;
@@ -21,19 +22,21 @@ function refused(e: unknown): ActionResult {
 }
 
 /**
- * B32 — the Current Member reports "แจ้งว่าโอนแล้ว" to `toId`. No amount is sent,
- * so the backend uses the Suggested Transfer, lowered to what is not reported yet.
- * An optional slip (`slip` File in `slipForm`) is uploaded first (B12) and deleted
- * again (B14) when the report is refused.
+ * B32 — the Current Member reports "แจ้งว่าโอนแล้ว" to `toId` for `amount` satang:
+ * the full amount they still owe that person, or part of it (checked on the page
+ * with `settleAmount`; the backend enforces the limit). An optional slip (`slip`
+ * File in `slipForm`) is uploaded first (B12) and deleted again (B14) when the
+ * report is refused.
  */
-export async function markTransferSent(tripId: ID, toId: ID, slipForm: FormData | null): Promise<ActionResult> {
+export async function markTransferSent(tripId: ID, toId: ID, amount: Satang, slipForm: FormData | null): Promise<ActionResult> {
+  if (!Number.isSafeInteger(amount) || amount <= 0) return { error: "ใส่ยอดที่โอน" };
   const file = slipFile(slipForm);
   let uploaded: ID | null = null;
   try {
     if (file) uploaded = await uploadSlip(tripId, file);
     await apiFetch<Settlement>(settlementsPath(tripId), {
       method: "POST",
-      json: { toId, ...(uploaded ? { slipDocId: uploaded } : {}) },
+      json: { toId, amount, ...(uploaded ? { slipDocId: uploaded } : {}) },
     });
   } catch (e) {
     if (uploaded) await deleteDocumentQuietly(tripId, uploaded);

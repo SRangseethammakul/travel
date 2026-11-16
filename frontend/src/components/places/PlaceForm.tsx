@@ -1,14 +1,18 @@
 "use client";
 
+import Link from "next/link";
 import { useId, useState, useTransition, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { placeTypeStyle } from "@/components/ui/colors";
 import { addPillClass, fieldClass, fieldLabelClass, pillClass, textareaClass } from "@/components/ui/field";
-import { savePlace } from "@/lib/api/plan-actions";
-import type { ID, PlaceType } from "@/lib/api/types";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { deletePlaceAction, savePlace, updatePlaceAction } from "@/lib/api/plan-actions";
+import type { ID, Place, PlaceType } from "@/lib/api/types";
+import { formatMoney } from "@/lib/money/format";
+import { formatBahtInput, satangToInput } from "@/lib/money/input";
 import { cn } from "@/lib/cn";
-import { cleanLabel, cleanTagName, isMapUrl, isNewTagName, MAX_PLACE_NAME, MAX_TAGS, PLACE_TYPES, tagSuggestions, type PlaceDraft } from "@/lib/place-form";
+import { checkPlaceDraft, cleanLabel, cleanTagName, defaultStayDates, isMapUrl, isNewTagName, MAX_PLACE_NAME, MAX_TAGS, PLACE_TYPES, stayExpenseSync, stayNights, tagSuggestions, type LinkedStayExpense, type PlaceDraft } from "@/lib/place-form";
 
 export interface FormTag {
   id: ID;
@@ -29,6 +33,20 @@ interface PlaceFormProps {
   myTags: FormTag[];
   /** Tags of other members already used in this trip. */
   tripTags: FormTag[];
+  /** Edit mode: the Place being changed (the form starts from it and saves with PATCH). */
+  initial?: Place;
+  /** Trip dates, bounds of the check-in / check-out fields. */
+  tripDates: { start: string; end: string };
+  /** Day the user came from (`/plan/add?day=`), kept when continuing to pick days. */
+  fromDay?: number;
+  /** New place: type chosen from where the user came from (e.g. "stay" from "ที่พักแต่ละคืน"). Otherwise none is pre-selected. */
+  defaultType?: PlaceType;
+  /** Show "บันทึกเป็นค่าใช้จ่ายด้วย" for a hotel with a price. */
+  canAddExpense?: boolean;
+  /** Members of the trip: a shared cost only makes sense with 2+, so the switch starts on only then. */
+  memberCount?: number;
+  /** Edit mode: the Expense this hotel's price is recorded in (see PlaceStay.expenseId). */
+  linkedExpense?: (LinkedStayExpense & { title: string }) | null;
 }
 
 /** Pick one of the existing values or type a new one (city / area). */
@@ -105,18 +123,31 @@ function ChoiceRow({
 }
 
 /** AddPlace (8) / AddPlaceJP (15): saves straight to the trip's list, no day needed. */
-export function PlaceForm({ tripId, userId, cities, areasByCity, legHints, defaultCity, myTags, tripTags }: PlaceFormProps) {
+export function PlaceForm({ tripId, userId, cities, areasByCity, legHints, defaultCity, myTags, tripTags, initial, tripDates, fromDay, defaultType, canAddExpense = false, memberCount = 1, linkedExpense = null }: PlaceFormProps) {
   const ids = useId();
   const multiCity = cities.length > 1;
-  const [name, setName] = useState("");
-  const [mapUrl, setMapUrl] = useState("");
-  const [type, setType] = useState<PlaceType>("food");
-  const [city, setCity] = useState(defaultCity);
-  const [area, setArea] = useState("");
-  const [tagIds, setTagIds] = useState<ID[]>([]);
+  const editing = !!initial;
+  const [name, setName] = useState(initial?.name ?? "");
+  const [mapUrl, setMapUrl] = useState(initial?.mapUrl ?? "");
+  const [type, setType] = useState<PlaceType | "">(initial?.type ?? defaultType ?? "");
+  const [city, setCity] = useState(initial?.city ?? defaultCity);
+  const [area, setArea] = useState(initial?.area ?? "");
+  const [tagIds, setTagIds] = useState<ID[]>(initial?.tagIds ?? []);
+  // A new hotel starts on the day the user came from (?day=), checking out the next day.
+  const seed = defaultStayDates({ startDate: tripDates.start, endDate: tripDates.end }, initial ? undefined : fromDay);
+  const [checkIn, setCheckIn] = useState(initial?.stay?.checkIn ?? seed.checkIn);
+  const [checkOut, setCheckOut] = useState(initial?.stay?.checkOut ?? seed.checkOut);
+  const [price, setPrice] = useState(initial?.stay?.price ? satangToInput(initial.stay.price) : "");
+  const [bookingRef, setBookingRef] = useState(initial?.stay?.bookingRef ?? "");
+  const [address, setAddress] = useState(initial?.stay?.address ?? "");
+  // null = the user has not touched the switch: on for a new hotel shared by 2+ members, off when editing.
+  const [asExpenseChoice, setAsExpenseChoice] = useState<boolean | null>(null);
+  const asExpense = asExpenseChoice ?? (!editing && memberCount >= 2);
+  const [syncAsk, setSyncAsk] = useState<"update" | "manual" | "locked" | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [newTags, setNewTags] = useState<string[]>([]);
   const [draftTag, setDraftTag] = useState("");
-  const [note, setNote] = useState("");
+  const [note, setNote] = useState(initial?.note ?? "");
   const [error, setError] = useState("");
   const [pasteHint, setPasteHint] = useState("");
   const [pending, startTransition] = useTransition();
@@ -128,7 +159,21 @@ export function PlaceForm({ tripId, userId, cities, areasByCity, legHints, defau
   const canCreate = isNewTagName(draftTag, allTags, [...newTags, ...tagIds.map(tagName)]);
   const full = tagIds.length + newTags.length >= MAX_TAGS;
   const mapInvalid = mapUrl.trim() !== "" && !isMapUrl(mapUrl.trim());
-  const canSave = cleanLabel(name).length > 0 && !!cleanLabel(city) && !mapInvalid && !pending;
+  const draftNow: PlaceDraft = { name, mapUrl, type, city, area, tagIds, newTagNames: newTags, note, checkIn, checkOut, price, bookingRef, address };
+  const check = checkPlaceDraft(draftNow);
+  const canSave = check.ok && !pending;
+  const stayPrice = check.ok ? (check.stay?.price ?? 0) : 0;
+  // A hotel already linked to an expense never offers a second one.
+  const offerExpense = canAddExpense && type === "stay" && stayPrice > 0 && !initial?.stay?.expenseId;
+  const savedStay = initial?.stay;
+  const linked = savedStay?.expenseId ? linkedExpense : null;
+  const newStay = check.ok ? check.stay : undefined;
+  const syncKind = stayExpenseSync(savedStay, newStay, linked);
+  // Nights changed but the price was left alone: the price (and linked cost) may now be wrong.
+  const nightsNow = checkIn && checkOut && checkOut > checkIn ? stayNights({ checkIn, checkOut }) : null;
+  const nightsChanged = !!savedStay?.price && nightsNow !== null && nightsNow !== stayNights(savedStay) && stayPrice === savedStay.price;
+  // Tell the user what is missing instead of leaving the button grey.
+  const missing = check.ok ? "" : check.error;
 
   const addDraft = () => {
     if (!draftClean || full) return;
@@ -164,13 +209,141 @@ export function PlaceForm({ tripId, userId, cities, areasByCity, legHints, defau
   const submit = (then: "list" | "plan") => (e?: FormEvent) => {
     e?.preventDefault();
     if (!canSave) return;
+    // Price changed on a hotel whose cost is recorded: ask before touching the cost.
+    if (initial && syncKind) {
+      setSyncAsk(syncKind);
+      return;
+    }
+    save(then, null);
+  };
+
+  const save = (then: "list" | "plan", expenseSync: "update" | "manual" | null) => {
     setError("");
-    const draft: PlaceDraft = { name, mapUrl, type, city, area, tagIds, newTagNames: newTags, note };
+    setSyncAsk(null);
     startTransition(async () => {
-      const result = await savePlace(tripId, draft, then);
+      const result = initial
+        ? await updatePlaceAction(tripId, initial.id, draftNow, initial.stay ?? null, { asExpense: offerExpense && asExpense, expenseSync })
+        : await savePlace(tripId, draftNow, then, fromDay, offerExpense && asExpense);
       if (result?.error) setError(result.error);
     });
   };
+
+  const remove = (withExpense: boolean) => {
+    if (!initial) return;
+    setError("");
+    startTransition(async () => {
+      const result = await deletePlaceAction(tripId, initial.id, withExpense && linked ? linked.id : undefined);
+      if (result?.error) {
+        setError(result.error);
+        setConfirmDelete(false);
+      }
+    });
+  };
+
+  const stayFields = (
+    <fieldset className="m-0 flex flex-col gap-3 rounded-tile border border-line bg-bg/60 p-3.5">
+      <legend className={cn(fieldLabelClass, "px-1")}>รายละเอียดที่พัก</legend>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={`${ids}-in`} className="text-[13px] font-semibold">
+            วันเช็คอิน
+          </label>
+          <input
+            id={`${ids}-in`}
+            type="date"
+            min={tripDates.start}
+            max={tripDates.end}
+            value={checkIn}
+            onChange={(e) => {
+              setCheckIn(e.target.value);
+              if (e.target.value && checkOut && checkOut <= e.target.value) setCheckOut("");
+            }}
+            className={cn(fieldClass, "px-2.5")}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={`${ids}-out`} className="text-[13px] font-semibold">
+            วันเช็คเอาท์
+          </label>
+          <input
+            id={`${ids}-out`}
+            type="date"
+            min={checkIn || tripDates.start}
+            max={tripDates.end}
+            value={checkOut}
+            onChange={(e) => setCheckOut(e.target.value)}
+            className={cn(fieldClass, "px-2.5")}
+          />
+        </div>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor={`${ids}-price`} className="text-[13px] font-semibold">
+          ราคารวมทั้งหมด (บาท)
+        </label>
+        <input
+          id={`${ids}-price`}
+          type="text"
+          inputMode="decimal"
+          placeholder="เช่น 5,600"
+          value={price}
+          onChange={(e) => {
+            setPrice(formatBahtInput(e.target.value));
+          }}
+          className={fieldClass}
+        />
+        {nightsChanged ? (
+          <p role="status" className="m-0 rounded-chip bg-todo-soft px-3 py-2 text-[13px] font-semibold text-todo">
+            เปลี่ยนจาก {savedStay ? stayNights(savedStay) : 0} คืนเป็น {nightsNow} คืนแล้ว แต่ราคายังเป็น {formatMoney(stayPrice)} ตรวจราคา
+            {linked ? "และค่าใช้จ่ายที่บันทึกไว้" : ""}ด้วยว่าถูกไหม
+          </p>
+        ) : null}
+      </div>
+      {linked ? (
+        <div className="flex flex-col gap-1 rounded-chip bg-primary-soft px-3 py-2.5 text-primary-ink">
+          <span className="text-sm font-semibold">บันทึกเป็นค่าใช้จ่ายแล้ว {formatMoney(linked.amount)}</span>
+          {savedStay?.price && linked.amount !== savedStay.price ? (
+            <span className="text-xs">ยอดค่าใช้จ่ายไม่ตรงกับราคาที่พัก {formatMoney(savedStay.price)}</span>
+          ) : null}
+          <Link href={`/trips/${encodeURIComponent(tripId)}/expenses/${encodeURIComponent(linked.id)}`} className="inline-flex min-h-11 items-center self-start text-sm font-semibold underline">
+            ดูรายการค่าใช้จ่าย
+          </Link>
+        </div>
+      ) : null}
+      {offerExpense ? (
+        <button
+          type="button"
+          role="switch"
+          aria-checked={asExpense}
+          onClick={() => setAsExpenseChoice(!asExpense)}
+          className={cn(
+            "flex min-h-14 cursor-pointer items-center justify-between gap-3 rounded-chip border-[1.5px] px-3 py-2 text-left text-ink transition-colors",
+            asExpense ? "border-primary bg-primary-soft" : "border-line-strong bg-surface",
+          )}
+        >
+          <span className="flex flex-col">
+            <span className="text-sm font-semibold">บันทึกเป็นค่าใช้จ่ายด้วย</span>
+            <span className="text-xs text-ink-muted">ให้เพื่อนร่วมทริปหาร {formatMoney(stayPrice)} · ไปหน้าหารเงินต่อหลังบันทึก</span>
+          </span>
+          <span aria-hidden="true" className={cn("flex h-[26px] w-11 shrink-0 rounded-full p-[3px] transition-colors duration-200", asExpense ? "justify-end bg-primary" : "justify-start bg-control")}>
+            <span className="size-5 rounded-full bg-surface shadow-seg" />
+          </span>
+        </button>
+      ) : null}
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor={`${ids}-ref`} className="text-[13px] font-semibold">
+          เลขที่จอง
+        </label>
+        <input id={`${ids}-ref`} type="text" maxLength={100} value={bookingRef} onChange={(e) => setBookingRef(e.target.value)} className={fieldClass} />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor={`${ids}-addr`} className="text-[13px] font-semibold">
+          ที่อยู่
+        </label>
+        <textarea id={`${ids}-addr`} rows={2} maxLength={300} value={address} onChange={(e) => setAddress(e.target.value)} className={textareaClass} />
+      </div>
+      <p className="m-0 text-xs text-ink-muted">ใส่วันเช็คอิน–เช็คเอาท์แล้ว ระบบจะวางที่พักนี้ในแผนตามวันเหล่านั้นให้เอง</p>
+    </fieldset>
+  );
 
   const sections: Record<"type" | "city" | "area", ReactNode> = {
     type: (
@@ -275,7 +448,7 @@ export function PlaceForm({ tripId, userId, cities, areasByCity, legHints, defau
               aria-invalid={mapInvalid || undefined}
               aria-describedby={`${ids}-map-hint`}
               onChange={(e) => setMapUrl(e.target.value)}
-              className="min-w-0 flex-1 border-0 bg-transparent p-0 text-[15px] text-ink outline-none focus-visible:outline-none"
+              className="min-w-0 flex-1 border-0 bg-transparent p-0 text-base text-ink outline-none focus-visible:outline-none"
             />
             <button type="button" onClick={paste} className="min-h-11 shrink-0 cursor-pointer rounded-[10px] border-0 bg-bg px-3 text-[13px] font-semibold text-ink hover:bg-line">
               วาง
@@ -287,6 +460,8 @@ export function PlaceForm({ tripId, userId, cities, areasByCity, legHints, defau
         </div>
 
         {order.map((k) => sections[k])}
+
+        {type === "stay" ? stayFields : null}
 
         <section className="flex flex-col gap-2.5">
           <div className="flex items-baseline justify-between">
@@ -319,7 +494,7 @@ export function PlaceForm({ tripId, userId, cities, areasByCity, legHints, defau
               onChange={(e) => setDraftTag(e.target.value)}
               onKeyDown={onTagKey}
               placeholder={full ? `ครบ ${MAX_TAGS} อันแล้ว` : "พิมพ์ tag ใหม่"}
-              className="h-8 min-w-[100px] flex-1 border-0 bg-transparent px-1 text-[15px] text-ink outline-none focus-visible:outline-none"
+              className="h-8 min-w-[100px] flex-1 border-0 bg-transparent px-1 text-base text-ink outline-none focus-visible:outline-none"
             />
           </div>
           {canCreate && !full ? (
@@ -353,6 +528,15 @@ export function PlaceForm({ tripId, userId, cities, areasByCity, legHints, defau
           <textarea id={`${ids}-note`} rows={2} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} className={textareaClass} />
         </div>
 
+        {editing ? (
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(true)}
+            className="min-h-12 cursor-pointer self-start rounded-icon border border-line-strong bg-surface px-4 text-sm font-semibold text-danger hover:bg-danger-soft"
+          >
+            ลบสถานที่นี้
+          </button>
+        ) : (
         <button
           type="button"
           onClick={() => submit("plan")()}
@@ -360,11 +544,12 @@ export function PlaceForm({ tripId, userId, cities, areasByCity, legHints, defau
           className="flex min-h-[52px] cursor-pointer items-center justify-between rounded-icon border border-line bg-surface px-3.5 text-left text-ink hover:bg-surface-alt disabled:cursor-not-allowed disabled:opacity-60"
         >
           <span className="flex flex-col">
-            <span className="text-sm font-semibold">ลงแผน</span>
-            <span className="text-xs text-ink-muted">ยังไม่จัดวัน · บันทึกแล้วเลือกวันต่อ</span>
+            <span className="text-sm font-semibold">บันทึกแล้วเลือกวันที่จะไป</span>
+            <span className="text-xs text-ink-muted">เพิ่มเข้าแผนรายวันต่อเลย</span>
           </span>
           <Icon name="chevronRight" size={18} />
         </button>
+        )}
       </div>
 
       <footer className="sticky bottom-0 z-10 flex flex-col gap-2 border-t border-line bg-surface px-5 pt-3 pb-[calc(28px+env(safe-area-inset-bottom))]">
@@ -373,10 +558,55 @@ export function PlaceForm({ tripId, userId, cities, areasByCity, legHints, defau
             {error}
           </p>
         ) : null}
+        {!canSave && missing ? (
+          <p className="m-0 text-center text-[13px] text-ink-muted" aria-live="polite">
+            {missing}
+          </p>
+        ) : null}
         <Button type="submit" size="lg" block disabled={!canSave} aria-busy={pending || undefined} className="h-[54px]">
-          {pending ? "กำลังบันทึก…" : "บันทึกลงลิสต์"}
+          {pending ? "กำลังบันทึก…" : editing ? "บันทึกการแก้ไข" : "บันทึก"}
         </Button>
       </footer>
+      {initial ? (
+        <>
+          <ConfirmDialog
+            open={confirmDelete}
+            title={`ลบ "${initial.name}"?`}
+            description={
+              linked
+                ? linked.canEdit
+                  ? `ที่พักนี้บันทึกเป็นค่าใช้จ่าย ${formatMoney(linked.amount)} ไว้ด้วย จะลบค่าใช้จ่ายนั้นไปด้วยไหม ถ้าอยู่ในแผนรายวันจะถูกเอาออกจากแผนด้วย ย้อนกลับไม่ได้`
+                  : `ที่พักนี้บันทึกเป็นค่าใช้จ่าย ${formatMoney(linked.amount)} ไว้ แต่คุณไม่มีสิทธิ์ลบรายการนั้น รายการจะยังอยู่ ถ้าอยู่ในแผนรายวันจะถูกเอาออกจากแผนด้วย ย้อนกลับไม่ได้`
+                : "ถ้าสถานที่นี้อยู่ในแผนรายวัน จะถูกเอาออกจากแผนด้วย ย้อนกลับไม่ได้"
+            }
+            confirmLabel={linked?.canEdit ? `ลบที่พักและค่าใช้จ่าย ${formatMoney(linked.amount)}` : "ลบสถานที่นี้"}
+            {...(linked?.canEdit ? { secondaryLabel: "ลบเฉพาะที่พัก เก็บค่าใช้จ่ายไว้", onSecondary: () => remove(false) } : {})}
+            pending={pending}
+            onConfirm={() => remove(true)}
+            onCancel={() => setConfirmDelete(false)}
+          />
+          {syncAsk && linked && newStay?.price ? (
+            <ConfirmDialog
+              open
+              tone="primary"
+              title="ค่าใช้จ่ายของที่พักนี้ล่ะ"
+              description={
+                syncAsk === "update"
+                  ? `แก้ยอดค่าใช้จ่าย "${linked.title}" จาก ${formatMoney(linked.amount)} เป็น ${formatMoney(newStay.price)} ด้วยไหม ระบบจะหารใหม่ให้เท่ากันตามคนเดิม`
+                  : syncAsk === "manual"
+                    ? `ค่าใช้จ่าย "${linked.title}" (${formatMoney(linked.amount)}) หารแบบกำหนดเอง ระบบไม่เดาให้ ต้องแก้ยอดและส่วนแบ่งเอง จะบันทึกที่พักแล้วไปหน้าแก้ค่าใช้จ่ายเลยไหม`
+                    : `ค่าใช้จ่าย "${linked.title}" (${formatMoney(linked.amount)}) คนอื่นเป็นคนบันทึก คุณแก้เองไม่ได้ ถ้าราคาที่พักเปลี่ยนจริง ให้บอกเจ้าของรายการหรือผู้จัดทริปแก้ด้วย`
+              }
+              confirmLabel={syncAsk === "update" ? "แก้ทั้งสองที่" : syncAsk === "manual" ? "บันทึกแล้วไปแก้ค่าใช้จ่าย" : "บันทึกที่พักต่อ"}
+              {...(syncAsk === "locked" ? {} : { secondaryLabel: "บันทึกเฉพาะที่พัก ไม่แก้ค่าใช้จ่าย", onSecondary: () => save("list", null) })}
+              cancelLabel="กลับไปแก้"
+              pending={pending}
+              onConfirm={() => save("list", syncAsk === "locked" ? null : syncAsk)}
+              onCancel={() => setSyncAsk(null)}
+            />
+          ) : null}
+        </>
+      ) : null}
     </form>
   );
 }

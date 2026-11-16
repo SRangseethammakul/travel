@@ -33,6 +33,7 @@ export async function deleteTripCascade(tripId: string): Promise<string[]> {
     collections.planItems().deleteMany({ tripId }),
     collections.expenses().deleteMany({ tripId }),
     collections.settlements().deleteMany({ tripId }),
+    collections.personalExpenses().deleteMany({ tripId }),
     collections.checklistItems().deleteMany({ tripId }),
     collections.activities().deleteMany({ tripId }),
     collections.documents().deleteMany({ tripId }),

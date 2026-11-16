@@ -7,7 +7,7 @@ import { deleteDocumentQuietly, slipFile, uploadSlip } from "./documents";
 import { actionError, apiFetch, tripPath } from "./http";
 import { getMembers, getTrip } from "./queries";
 import { itemDay } from "@/lib/plan";
-import type { Expense, ID, PlanItem, Trip } from "./types";
+import type { Expense, ID, Place, PlanItem, Trip } from "./types";
 
 export type ActionResult = { error: string } | null;
 
@@ -119,6 +119,34 @@ export async function saveTransitExpense(
   }
   revalidateTripPages();
   redirect(`/trips/${encodeURIComponent(tripId)}/plan?day=${Math.max(1, itemDay(transit, r.trip))}`);
+}
+
+/**
+ * AddExpense opened from a hotel ("บันทึกเป็นค่าใช้จ่ายด้วย"): create the Expense (B29), then link it to the
+ * hotel (B16: `stay` is replaced whole, so the rest of the stay is sent again with `expenseId`).
+ */
+export async function saveStayExpense(
+  tripId: ID,
+  placeId: ID,
+  draft: ExpenseDraft,
+  slipForm?: FormData | null,
+): Promise<ActionResult> {
+  const r = await writeExpense(tripId, null, draft, slipForm);
+  if ("error" in r) return r;
+  revalidateTripPages();
+  try {
+    const place = await apiFetch<Place>(`${tripPath(tripId)}/places/${encodeURIComponent(placeId)}`);
+    if (place.stay) {
+      await apiFetch(`${tripPath(tripId)}/places/${encodeURIComponent(placeId)}`, {
+        method: "PATCH",
+        json: { stay: { ...place.stay, expenseId: r.expense.id } },
+      });
+    }
+  } catch (e) {
+    return { error: `บันทึกค่าใช้จ่ายแล้ว แต่ผูกกับที่พักไม่สำเร็จ: ${actionError(e).error}` };
+  }
+  revalidateTripPages();
+  redirect(`/trips/${encodeURIComponent(tripId)}/expenses`);
 }
 
 /** B31 — the backend decides who may delete. */

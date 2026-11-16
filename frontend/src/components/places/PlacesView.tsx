@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/Switch";
 import { placeTypeStyle } from "@/components/ui/colors";
 import type { ID } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
+import { formatDayMonth } from "@/lib/date";
 import {
   cityTabs,
   filterPlaces,
@@ -30,6 +31,8 @@ interface PlacesViewProps {
   filters: PlaceFilters;
   /** `/trips/<id>` */
   base: string;
+  /** Owner / editor: "ลงแผน" links and add hints (viewers only look). */
+  canEdit: boolean;
 }
 
 const groupOptions = [
@@ -41,7 +44,7 @@ const groupOptions = [
  * Filters + grouped list. City, tags, "ยังไม่จัดวัน" and grouping live in the
  * URL (parsed on the server and passed in); the search text is local state.
  */
-export function PlacesView({ rows, tags, cities, filters, base }: PlacesViewProps) {
+export function PlacesView({ rows, tags, cities, filters, base, canEdit }: PlacesViewProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [query, setQuery] = useState("");
@@ -70,7 +73,7 @@ export function PlacesView({ rows, tags, cities, filters, base }: PlacesViewProp
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="ค้นหาชื่อ ย่าน หรือ tag"
-            className="min-w-0 flex-1 border-0 bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-muted"
+            className="min-w-0 flex-1 border-0 bg-transparent text-base text-ink outline-none placeholder:text-ink-muted"
           />
         </label>
 
@@ -123,24 +126,36 @@ export function PlacesView({ rows, tags, cities, filters, base }: PlacesViewProp
                 {g.title}
                 <span className="font-normal text-ink-muted">
                   {" "}
-                  · {g.count} ที่ · ลงแผน {g.planned}
+                  · {g.count} ที่ · อยู่ในแผน {g.planned}
                 </span>
               </h2>
             </div>
-            {g.noArea ? <p className="-mt-1 mb-0 text-xs text-todo">ยังไม่ได้เลือกย่าน · แตะร้านเพื่อระบุ</p> : null}
+            {g.noArea && canEdit ? <p className="-mt-1 mb-0 text-xs text-todo">ยังไม่ได้เลือกย่าน · แตะร้านเพื่อระบุ</p> : null}
             <ul className="m-0 flex list-none flex-col overflow-hidden rounded-tile bg-surface p-0">
               {g.items.map((p) => (
                 <li key={p.id} className="flex items-center gap-3 border-b border-line-soft px-3.5 py-3 last:border-b-0">
                   <span aria-hidden="true" className={cn("w-1.5 shrink-0 self-stretch rounded-full", placeTypeStyle[p.type].bar)} />
                   <div className="flex min-w-0 flex-1 flex-col gap-1">
-                    <h3 className="m-0 text-[15px] leading-[1.35] font-semibold">{p.name}</h3>
+                    <h3 className="m-0 text-[15px] leading-[1.35] font-semibold">
+                      <Link href={`${base}/places/${encodeURIComponent(p.id)}`} className="-my-1 flex min-h-11 items-center text-ink no-underline hover:text-primary">
+                        {p.name}
+                      </Link>
+                    </h3>
                     <div className="flex flex-wrap items-center gap-1">
                       <span className="text-xs text-ink-muted">{placeRowSub(p, filters.group, showCity)}</span>
                       {p.tagIds.map((id) => (tagNames.has(id) ? <TagLabel key={id}>{tagNames.get(id)}</TagLabel> : null))}
                     </div>
+                    {p.stay ? (
+                      <span className="text-xs text-ink-muted">
+                        เช็คอิน {formatDayMonth(p.stay.checkIn)} · เช็คเอาท์ {formatDayMonth(p.stay.checkOut)}
+                      </span>
+                    ) : null}
+                    {p.note ? <p className="m-0 line-clamp-1 text-xs text-ink-muted">โน้ต: {p.note}</p> : null}
                   </div>
                   {p.days.length ? (
                     <span className="shrink-0 text-xs font-semibold text-primary">วัน {p.days.join(", ")}</span>
+                  ) : !canEdit ? (
+                    <span className="shrink-0 text-xs text-ink-muted">ยังไม่จัดวัน</span>
                   ) : (
                     <Link
                       href={`${base}/plan/add?place=${encodeURIComponent(p.id)}`}
@@ -157,7 +172,7 @@ export function PlacesView({ rows, tags, cities, filters, base }: PlacesViewProp
         ))}
         {!groups.length ? (
           <p className="my-6 text-center text-sm text-ink-muted">
-            {rows.length ? "ไม่มีสถานที่ที่ตรงกับตัวกรอง" : "ยังไม่มีสถานที่ในทริปนี้ เริ่มจากปุ่มเพิ่มสถานที่"}
+            {rows.length ? "ไม่มีสถานที่ที่ตรงกับตัวกรอง" : canEdit ? "ยังไม่มีสถานที่ในทริปนี้ เริ่มจากปุ่มเพิ่มสถานที่" : "ยังไม่มีสถานที่ในทริปนี้"}
           </p>
         ) : null}
       </main>

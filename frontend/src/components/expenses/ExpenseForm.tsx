@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useId, useMemo, useState, useTransition, type FormEvent } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
@@ -7,7 +8,7 @@ import { Chip } from "@/components/ui/Chip";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Money } from "@/components/ui/Money";
 import { Segmented } from "@/components/ui/Segmented";
-import { saveExpense, saveTransitExpense } from "@/lib/api/expense-actions";
+import { saveExpense, saveStayExpense, saveTransitExpense } from "@/lib/api/expense-actions";
 import type { ColorKey, ExpenseCategory, ID, PaymentMethod, SplitMode } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
 import { EXPENSE_CATEGORIES, MAX_TITLE, PAYMENT_METHODS, type ExpenseDraft } from "@/lib/expense-draft";
@@ -47,16 +48,18 @@ interface ExpenseFormProps {
   initial: ExpenseFormInitial;
   /** Opened from AddTransit: the new expense is linked to this Transit card. */
   transitId?: ID;
+  /** Opened from a hotel: the saved Expense is linked to that Place's stay. */
+  stayPlaceId?: ID;
 }
 
 const methodIcon: Record<PaymentMethod, IconName> = { cash: "cash", promptpay: "transfer", card: "card", wallet: "wallet" };
 const MODES: SplitMode[] = ["equal", "amount", "shares"];
 
 const fieldClass =
-  "h-12 w-full rounded-icon border border-line-strong bg-surface px-3.5 text-[15px] text-ink placeholder:text-ink-muted/70 transition-colors hover:border-ink-muted focus-visible:border-primary";
+  "h-12 w-full rounded-icon border border-line-strong bg-surface px-3.5 text-base text-ink placeholder:text-ink-muted/70 transition-colors hover:border-ink-muted focus-visible:border-primary";
 
 /** AddExpense (page 4) and its edit mode: amount, title, category, payer, payment method and the split. */
-export function ExpenseForm({ tripId, expenseId, members, trip, initial, transitId }: ExpenseFormProps) {
+export function ExpenseForm({ tripId, expenseId, members, trip, initial, transitId, stayPlaceId }: ExpenseFormProps) {
   const ids = useId();
   const [amountText, setAmountText] = useState(satangToInput(initial.amount));
   const [title, setTitle] = useState(initial.title);
@@ -164,7 +167,11 @@ export function ExpenseForm({ tripId, expenseId, members, trip, initial, transit
     }
     startTransition(async () => {
       const result =
-        transitId && !expenseId ? await saveTransitExpense(tripId, transitId, draft, slipForm) : await saveExpense(tripId, expenseId, draft, slipForm);
+        transitId && !expenseId
+          ? await saveTransitExpense(tripId, transitId, draft, slipForm)
+          : stayPlaceId && !expenseId
+            ? await saveStayExpense(tripId, stayPlaceId, draft, slipForm)
+            : await saveExpense(tripId, expenseId, draft, slipForm);
       if (result?.error) setError(result.error);
     });
   };
@@ -190,7 +197,7 @@ export function ExpenseForm({ tripId, expenseId, members, trip, initial, transit
               placeholder="0"
               value={amountText}
               onChange={(e) => setAmountText(formatBahtInput(e.target.value))}
-              className="w-[220px] rounded-chip border-0 bg-transparent p-0 text-center font-display text-[44px] font-semibold text-ink tabular-nums placeholder:text-line-strong focus-visible:outline-offset-4"
+              className="w-full max-w-[220px] rounded-chip border-0 bg-transparent p-0 text-center font-display text-[44px] font-semibold text-ink tabular-nums placeholder:text-line-strong focus-visible:outline-offset-4"
             />
           </div>
         </div>
@@ -238,7 +245,7 @@ export function ExpenseForm({ tripId, expenseId, members, trip, initial, transit
 
         <fieldset className="m-0 flex flex-col border-0 p-0">
           <legend className={legend}>จ่ายโดย</legend>
-          <div role="radiogroup" aria-label="จ่ายโดย" className="grid grid-cols-4 gap-2">
+          <div role="radiogroup" aria-label="จ่ายโดย" className="grid grid-cols-4 gap-2 sm:grid-cols-6">
             {members.map((m) => {
               const on = payerId === m.id;
               return (
@@ -337,6 +344,18 @@ export function ExpenseForm({ tripId, expenseId, members, trip, initial, transit
             options={MODES.map((m) => ({ value: m, label: splitModeLabel[m].label }))}
           />
           <p className="m-0 text-xs text-ink-muted">{splitModeLabel[mode].hint}</p>
+          {members.length === 1 ? (
+            <div className="flex flex-col gap-1.5 rounded-tile border-[1.5px] border-todo-line bg-todo-soft p-3">
+              <p className="m-0 text-[13px] leading-normal font-semibold text-todo">ในทริปมีแค่คุณคนเดียว ยังไม่มีใครให้หารด้วย</p>
+              <p className="m-0 text-xs leading-normal text-ink-muted">เพิ่มชื่อเพื่อนก่อน แล้วกลับมาจดค่าใช้จ่ายนี้ (ถ้าจดต่อเลย ยอดจะเป็นของคุณคนเดียว)</p>
+              <Link
+                href={`/trips/${encodeURIComponent(tripId)}/members`}
+                className="flex min-h-11 items-center self-start rounded-chip border border-todo-line bg-surface px-3.5 text-sm font-semibold text-todo no-underline hover:text-todo"
+              >
+                เพิ่มเพื่อนร่วมทริป
+              </Link>
+            </div>
+          ) : null}
 
           <ul className="m-0 flex list-none flex-col overflow-hidden rounded-2xl border border-line p-0">
             {members.map((m) => {
@@ -388,7 +407,7 @@ export function ExpenseForm({ tripId, expenseId, members, trip, initial, transit
                         placeholder="0"
                         value={custom[m.id] ?? ""}
                         onChange={(e) => setCustom((prev) => ({ ...prev, [m.id]: formatBahtInput(e.target.value) }))}
-                        className="w-full min-w-0 border-0 bg-transparent p-0 text-right font-display text-[15px] font-semibold text-ink tabular-nums outline-none focus-visible:outline-none"
+                        className="w-full min-w-0 border-0 bg-transparent p-0 text-right font-display text-base font-semibold text-ink tabular-nums outline-none focus-visible:outline-none"
                       />
                     </span>
                   ) : (
