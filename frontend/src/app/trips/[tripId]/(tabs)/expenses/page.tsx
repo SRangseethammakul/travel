@@ -39,11 +39,21 @@ export default async function ExpensesPage({ params, searchParams }: PageProps<"
   const names = new Map(members.map((m) => [m.id, m.displayName]));
   const mine = balances.rows.find((r) => r.member.id === me.id);
   const share = mine?.share ?? 0;
+  const paid = mine?.paid ?? 0;
+  const solo = members.length <= 1;
   // The card shows Outstanding (after confirmed Settlements), not Net Balance.
   const outstanding = mine?.outstanding ?? 0;
   const days = groupExpensesByDay(expenses, trip);
   const canAdd = canAddExpense(me);
-  const status = outstanding > 0 ? "จะได้คืน" : outstanding < 0 ? "ค้างจ่าย" : expenses.length ? "เคลียร์แล้ว" : "ยังไม่มียอด";
+  const status = solo
+    ? "ยังไม่มีเพื่อนร่วมทริป · เพิ่มเพื่อน"
+    : outstanding > 0
+      ? "คุณจะได้คืน · ดูสรุป"
+      : outstanding < 0
+        ? "คุณต้องโอนเพิ่ม · ดูสรุป"
+        : expenses.length
+          ? "ไม่มียอดค้าง · ดูสรุป"
+          : "ยังไม่มียอด · ดูสรุป";
 
   return (
     <>
@@ -58,7 +68,7 @@ export default async function ExpensesPage({ params, searchParams }: PageProps<"
             </span>
           </div>
           <Link
-            href={`${base}/summary`}
+            href={solo ? `${base}/members` : `${base}/summary`}
             className={cn(
               "flex flex-col gap-1 rounded-tile p-3.5 no-underline transition-colors",
               outstanding < 0
@@ -66,6 +76,9 @@ export default async function ExpensesPage({ params, searchParams }: PageProps<"
                 : "bg-primary-soft text-primary-ink-strong hover:bg-primary-highlight/60 hover:text-primary-ink-strong",
             )}
           >
+            <span className={cn("text-[13px]", outstanding < 0 ? "text-danger-ink" : "text-primary-ink-soft")}>
+              คุณจ่ายไป <Money value={paid} className="font-sans" />
+            </span>
             <span className={cn("text-[13px]", outstanding < 0 ? "text-danger-ink" : "text-primary-ink-soft")}>
               ส่วนของคุณ <Money value={share} className="font-sans" />
             </span>
@@ -75,7 +88,7 @@ export default async function ExpensesPage({ params, searchParams }: PageProps<"
               className={cn("text-[22px] font-semibold", outstanding > 0 ? "text-primary" : outstanding < 0 ? "text-danger" : "text-ink-muted")}
             />
             <span className={cn("flex items-center gap-1 text-xs", outstanding < 0 ? "text-danger-ink" : "text-primary-ink-soft")}>
-              {status} · ดูสรุป
+              {status}
               <Icon name="chevronRight" size={14} />
             </span>
           </Link>

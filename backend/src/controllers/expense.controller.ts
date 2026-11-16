@@ -9,6 +9,7 @@ import { HttpError } from "../errors.js";
 import { addActivity } from "../models/activity.model.js";
 import { deleteExpense, findExpense, findExpenses, insertExpense, replaceExpense } from "../models/expense.model.js";
 import { listTripMembers } from "../models/member.model.js";
+import { unlinkExpenseFromPlaces } from "../models/place.model.js";
 import { unlinkExpense } from "../models/plan.model.js";
 import { documentsExist } from "../models/reference.model.js";
 import { ExpenseCreateBody, ExpenseUpdateBody } from "../schemas/money.js";
@@ -128,13 +129,14 @@ export const patchExpense: RequestHandler = async (req, res) => {
   res.json(expenseView(expense));
 };
 
-/** B31 — owner, or the editor who created it. Transit cards linking it lose the link. */
+/** B31 — owner, or the editor who created it. Transit cards and stay Places linking it lose the link. */
 export const removeExpense: RequestHandler = async (req, res) => {
   const me = currentMember(req);
   const existing = await existingExpense(req);
   assertOwnerOrCreator(me, existing.createdBy, "คุณแก้หรือลบได้เฉพาะรายการที่ตัวเองเพิ่ม");
   if (!(await deleteExpense(me.tripId, existing._id))) throw expenseNotFound();
   await unlinkExpense(me.tripId, existing._id);
+  await unlinkExpenseFromPlaces(me.tripId, existing._id);
   await addActivity({ tripId: me.tripId, actorId: me._id, type: "expense", refId: null, text: `ลบค่าใช้จ่าย ${label(existing)}` });
   res.status(204).end();
 };

@@ -206,6 +206,7 @@ Metadata only; the file is in object storage behind a signed URL.
   mapUrl?: string;
   note: string;
   costPerPerson?: int;         // satang
+  stay?: { checkIn: string; checkOut: string; price?: int; bookingRef?: string; address?: string; expenseId?: Id }; // type "stay" only; dates YYYY-MM-DD within trip, checkOut > checkIn; price satang
   createdBy: string;           // Member id
   createdAt: Date;
   updatedAt?: Date;
@@ -582,6 +583,8 @@ const hop = {
     tagIds: { bsonType: 'array', maxItems: 30, uniqueItems: true, items: id },
     mapUrl: text(2000), note: text(2000),
     costPerPerson: money,
+    stay: { bsonType: "object", additionalProperties: false, required: ["checkIn","checkOut"],
+            properties: { checkIn: text(10), checkOut: text(10), price: money, bookingRef: text(100), address: text(300), expenseId: id } },
     createdBy: id, createdAt: { bsonType: 'date' }, updatedAt: { bsonType: 'date' },
   },
 } }

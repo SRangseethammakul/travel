@@ -13,7 +13,9 @@ import {
   tripTagIds,
   updatePlace,
 } from "../models/place.model.js";
+import { expenseExists } from "../models/reference.model.js";
 import { countTransitsAtPlace, deleteVisitsOfPlace, scheduledPlaceIds } from "../models/plan.model.js";
+import { findTripById } from "../models/trip.model.js";
 import { findTagsByIds, findTagsByOwner, insertTags } from "../models/tag.model.js";
 import type { PlaceDoc, TagDoc } from "../schemas/models.js";
 import { AreaRenameBody, PlaceCreateBody, PlaceListQuery, PlaceUpdateBody } from "../schemas/places.js";
@@ -47,6 +49,19 @@ async function resolveTagIds(tripId: string, userId: string, tagIds: string[], n
   return result;
 }
 
+/** `stay` is only for type "stay" and must fall inside the trip's dates. */
+async function assertStayValid(tripId: string, type: PlaceDoc["type"], stay: PlaceDoc["stay"] | null | undefined): Promise<void> {
+  if (!stay) return;
+  if (type !== "stay") throw new HttpError(400, "stay_wrong_type", "ใส่รายละเอียดที่พักได้เฉพาะสถานที่ประเภทที่พัก");
+  const trip = await findTripById(tripId);
+  if (trip && (stay.checkIn < trip.startDate || stay.checkOut > trip.endDate)) {
+    throw new HttpError(400, "stay_out_of_trip", "วันเช็คอิน/เช็คเอาท์ต้องอยู่ในช่วงวันของทริป");
+  }
+  if (stay.expenseId && !(await expenseExists(tripId, stay.expenseId))) {
+    throw new HttpError(400, "unknown_expense", "ไม่พบค่าใช้จ่ายที่เลือกในทริปนี้");
+  }
+}
+
 /** A7 — filters `city` / `area` / `tags` / `unscheduled=1`; `group=area|type` returns groups instead of a list. */
 export const listPlaces: RequestHandler = async (req, res) => {
   const { tripId } = currentMember(req);
@@ -71,6 +86,7 @@ export const getPlace: RequestHandler = async (req, res) => {
 export const createPlace: RequestHandler = async (req, res) => {
   const me = currentMember(req);
   const body = PlaceCreateBody.parse(req.body);
+  await assertStayValid(me.tripId, body.type, body.stay);
   const tagIds = await resolveTagIds(me.tripId, currentUser(req)._id, body.tagIds, body.newTags);
   const place: PlaceDoc = {
     _id: newId(),
@@ -83,6 +99,7 @@ export const createPlace: RequestHandler = async (req, res) => {
     ...(body.mapUrl ? { mapUrl: body.mapUrl } : {}),
     note: body.note,
     ...(body.costPerPerson !== undefined ? { costPerPerson: body.costPerPerson } : {}),
+    ...(body.stay ? { stay: body.stay } : {}),
     createdBy: me._id,
     createdAt: new Date(),
   };
@@ -106,7 +123,9 @@ export const patchPlace: RequestHandler = async (req, res) => {
   if (!existing) throw placeNotFound();
   assertOwnerOrCreator(me, existing.createdBy, notYours);
 
-  const { tagIds, newTags, mapUrl, costPerPerson, ...fields } = body;
+  const { tagIds, newTags, mapUrl, costPerPerson, stay, ...fields } = body;
+  const finalType = body.type ?? existing.type;
+  await assertStayValid(me.tripId, finalType, stay === undefined ? existing.stay : stay);
   const set: Partial<PlaceDoc> = { ...fields, updatedAt: new Date() };
   const unset: (keyof PlaceDoc)[] = [];
   if (tagIds !== undefined || newTags !== undefined) {
@@ -116,6 +135,8 @@ export const patchPlace: RequestHandler = async (req, res) => {
   else if (mapUrl !== undefined) set.mapUrl = mapUrl;
   if (costPerPerson === null) unset.push("costPerPerson");
   else if (costPerPerson !== undefined) set.costPerPerson = costPerPerson;
+  if (stay === null) unset.push("stay");
+  else if (stay !== undefined) set.stay = stay;
 
   const place = await updatePlace(me.tripId, placeId, set, unset);
   if (!place) throw placeNotFound();

@@ -106,6 +106,37 @@ describe("PATCH / DELETE places — owner all, editor own only", () => {
   });
 });
 
+describe("Place stay (hotel details)", () => {
+  const stay = { checkIn: "2026-12-12", checkOut: "2026-12-15", price: 450000, bookingRef: "AB123", address: "1-1 Shinjuku" };
+  const hotel = { name: "โรงแรม", type: "stay", city: "Tokyo", stay };
+
+  it("editor creates a stay Place; returned, then removed with stay:null", async () => {
+    const res = await request(app()).post(`${T}/places`).set(as("mint")).send(hotel);
+    expect(res.status).toBe(201);
+    expect(res.body.stay).toEqual(stay);
+    const got = await request(app()).get(`${T}/places/${res.body.id}`).set(as("n"));
+    expect(got.body.stay).toEqual(stay);
+    const patched = await request(app()).patch(`${T}/places/${res.body.id}`).set(as("mint")).send({ stay: { checkIn: "2026-12-13", checkOut: "2026-12-14" } });
+    expect(patched.body.stay).toEqual({ checkIn: "2026-12-13", checkOut: "2026-12-14" });
+    const removed = await request(app()).patch(`${T}/places/${res.body.id}`).set(as("mint")).send({ stay: null });
+    expect(removed.status).toBe(200);
+    expect(removed.body.stay).toBeUndefined();
+  });
+
+  it("400 for non-stay type, bad order, out of trip dates, float price", async () => {
+    const post = (b: object) => request(app()).post(`${T}/places`).set(as("mint")).send(b);
+    expect((await post({ ...hotel, type: "food" })).status).toBe(400);
+    expect((await post({ ...hotel, stay: { ...stay, checkOut: "2026-12-12" } })).status).toBe(400);
+    expect((await post({ ...hotel, stay: { ...stay, checkOut: "2026-12-20" } })).status).toBe(400);
+    expect((await post({ ...hotel, stay: { ...stay, price: 10.5 } })).status).toBe(400);
+    expect((await request(app()).patch(`${T}/places/t-cafe`).set(as("act")).send({ stay })).status).toBe(400);
+  });
+
+  it("viewer cannot add one → 403", async () => {
+    expect((await request(app()).post(`${T}/places`).set(as("n")).send(hotel)).status).toBe(403);
+  });
+});
+
 describe("PATCH areas — owner only", () => {
   it("renames an Area within a city and returns the count", async () => {
     const res = await request(app()).patch(`${T}/areas`).set(as("act")).send({ city: "Tokyo", from: "Akihabara", to: "Akiba" });
@@ -124,5 +155,32 @@ describe("PATCH areas — owner only", () => {
     const res = await request(app()).patch(`${T}/areas`).set(as("act")).send({ city: "Tokyo", from: "Shibuya", to: "Shinjuku" });
     expect(res.body).toEqual({ updatedPlaces: 1 });
     expect((await request(app()).patch(`${T}/areas`).set(as("act")).send({ city: "Tokyo", from: "Nowhere", to: "x" })).status).toBe(404);
+  });
+});
+
+describe("Place stay → linked Expense", () => {
+  const stay = { checkIn: "2026-12-12", checkOut: "2026-12-15", expenseId: "e-hotel" };
+  const hotel = { name: "โรงแรม", type: "stay", city: "Tokyo", stay };
+
+  it("accepts expenseId, returns it, PATCH without it unlinks", async () => {
+    const res = await request(app()).post(`${T}/places`).set(as("mint")).send(hotel);
+    expect(res.status).toBe(201);
+    expect(res.body.stay.expenseId).toBe("e-hotel");
+    const patched = await request(app()).patch(`${T}/places/${res.body.id}`).set(as("mint")).send({ stay: { checkIn: "2026-12-12", checkOut: "2026-12-15" } });
+    expect(patched.body.stay.expenseId).toBeUndefined();
+  });
+
+  it("400 for unknown expense, 403 for viewer", async () => {
+    const bad = await request(app()).post(`${T}/places`).set(as("mint")).send({ ...hotel, stay: { ...stay, expenseId: "nope" } });
+    expect(bad.status).toBe(400);
+    expect(bad.body.error.message).toBe("ไม่พบค่าใช้จ่ายที่เลือกในทริปนี้");
+    expect((await request(app()).post(`${T}/places`).set(as("n")).send(hotel)).status).toBe(403);
+  });
+
+  it("deleting the Expense unsets the link", async () => {
+    const res = await request(app()).post(`${T}/places`).set(as("act")).send(hotel);
+    expect((await request(app()).delete(`${T}/expenses/e-hotel`).set(as("act"))).status).toBe(204);
+    const got = await request(app()).get(`${T}/places/${res.body.id}`).set(as("act"));
+    expect(got.body.stay.expenseId).toBeUndefined();
   });
 });

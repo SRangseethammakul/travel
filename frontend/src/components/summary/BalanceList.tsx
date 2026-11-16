@@ -25,7 +25,7 @@ export interface BalanceRowView {
 }
 
 /** "แต่ละคน": Net Balance per Member; tap a row to see which Shares make it up. Opens on the Current Member. */
-export function BalanceList({ rows, initialOpen }: { rows: BalanceRowView[]; initialOpen: ID | null }) {
+export function BalanceList({ rows, initialOpen, solo = false }: { rows: BalanceRowView[]; initialOpen: ID | null; solo?: boolean }) {
   const [open, setOpen] = useState<ID | null>(initialOpen);
   const baseId = useId();
 
@@ -34,7 +34,7 @@ export function BalanceList({ rows, initialOpen }: { rows: BalanceRowView[]; ini
       {rows.map((r) => {
         const isOpen = open === r.id;
         const panelId = `${baseId}-${r.id}`;
-        const label = balanceLabel(r.net, r.outstanding);
+        const label = solo ? { text: "ยังไม่มีคนหาร", tone: "neutral" as const } : balanceLabel(r.net, r.outstanding);
         return (
           <li
             key={r.id}
@@ -54,7 +54,7 @@ export function BalanceList({ rows, initialOpen }: { rows: BalanceRowView[]; ini
                   {r.isMe ? <span className="font-normal text-ink-muted"> (คุณ)</span> : null}
                 </span>
                 <span className="text-xs text-ink-muted">
-                  ส่วนที่ต้องจ่าย <Money value={r.share} className="font-sans" /> · จ่ายไปแล้ว <Money value={r.paid} className="font-sans" />
+                  จ่ายไป <Money value={r.paid} className="font-sans" /> · ส่วนของ{r.isMe ? "คุณ" : "เขา"} <Money value={r.share} className="font-sans" />
                 </span>
               </span>
               <span className={cn("flex shrink-0 flex-col items-end", toneClass[label.tone])}>

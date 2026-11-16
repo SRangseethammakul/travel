@@ -241,10 +241,11 @@ export function CreateTripForm({ me, defaultStart, defaultEnd }: CreateTripFormP
           </div>
         </div>
 
-        <section aria-labelledby={`${ids.member}-h`} className="flex flex-col gap-2.5">
+        <section aria-labelledby={`${ids.member}-h`} className="flex flex-col gap-2.5 rounded-tile border-[1.5px] border-primary bg-primary-soft/40 p-3.5">
           <h2 id={`${ids.member}-h`} className="m-0 text-sm font-semibold">
-            สมาชิก ({count})
+            คนไปด้วย ({count})
           </h2>
+          <p className="m-0 text-[13px] leading-normal text-ink-subtle">พิมพ์ชื่อเพื่อนที่จะไปด้วยแล้วกด “เพิ่ม” จะได้หารค่าใช้จ่ายกันได้ ถ้าทริปมีแค่คุณคนเดียว จะหารเงินกับใครไม่ได้</p>
           <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
             <li className="flex min-h-10 items-center gap-2 rounded-full bg-bg py-1 pr-3 pl-1">
               <Avatar name={me.name} color={me.color} size="sm" />

@@ -21,6 +21,8 @@ export default async function PlacesPage({ params, searchParams }: PageProps<"/t
     area: p.area,
     tagIds: p.tagIds,
     days: days.get(p.id) ?? [],
+    note: p.note,
+    ...(p.stay ? { stay: { checkIn: p.stay.checkIn, checkOut: p.stay.checkOut } } : {}),
   }));
   const cities = tripCities(rows, trip.legs);
   const filters = parsePlaceFilters(await searchParams, cities);

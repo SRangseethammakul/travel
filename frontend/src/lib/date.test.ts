@@ -65,6 +65,20 @@ describe("day counting", () => {
     expect(tripDayDate("2026-12-12", 4)).toBe("2026-12-15");
   });
 
+  it("gives the same trip day date in any process timezone (no UTC/Bangkok off-by-one)", () => {
+    const prev = process.env.TZ;
+    try {
+      for (const tz of ["Asia/Bangkok", "UTC", "America/Los_Angeles", "Pacific/Auckland"]) {
+        process.env.TZ = tz;
+        expect(tripDayDate("2027-04-05", 4)).toBe("2027-04-08");
+        expect(addDays("2027-04-05", 3)).toBe("2027-04-08");
+      }
+    } finally {
+      if (prev === undefined) delete process.env.TZ;
+      else process.env.TZ = prev;
+    }
+  });
+
   it("works out the countdown from the real date (not the mockup's 34 days)", () => {
     expect(formatCountdown("2026-11-11", "2026-12-12", "2026-12-15")).toBe("อีก 31 วัน");
     expect(formatCountdown("2026-12-11", "2026-12-12", "2026-12-15")).toBe("พรุ่งนี้");

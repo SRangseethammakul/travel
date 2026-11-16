@@ -54,6 +54,11 @@ export async function deletePlace(tripId: string, placeId: string): Promise<bool
   return r.deletedCount === 1;
 }
 
+/** Take an Expense off every stay Place that links it. */
+export async function unlinkExpenseFromPlaces(tripId: string, expenseId: string): Promise<void> {
+  await collections.places().updateMany({ tripId, "stay.expenseId": expenseId }, { $unset: { "stay.expenseId": "" } });
+}
+
 /** Tag ids used on any Place of the trip (may include ids of deleted tags). */
 export function tripTagIds(tripId: string): Promise<string[]> {
   return collections.places().distinct("tagIds", { tripId });

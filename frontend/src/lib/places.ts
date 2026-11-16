@@ -27,6 +27,10 @@ export interface PlaceRow {
   tagIds: ID[];
   /** Trip days the Place is on (empty = Unscheduled Place). */
   days: number[];
+  /** Note typed on the Place; the list shows its first line. */
+  note?: string;
+  /** Hotel dates, shown as "เช็คอิน 12 – เช็คเอาท์ 15". */
+  stay?: { checkIn: string; checkOut: string };
 }
 
 export const PLACE_TYPE_LABEL: Record<PlaceType, string> = {

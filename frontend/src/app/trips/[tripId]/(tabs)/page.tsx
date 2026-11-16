@@ -1,10 +1,13 @@
 import Link from "next/link";
+import { LinkPending } from "@/components/ui/LinkPending";
 import type { ReactNode } from "react";
+import { LodgingNights, StayWarnings } from "@/components/plan/LodgingNights";
+import { AddToTripMenu } from "@/components/trip/AddToTripMenu";
 import { CopyInviteButton } from "@/components/trip/CopyInviteButton";
 import { Avatar } from "@/components/ui/Avatar";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { DayStrip } from "@/components/trip/DayStrip";
-import { Icon, type IconName } from "@/components/ui/Icon";
+import { Icon, transitModeIcon, type IconName } from "@/components/ui/Icon";
 import { IconLink } from "@/components/ui/IconButton";
 import { Money } from "@/components/ui/Money";
 import {
@@ -24,8 +27,8 @@ import { cn } from "@/lib/cn";
 import { formatCountdown, formatDateRange, formatDayMonth, formatTripLength, formatWeekdayDay, todayISO, tripDayDate, tripPhase } from "@/lib/date";
 import { unreadCount } from "@/lib/expenses";
 import { memberRoleLine, transitModeLabel } from "@/lib/labels";
-import { canEditTripStructure } from "@/lib/permissions";
-import { dayCardCaption, itemsByDay, resolveDay } from "@/lib/plan";
+import { canAddExpense, canEditPlan, canEditTripStructure } from "@/lib/permissions";
+import { dayCardCaption, itemsByDay, nightsLodging, resolveDay, stayTransitWarnings } from "@/lib/plan";
 
 export default async function TripPage({ params }: PageProps<"/trips/[tripId]">) {
   const { tripId } = await params;
@@ -46,6 +49,7 @@ export default async function TripPage({ params }: PageProps<"/trips/[tripId]">)
   const unread = unreadCount(activity, user.id, me.id);
   const days = itemsByDay(plan, trip);
   const currentDay = resolveDay(undefined, trip, today);
+  const nights = nightsLodging(places, trip);
   const phase = tripPhase(today, trip.startDate, trip.endDate);
 
   return (
@@ -63,7 +67,18 @@ export default async function TripPage({ params }: PageProps<"/trips/[tripId]">)
             label={unread ? `ความเคลื่อนไหว ยังไม่อ่าน ${unread} รายการ` : "ความเคลื่อนไหว"}
             badge={unread}
           />
-          <IconLink href="/trips/new" icon="plus" label="สร้างทริปใหม่" variant="primary" />
+          <AddToTripMenu
+            entries={[
+              ...(canEditPlan(me)
+                ? [
+                    { href: `${base}/places/new`, icon: "place" as const, label: "สถานที่", hint: "ที่เที่ยว ที่กิน" },
+                    { href: `${base}/places/new?type=stay`, icon: "home" as const, label: "ที่พัก", hint: "โรงแรม รีสอร์ท พร้อมวันเช็คอิน-เช็คเอาท์" },
+                    { href: `${base}/plan/transit/new`, icon: "train" as const, label: "การเดินทาง", hint: "เครื่องบิน รถไฟ เรือ รถทัวร์" },
+                  ]
+                : []),
+              ...(canAddExpense(me) ? [{ href: `${base}/expenses/new`, icon: "receipt" as const, label: "ค่าใช้จ่าย", hint: "จดรายจ่ายและหารเงิน" }] : []),
+            ]}
+          />
         </div>
       </header>
 
@@ -99,10 +114,11 @@ export default async function TripPage({ params }: PageProps<"/trips/[tripId]">)
             action={
               <Link
                 href={`${base}/members`}
-                className="flex min-h-11 items-center gap-1.5 rounded-chip bg-primary-soft px-3.5 text-sm font-semibold text-primary-ink no-underline hover:bg-primary-highlight hover:text-primary-ink"
+                className="flex min-h-11 items-center gap-1.5 rounded-chip bg-primary-soft px-3.5 text-sm font-semibold text-primary-ink no-underline hover:bg-primary-highlight hover:text-primary-ink has-[[data-link-pending]]:opacity-60"
               >
                 <Icon name="addMember" size={16} />
                 จัดการสมาชิก
+                <LinkPending />
               </Link>
             }
           />
@@ -120,7 +136,10 @@ export default async function TripPage({ params }: PageProps<"/trips/[tripId]">)
           {invite ? <CopyInviteButton path={`/join/${encodeURIComponent(invite.token)}`} /> : null}
         </Card>
 
-        <TravelDetails trip={trip} plan={plan} places={places} spent={balances.total} />
+        {nights.length ? <LodgingNights nights={nights} base={base} day={currentDay} /> : null}
+        <StayWarnings warnings={stayTransitWarnings(places, plan, trip)} />
+
+        <TravelDetails trip={trip} plan={plan} places={places} spent={balances.total} base={base} />
 
         <ChecklistCard href={`${base}/checklist`} items={checklist} meId={me.id} />
 
@@ -193,21 +212,23 @@ const rowIcon: Record<"plane" | "home" | "clock", { icon: IconName; className: s
   clock: { icon: "clock", className: "bg-todo-soft text-type-food" },
 };
 
-/** "รายละเอียดการเดินทาง": first Transit, first place to stay, meeting point, budget. Rows without data are left out. */
-function TravelDetails({ trip, plan, places, spent }: { trip: Trip; plan: PlanItem[]; places: Place[]; spent: number }) {
-  const placeById = new Map(places.map((p) => [p.id, p]));
-  const flight = plan.find((i): i is TransitPlanItem => i.kind === "transit");
-  const stayItem = plan.find((i) => i.kind === "place" && placeById.get(i.placeId)?.type === "stay");
-  const stay = stayItem?.kind === "place" ? placeById.get(stayItem.placeId) : undefined;
+/** "รายละเอียดการเดินทาง": every Transit (by departure) and every place to stay, meeting point, budget. Rows without data are left out. */
+function TravelDetails({ trip, plan, places, spent, base }: { trip: Trip; plan: PlanItem[]; places: Place[]; spent: number; base: string }) {
+  const transits = plan.filter((i): i is TransitPlanItem => i.kind === "transit").sort((a, b) => a.departAt.localeCompare(b.departAt));
+  // Stays with dates are shown as "ที่พักแต่ละคืน"; only undated ones stay here.
+  const stays = places.filter((p) => p.type === "stay" && !p.stay && plan.some((i) => i.kind === "place" && i.placeId === p.id));
 
-  const rows: { key: keyof typeof rowIcon; label: string; text: string }[] = [];
-  if (flight) {
-    const route = `${flight.fromCode ?? flight.fromText} → ${flight.toCode ?? flight.toText}`;
-    const arrive = `${formatDayMonth(flight.arriveAt.slice(0, 10))} ${flight.arriveAt.slice(11, 16)}`;
-    rows.push({ key: "plane", label: "เดินทางไป", text: `${transitModeLabel[flight.mode]} ${route} · ถึง ${arrive}` });
+  const rows: { key: string; icon: IconName; tone: keyof typeof rowIcon; label: string; text: string; href?: string }[] = [];
+  for (const t of transits) {
+    const route = `${t.fromCode ?? t.fromText} → ${t.toCode ?? t.toText}`;
+    const depart = `${formatDayMonth(t.departAt.slice(0, 10))} ${t.departAt.slice(11, 16)}`;
+    const arrive = `${formatDayMonth(t.arriveAt.slice(0, 10))} ${t.arriveAt.slice(11, 16)}`;
+    rows.push({ key: t.id, icon: transitModeIcon[t.mode], tone: "plane", label: transitModeLabel[t.mode], text: `${route} · ${depart} ถึง ${arrive}` });
   }
-  if (stay) rows.push({ key: "home", label: "ที่พัก", text: [stay.name, stay.note].filter(Boolean).join(" · ") });
-  if (trip.meetingPoint) rows.push({ key: "clock", label: "นัดพบ", text: trip.meetingPoint });
+  for (const stay of stays) {
+    rows.push({ key: stay.id, icon: "home", tone: "home", label: "ที่พัก", text: [stay.name, stay.note].filter(Boolean).join(" · "), href: `${base}/places/${encodeURIComponent(stay.id)}` });
+  }
+  if (trip.meetingPoint) rows.push({ key: "meeting", icon: "clock", tone: "clock", label: "นัดพบ", text: trip.meetingPoint });
   if (!rows.length && trip.budget === null) return null;
 
   const percent = trip.budget ? Math.round((spent * 100) / trip.budget) : 0;
@@ -216,12 +237,18 @@ function TravelDetails({ trip, plan, places, spent }: { trip: Trip; plan: PlanIt
       <CardHeader title="รายละเอียดการเดินทาง" className="mb-1 min-h-11" />
       {rows.map((r) => (
         <div key={r.key} className="flex gap-3 border-b border-line-soft py-2.5">
-          <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-[10px]", rowIcon[r.key].className)}>
-            <Icon name={rowIcon[r.key].icon} size={18} />
+          <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-[10px]", rowIcon[r.tone].className)}>
+            <Icon name={r.icon} size={18} />
           </span>
           <div className="flex min-w-0 flex-col">
             <span className="text-[13px] text-ink-muted">{r.label}</span>
-            <span className="font-medium">{r.text}</span>
+            {r.href ? (
+              <Link href={r.href} className="flex min-h-6 text-ink no-underline hover:text-ink">
+                <span className="font-medium">{r.text}</span>
+              </Link>
+            ) : (
+              <span className="font-medium">{r.text}</span>
+            )}
           </div>
         </div>
       ))}

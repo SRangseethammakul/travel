@@ -27,6 +27,14 @@ async function write(fn: () => Promise<unknown>): Promise<ActionResult> {
   return null;
 }
 
+/** B4 — owner adds a friend by name (an Unclaimed Member, claimed later through the invite link). */
+export async function addMemberByName(tripId: ID, displayName: string): Promise<ActionResult> {
+  const name = displayName.trim();
+  if (!name) return { error: "พิมพ์ชื่อเพื่อนก่อน" };
+  if (name.length > 40) return { error: "ชื่อยาวเกินไป (ไม่เกิน 40 ตัวอักษร)" };
+  return write(() => apiFetch<Member>(`${tripPath(tripId)}/members`, { method: "POST", json: { displayName: name } }));
+}
+
 /** B5 */
 export async function changeRole(tripId: ID, memberId: ID, role: Role): Promise<ActionResult> {
   if (!ROLES.includes(role)) return { error: "สิทธิ์ไม่ถูกต้อง" };

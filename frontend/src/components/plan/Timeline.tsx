@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { Icon } from "@/components/ui/Icon";
+import { Icon, transitModeIcon } from "@/components/ui/Icon";
 import { placeTypeStyle } from "@/components/ui/colors";
 import type { Place, PlanItem, TransitPlanItem, TripDocument } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
 import { formatDuration, transitModeLabel } from "@/lib/labels";
-import { formatWeekdayDay } from "@/lib/date";
+import { formatDayMonth, formatWeekdayDay } from "@/lib/date";
+import { stayNights, stayPhase } from "@/lib/place-form";
+import { Money } from "@/components/ui/Money";
 import { arrivesLaterDay, hopText } from "@/lib/plan";
 import { HopButton } from "./HopButton";
 
@@ -18,10 +20,12 @@ interface TimelineProps {
   hopEdit?: { tripId: string; itemIds: string[] };
   /** Overnight Transits landing on this day, shown first as read-only arrival rows. */
   arrivals?: { item: TransitPlanItem; departDay: number }[];
+  /** Calendar date of this day (ISO), to tell a hotel's check-in / night / check-out apart. */
+  date?: string;
 }
 
 /** One day of the Planner: time column with a rail, place cards, purple Transit cards and Hop chips. */
-export function Timeline({ items, places, documents, base, hopEdit, arrivals = [] }: TimelineProps) {
+export function Timeline({ items, places, documents, base, hopEdit, arrivals = [], date }: TimelineProps) {
   const itemName = (item: PlanItem | undefined) =>
     !item ? "" : item.kind === "place" ? (places.get(item.placeId)?.name ?? "") : (item.toCode ?? item.toText);
   return (
@@ -35,7 +39,7 @@ export function Timeline({ items, places, documents, base, hopEdit, arrivals = [
           <div className="flex min-w-0 flex-1 flex-col pb-1.5">
             <article className="flex items-center gap-2.5 rounded-2xl border border-dashed border-transit-line bg-transit-soft/60 px-3.5 py-3">
               <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-type-transit/80 text-surface">
-                <Icon name="plane" size={18} />
+                <Icon name={transitModeIcon[item.mode]} size={18} />
               </span>
               <div className="flex min-w-0 flex-1 flex-col">
                 <h3 className="m-0 text-base font-semibold">ถึง {item.toCode ?? item.toText}</h3>
@@ -62,7 +66,7 @@ export function Timeline({ items, places, documents, base, hopEdit, arrivals = [
             </div>
             <div className="flex min-w-0 flex-1 flex-col pb-1.5">
               {item.kind === "place" ? (
-                <PlaceCard place={places.get(item.placeId)} note={item.note} />
+                <PlaceCard place={places.get(item.placeId)} note={item.note} date={date} href={`${base}/places/${encodeURIComponent(item.placeId)}`} />
               ) : (
                 <TransitCard item={item} documents={documents} base={base} />
               )}
@@ -83,19 +87,39 @@ export function Timeline({ items, places, documents, base, hopEdit, arrivals = [
   );
 }
 
-function PlaceCard({ place, note }: { place: Place | undefined; note: string }) {
+const stayPhaseText = { in: "เช็คอิน · นอนที่นี่คืนนี้", night: "นอนที่นี่คืนนี้", out: "เช็คเอาท์" } as const;
+
+function PlaceCard({ place, note, date, href }: { place: Place | undefined; note: string; date?: string; href: string }) {
   if (!place) return null;
   const style = placeTypeStyle[place.type];
+  const stay = place.stay;
+  const phase = stay && date ? stayPhase(stay, date) : null;
+  const sub = phase ? stayPhaseText[phase] : `${style.label} · ${place.area ?? "ไม่ระบุย่าน"}`;
   return (
-    <article className="flex items-center gap-2.5 rounded-2xl bg-surface p-3">
+    <article className="relative flex items-center gap-2.5 rounded-2xl bg-surface p-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary">
       <span aria-hidden="true" className={cn("w-1.5 self-stretch rounded-full", style.bar)} />
       <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
-        <span className={cn("text-xs font-semibold", style.text)}>
-          {style.label} · {place.area ?? "ไม่ระบุย่าน"}
-        </span>
-        <h3 className="m-0 text-[15px] leading-[1.35] font-semibold">{place.name}</h3>
+        <span className={cn("text-xs font-semibold", style.text)}>{sub}</span>
+        <h3 className="m-0 text-[15px] leading-[1.35] font-semibold">
+          <Link href={href} className="text-ink no-underline after:absolute after:inset-0 after:content-[''] hover:text-ink focus-visible:outline-none">
+            {place.name}
+          </Link>
+        </h3>
+        {stay ? (
+          <span className="text-xs text-ink-muted">
+            {formatDayMonth(stay.checkIn)} – {formatDayMonth(stay.checkOut)} · {stayNights(stay)} คืน
+            {stay.price ? (
+              <>
+                {" · "}
+                <Money value={stay.price} className="font-sans" />
+              </>
+            ) : null}
+          </span>
+        ) : null}
         {note ? <p className="m-0 text-[13px] text-ink-muted">{note}</p> : null}
+        {place.note ? <p className="m-0 line-clamp-2 text-[13px] text-ink-muted">โน้ต: {place.note}</p> : null}
       </div>
+      <Icon name="chevronRight" size={16} className="shrink-0 text-ink-subtle" />
     </article>
   );
 }
@@ -108,7 +132,7 @@ function TransitCard({ item, documents, base }: { item: TransitPlanItem; documen
     <article className="flex flex-col gap-2.5 rounded-2xl border border-transit-line bg-transit-soft px-3.5 py-3">
       <div className="flex items-center gap-2.5">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-type-transit text-surface">
-          <Icon name="plane" size={18} />
+          <Icon name={transitModeIcon[item.mode]} size={18} />
         </span>
         <div className="flex min-w-0 flex-1 flex-col">
           <span className="text-xs font-semibold text-transit-ink">

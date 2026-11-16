@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { AddMemberForm } from "@/components/members/AddMemberForm";
 import { InviteSettings } from "@/components/members/InviteSettings";
 import { MemberList, type MemberRow } from "@/components/members/MemberList";
 import { BackHeader } from "@/components/ui/BackHeader";
@@ -54,6 +55,8 @@ export default async function MembersPage({ params }: PageProps<"/trips/[tripId]
     <div className="flex min-h-dvh flex-1 flex-col">
       <BackHeader title="สมาชิกและสิทธิ์" subtitle={`${trip.name} · ${members.length} คน`} href={base} />
       <main className="flex flex-1 flex-col gap-[18px] px-5 pt-2 pb-6">
+        {canManage ? <AddMemberForm tripId={tripId} alone={members.length <= 1} /> : null}
+
         <MemberList tripId={tripId} rows={rows} canManage={canManage} />
 
         <section aria-labelledby="roles-h" className="flex flex-col gap-2 rounded-tile bg-surface p-3.5">

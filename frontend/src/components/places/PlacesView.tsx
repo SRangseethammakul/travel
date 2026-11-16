@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/Switch";
 import { placeTypeStyle } from "@/components/ui/colors";
 import type { ID } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
+import { formatDayMonth } from "@/lib/date";
 import {
   cityTabs,
   filterPlaces,
@@ -125,7 +126,7 @@ export function PlacesView({ rows, tags, cities, filters, base, canEdit }: Place
                 {g.title}
                 <span className="font-normal text-ink-muted">
                   {" "}
-                  · {g.count} ที่ · ลงแผน {g.planned}
+                  · {g.count} ที่ · อยู่ในแผน {g.planned}
                 </span>
               </h2>
             </div>
@@ -135,11 +136,21 @@ export function PlacesView({ rows, tags, cities, filters, base, canEdit }: Place
                 <li key={p.id} className="flex items-center gap-3 border-b border-line-soft px-3.5 py-3 last:border-b-0">
                   <span aria-hidden="true" className={cn("w-1.5 shrink-0 self-stretch rounded-full", placeTypeStyle[p.type].bar)} />
                   <div className="flex min-w-0 flex-1 flex-col gap-1">
-                    <h3 className="m-0 text-[15px] leading-[1.35] font-semibold">{p.name}</h3>
+                    <h3 className="m-0 text-[15px] leading-[1.35] font-semibold">
+                      <Link href={`${base}/places/${encodeURIComponent(p.id)}`} className="-my-1 flex min-h-11 items-center text-ink no-underline hover:text-primary">
+                        {p.name}
+                      </Link>
+                    </h3>
                     <div className="flex flex-wrap items-center gap-1">
                       <span className="text-xs text-ink-muted">{placeRowSub(p, filters.group, showCity)}</span>
                       {p.tagIds.map((id) => (tagNames.has(id) ? <TagLabel key={id}>{tagNames.get(id)}</TagLabel> : null))}
                     </div>
+                    {p.stay ? (
+                      <span className="text-xs text-ink-muted">
+                        เช็คอิน {formatDayMonth(p.stay.checkIn)} · เช็คเอาท์ {formatDayMonth(p.stay.checkOut)}
+                      </span>
+                    ) : null}
+                    {p.note ? <p className="m-0 line-clamp-1 text-xs text-ink-muted">โน้ต: {p.note}</p> : null}
                   </div>
                   {p.days.length ? (
                     <span className="shrink-0 text-xs font-semibold text-primary">วัน {p.days.join(", ")}</span>

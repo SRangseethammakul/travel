@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 import { Icon, type IconName } from "./Icon";
+import { LinkPending } from "./LinkPending";
 
 const variants = {
   outline: "border border-line bg-surface text-ink hover:bg-bg active:bg-line-soft",
@@ -47,8 +48,9 @@ export function IconButton({ icon, label, variant = "outline", badge, className,
 
 export function IconLink({ icon, label, variant = "outline", badge, className, href }: CommonProps & { href: string }) {
   return (
-    <Link href={href} aria-label={label} className={cn(base, variants[variant], className)}>
+    <Link href={href} aria-label={label} className={cn(base, "has-[[data-link-pending]]:opacity-60", variants[variant], className)}>
       <Icon name={icon} />
+      <LinkPending className="absolute" />
       {badge ? <Badge count={badge} /> : null}
     </Link>
   );

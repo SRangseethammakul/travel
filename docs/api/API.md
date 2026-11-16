@@ -97,8 +97,8 @@ Slips for Expenses and Settlements use B12 and then pass `slipDocId`.
 
 | # | Method & path | Role | Body → Response |
 | --- | --- | --- | --- |
-| B15 | `POST /api/trips/:tripId/places` | editor+ | `{ name, type, city, area, tagIds?, newTags?: string[], mapUrl?, note, costPerPerson? }` → `Place` (`newTags` creates Tags owned by the current User; picking another Member's tag reuses its id) |
-| B16 | `PATCH /api/trips/:tripId/places/:placeId` | editor+ | partial → `Place` |
+| B15 | `POST /api/trips/:tripId/places` | editor+ | `{ name, type, city, area, tagIds?, newTags?: string[], mapUrl?, note, costPerPerson?, stay? }` → `Place` (`stay` = `{ checkIn, checkOut, price?, bookingRef?, address?, expenseId? }`, only for `type: "stay"`, dates `YYYY-MM-DD` inside the trip, `checkOut > checkIn`, else 400; `stay.expenseId` must be an Expense of this trip else 400 `unknown_expense`, and deleting that Expense (B31) unsets it) (`newTags` creates Tags owned by the current User; picking another Member's tag reuses its id) |
+| B16 | `PATCH /api/trips/:tripId/places/:placeId` | editor+ | partial → `Place` (`stay: null` removes it; `stay` is replaced whole, so omitting `expenseId` in a PATCH unlinks the Expense) |
 | B17 | `DELETE /api/trips/:tripId/places/:placeId` | editor+ | → `204` (also removes its place Plan Items; returns 409 if a Transit references it as from/to) |
 | B18 | `GET /api/trips/:tripId/tags/suggest?q=` | any | → `{ mine: Tag[]; others: Tag[] }` — my tags first, then other tags used in this trip |
 | B19 | `POST /api/me/tags` | signed in | `{ name, group? }` → `Tag` |

@@ -112,7 +112,20 @@ export interface Place {
   mapUrl?: string;
   note: string;
   costPerPerson?: Satang;
+  /** Hotel details; only on type "stay". */
+  stay?: PlaceStay;
   createdBy: ID; // Member id
+}
+
+export interface PlaceStay {
+  checkIn: string; // YYYY-MM-DD, within trip dates
+  checkOut: string; // YYYY-MM-DD, after checkIn
+  /** Total for the whole stay. */
+  price?: Satang;
+  bookingRef?: string;
+  address?: string;
+  /** Expense (same trip) that records this stay's price. PATCH replaces `stay` whole, so omit it to unlink. */
+  expenseId?: ID;
 }
 
 /** Owned by a User and reusable across all their Trips. */

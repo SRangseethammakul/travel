@@ -81,6 +81,7 @@ export default async function SummaryPage({ params }: PageProps<"/trips/[tripId]
           <BalanceList
             key={me.id}
             initialOpen={me.id}
+            solo={memberList.length <= 1}
             rows={balances.rows.map((r) => ({
               id: r.member.id,
               name: r.member.displayName,
@@ -132,13 +133,25 @@ export default async function SummaryPage({ params }: PageProps<"/trips/[tripId]
             );
           })}
           {!transfers.length ? (
-            <p className="m-0 border-t border-line-soft py-3 text-[13px] text-ink-muted">
-              {!expenses.length
-                ? "ยังไม่มียอดที่ต้องโอน"
-                : me.role === "viewer"
-                  ? "คุณไม่มียอดที่ต้องโอนหรือรอรับ"
-                  : "ทุกคนเคลียร์ครบแล้ว ไม่มีใครต้องโอน"}
-            </p>
+            <div className="flex flex-col items-start gap-2 border-t border-line-soft py-3">
+              <p className="m-0 text-[13px] leading-normal text-ink-muted">
+                {memberList.length <= 1
+                  ? "ตอนนี้ในทริปมีแค่คุณคนเดียว เลยยังไม่มีใครต้องโอนให้ใคร เพิ่มเพื่อนร่วมทริปแล้วหารค่าใช้จ่ายกัน ระบบจะคำนวณยอดโอนให้"
+                  : !expenses.length
+                    ? "ยังไม่มียอดที่ต้องโอน"
+                    : me.role === "viewer"
+                      ? "คุณไม่มียอดที่ต้องโอนหรือรอรับ"
+                      : "ทุกคนเคลียร์ครบแล้ว ไม่มีใครต้องโอน"}
+              </p>
+              {memberList.length <= 1 ? (
+                <Link
+                  href={`${base}/members`}
+                  className="flex min-h-11 items-center rounded-chip border border-primary bg-primary px-3.5 text-sm font-semibold text-surface no-underline hover:bg-primary-hover hover:text-surface"
+                >
+                  เพิ่มเพื่อนร่วมทริป
+                </Link>
+              ) : null}
+            </div>
           ) : null}
         </Card>
       </main>

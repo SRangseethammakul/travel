@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createSeed, TRIP_IDS } from "@/test/fixtures/seed";
 import { formatDuration } from "@/lib/labels";
 import type { PlanItem, TransitPlanItem } from "@/lib/api/types";
-import { arrivalsOnDay, dayAreasLabel, dayCardCaption, hopText, itemsByDay, legCity, placeDays, resolveDay, unscheduledPlaces } from "./plan";
+import { stayTransitWarnings, nightsLodging, arrivalsOnDay, dayAreasLabel, dayCardCaption, hopText, itemsByDay, legCity, placeDays, resolveDay, unscheduledPlaces } from "./plan";
 
 const seed = createSeed(new Date("2026-11-11T10:00:00Z"));
 const trip = (id: string) => seed.trips.find((t) => t.id === id)!;
@@ -118,5 +118,44 @@ describe("arrivalsOnDay", () => {
   it("drops arrivals after the last trip day", () => {
     const f = flight("2027-01-31T23:00", "2027-02-01T05:00");
     expect([1, 2, 3, 4, 5].flatMap((d) => arrivalsOnDay([f], t, d))).toEqual([]);
+  });
+});
+
+describe("nightsLodging", () => {
+  const trip = { startDate: "2026-12-10", endDate: "2026-12-13" };
+  const stay = (id: string, checkIn: string, checkOut: string) =>
+    ({ id, type: "stay", stay: { checkIn, checkOut } }) as unknown as import("@/lib/api/types").Place;
+  it("lists N-1 nights with the hotel that covers each", () => {
+    const n = nightsLodging([stay("a", "2026-12-10", "2026-12-12"), stay("b", "2026-12-12", "2026-12-13")], trip);
+    expect(n.map((x) => x.place?.id ?? null)).toEqual(["a", "a", "b"]);
+  });
+  it("leaves uncovered nights empty", () => {
+    expect(nightsLodging([], trip).map((x) => x.place)).toEqual([null, null, null]);
+  });
+});
+
+describe("stayTransitWarnings", () => {
+  const t = { startDate: "2026-12-01" };
+  const stay = (id: string, city: string, checkIn: string, checkOut: string) =>
+    ({ id, name: id, city, type: "stay", stay: { checkIn, checkOut } }) as unknown as import("@/lib/api/types").Place;
+  const train = (toText: string, day: string) =>
+    ({ kind: "transit", id: "x", toText, fromText: "?", departAt: `${day}T09:00`, arriveAt: `${day}T11:00` }) as unknown as PlanItem;
+
+  it("is quiet when check-in matches the transit day", () => {
+    const places = [stay("A", "เกียวโต", "2026-12-01", "2026-12-06"), stay("B", "โอซาก้า", "2026-12-06", "2026-12-09")];
+    expect(stayTransitWarnings(places, [train("โอซาก้า", "2026-12-06")], t)).toEqual([]);
+  });
+  it("warns when check-in and transit into the city are on different days", () => {
+    const places = [stay("A", "เกียวโต", "2026-12-01", "2026-12-07"), stay("B", "โอซาก้า", "2026-12-06", "2026-12-09")];
+    const w = stayTransitWarnings(places, [train("โอซาก้า", "2026-12-07")], t);
+    expect(w.some((m) => m.includes("เดินทางเข้าโอซาก้าวันที่ 7"))).toBe(true);
+    expect(w.some((m) => m.includes("ซ้อนกัน"))).toBe(true);
+  });
+  it("warns on a gap night and says nothing when the transit can't be matched", () => {
+    const places = [stay("A", "เกียวโต", "2026-12-01", "2026-12-03"), stay("B", "โอซาก้า", "2026-12-05", "2026-12-08")];
+    expect(stayTransitWarnings(places, [train("นาโกย่า", "2026-12-04")], t)).toEqual(["คืนวันที่ 3–4 ยังไม่มีที่พัก (ระหว่าง A กับ B)"]);
+  });
+  it("ignores a single stay", () => {
+    expect(stayTransitWarnings([stay("A", "x", "2026-12-01", "2026-12-03")], [], t)).toEqual([]);
   });
 });
