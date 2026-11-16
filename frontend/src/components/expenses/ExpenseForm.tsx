@@ -16,6 +16,7 @@ import { expenseCategoryFormLabel, paymentMethodLabel, splitModeLabel } from "@/
 import { formatMoney } from "@/lib/money/format";
 import { formatBahtInput, parseBahtInput, satangToInput } from "@/lib/money/input";
 import { computeSplit, spreadRemaining, type SplitResult } from "@/lib/money/split";
+import { CardNameField } from "./CardNameField";
 import { SlipPicker } from "./SlipPicker";
 
 export interface FormMember {
@@ -29,7 +30,7 @@ export interface ExpenseFormInitial {
   category: ExpenseCategory;
   payerId: ID;
   method: PaymentMethod;
-  cardLast4: string;
+  cardName: string;
   date: string;
   amount: number; // satang, 0 = empty
   splitMode: SplitMode;
@@ -50,6 +51,8 @@ interface ExpenseFormProps {
   transitId?: ID;
   /** Opened from a hotel: the saved Expense is linked to that Place's stay. */
   stayPlaceId?: ID;
+  /** Card names already used in this trip (group and my personal expenses). */
+  usedCardNames?: string[];
 }
 
 const methodIcon: Record<PaymentMethod, IconName> = { cash: "cash", promptpay: "transfer", card: "card", wallet: "wallet" };
@@ -59,14 +62,14 @@ const fieldClass =
   "h-12 w-full rounded-icon border border-line-strong bg-surface px-3.5 text-base text-ink placeholder:text-ink-muted/70 transition-colors hover:border-ink-muted focus-visible:border-primary";
 
 /** AddExpense (page 4) and its edit mode: amount, title, category, payer, payment method and the split. */
-export function ExpenseForm({ tripId, expenseId, members, trip, initial, transitId, stayPlaceId }: ExpenseFormProps) {
+export function ExpenseForm({ tripId, expenseId, members, trip, initial, transitId, stayPlaceId, usedCardNames = [] }: ExpenseFormProps) {
   const ids = useId();
   const [amountText, setAmountText] = useState(satangToInput(initial.amount));
   const [title, setTitle] = useState(initial.title);
   const [category, setCategory] = useState(initial.category);
   const [payerId, setPayerId] = useState(initial.payerId);
   const [method, setMethod] = useState(initial.method);
-  const [cardLast4, setCardLast4] = useState(initial.cardLast4);
+  const [cardName, setCardName] = useState(initial.cardName);
   const [date, setDate] = useState(initial.date);
   const [selected, setSelected] = useState<Set<ID>>(() => new Set(initial.participantIds));
   const [mode, setMode] = useState(initial.splitMode);
@@ -147,7 +150,7 @@ export function ExpenseForm({ tripId, expenseId, members, trip, initial, transit
       category,
       payerId,
       method,
-      cardLast4: method === "card" ? cardLast4 : "",
+      cardName: method === "card" ? cardName : "",
       date,
       amount,
       splitMode: mode,
@@ -303,24 +306,7 @@ export function ExpenseForm({ tripId, expenseId, members, trip, initial, transit
             </div>
           ) : null}
 
-          {method === "card" ? (
-            <div className="mt-2.5 flex flex-col gap-1.5">
-              <label htmlFor={`${ids}-card`} className="text-[13px] text-ink-muted">
-                เลขท้ายบัตร 4 หลัก (ไม่บังคับ)
-              </label>
-              <input
-                id={`${ids}-card`}
-                type="text"
-                inputMode="numeric"
-                autoComplete="off"
-                maxLength={4}
-                placeholder="••••"
-                value={cardLast4}
-                onChange={(e) => setCardLast4(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                className={cn(fieldClass, "tracking-[4px]")}
-              />
-            </div>
-          ) : null}
+          {method === "card" ? <CardNameField value={cardName} onChange={setCardName} usedNames={usedCardNames} /> : null}
         </fieldset>
 
         <section aria-labelledby={`${ids}-split`} className="flex flex-col gap-2">

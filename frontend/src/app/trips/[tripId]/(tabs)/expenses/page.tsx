@@ -264,6 +264,7 @@ function PersonalRow({ record, href }: { record: PersonalExpense; href: string }
           <span className="text-[13px] text-ink-muted">
             <span className="sr-only">{style.label} · </span>
             {paymentMethodLabel[record.method]}
+            {record.cardName ? ` · ${record.cardName}` : ""}
           </span>
         </span>
         <Money value={record.amount} className="shrink-0 text-base font-semibold" />

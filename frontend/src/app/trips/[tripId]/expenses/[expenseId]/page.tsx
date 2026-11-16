@@ -45,6 +45,8 @@ export default async function ExpenseDetailPage({ params }: PageProps<"/trips/[t
   const approx = each !== null && expense.shares.some((s) => s.amount !== each);
   const totalWeight = expense.shares.reduce((s, x) => s + (x.weight ?? 0), 0);
   const method = methodStyle[expense.method];
+  // New expenses carry a card name; old ones may only have the last 4 digits.
+  const cardDetail = expense.cardName ?? (expense.cardLast4 ? `ลงท้าย ${expense.cardLast4}` : null);
 
   return (
     <div className="flex min-h-dvh flex-1 flex-col">
@@ -84,7 +86,7 @@ export default async function ExpenseDetailPage({ params }: PageProps<"/trips/[t
               <span className="text-[13px] text-ink-muted">ช่องทางชำระ</span>
               <span className="font-semibold">
                 {paymentMethodLabel[expense.method]}
-                {expense.cardLast4 ? <span className="font-normal text-ink-muted"> · ลงท้าย {expense.cardLast4}</span> : null}
+                {cardDetail ? <span className="font-normal text-ink-muted"> · {cardDetail}</span> : null}
               </span>
             </span>
             {slip ? <SlipButton name={slip.name} size={slip.size} mime={slip.mime} label="ดูใบเสร็จ" url={slipUrl} /> : null}

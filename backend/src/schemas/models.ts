@@ -201,7 +201,8 @@ export const ExpenseDoc = z.strictObject({
   category: z.enum(["stay", "transport", "food", "activity", "other"]),
   payerId: Id,
   method: z.enum(["cash", "promptpay", "card", "wallet"]),
-  cardLast4: z.string().regex(/^\d{4}$/).optional(),
+  cardLast4: z.string().regex(/^\d{4}$/).optional(), // legacy: old data only; new input uses cardName
+  cardName: z.string().min(1).max(30).optional(),
   amount: PositiveSatang,
   currency: z.literal("THB"),
   baseAmount: PositiveSatang,
@@ -230,6 +231,7 @@ export const PersonalExpenseDoc = z.strictObject({
   currency: z.literal("THB"),
   baseAmount: PositiveSatang,
   method: ExpenseDoc.shape.method,
+  cardName: z.string().min(1).max(30).optional(),
   note: text(2000).optional(),
   date: IsoDate,
   createdAt: z.date(),

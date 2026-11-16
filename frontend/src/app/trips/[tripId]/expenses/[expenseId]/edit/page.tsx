@@ -2,7 +2,8 @@ import { notFound, redirect } from "next/navigation";
 import { ExpenseForm } from "@/components/expenses/ExpenseForm";
 import { expenseFormInitial } from "@/components/expenses/form-initial";
 import { BackHeader } from "@/components/ui/BackHeader";
-import { getDocument, getExpense, getMembers, requireTripMember } from "@/lib/api";
+import { getDocument, getExpense, getExpenses, getMembers, getPersonalExpenses, requireTripMember } from "@/lib/api";
+import { usedCardNames } from "@/lib/card-name";
 import { canEditExpense } from "@/lib/permissions";
 
 export default async function EditExpensePage({ params }: PageProps<"/trips/[tripId]/expenses/[expenseId]/edit">) {
@@ -12,9 +13,11 @@ export default async function EditExpensePage({ params }: PageProps<"/trips/[tri
   if (!expense) notFound();
   const detail = `/trips/${encodeURIComponent(tripId)}/expenses/${encodeURIComponent(expenseId)}`;
   if (!canEditExpense(me, expense)) redirect(detail);
-  const [members, slip] = await Promise.all([
+  const [members, slip, expenses, personal] = await Promise.all([
     getMembers(tripId),
     expense.slipDocId ? getDocument(tripId, expense.slipDocId) : Promise.resolve(null),
+    getExpenses(tripId),
+    getPersonalExpenses(tripId),
   ]);
 
   return (
@@ -26,6 +29,7 @@ export default async function EditExpensePage({ params }: PageProps<"/trips/[tri
         trip={{ startDate: trip.startDate, endDate: trip.endDate }}
         members={members.map((m) => ({ id: m.id, name: m.displayName, color: m.color }))}
         initial={expenseFormInitial(expense, { me, members, defaultDate: expense.date, slipName: slip?.name ?? null })}
+        usedCardNames={usedCardNames(expenses, personal)}
       />
     </div>
   );

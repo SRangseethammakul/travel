@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PlanItem } from "@/lib/api/types";
-import { checkHop, checkLegs, checkTransitDraft, checkVisitDraft, legStrip, nextFreeDays, pickSections, splitPlaceCode } from "./plan-form";
+import { checkHop, checkLegs, checkTransitDraft, checkVisitDraft, checkVisitEdit, legStrip, nextFreeDays, pickSections, splitPlaceCode } from "./plan-form";
 
 const trip = { startDate: "2026-12-12", endDate: "2026-12-15" };
 const places = [
@@ -30,6 +30,18 @@ describe("checkVisitDraft", () => {
     expect(checkVisitDraft({ placeId: "cafe", days: [], time: "", note: "" }, ["cafe"], 4).ok).toBe(false);
     expect(checkVisitDraft({ placeId: "cafe", days: [5], time: "", note: "" }, ["cafe"], 4).ok).toBe(false);
     expect(checkVisitDraft({ placeId: "cafe", days: [1], time: "25:00", note: "" }, ["cafe"], 4).ok).toBe(false);
+  });
+});
+
+describe("checkVisitEdit", () => {
+  it("clears the time with an empty string and keeps day null for stays", () => {
+    expect(checkVisitEdit({ day: 2, time: " 09:30 ", note: " ที่นี่ " }, 4)).toEqual({ ok: true, day: 2, time: "09:30", note: "ที่นี่" });
+    expect(checkVisitEdit({ day: null, time: "", note: "" }, 4)).toEqual({ ok: true, day: null, time: null, note: "" });
+  });
+  it("rejects a day outside the trip, a bad time and a long note", () => {
+    expect(checkVisitEdit({ day: 5, time: "", note: "" }, 4).ok).toBe(false);
+    expect(checkVisitEdit({ day: 1, time: "24:00", note: "" }, 4).ok).toBe(false);
+    expect(checkVisitEdit({ day: 1, time: "", note: "x".repeat(201) }, 4).ok).toBe(false);
   });
 });
 

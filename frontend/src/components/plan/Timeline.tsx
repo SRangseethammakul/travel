@@ -9,6 +9,7 @@ import { stayNights, stayPhase } from "@/lib/place-form";
 import { Money } from "@/components/ui/Money";
 import { arrivesLaterDay, hopText } from "@/lib/plan";
 import { HopButton } from "./HopButton";
+import { PlaceMenu, type PlaceMenuProps } from "./PlaceMenu";
 
 interface TimelineProps {
   items: PlanItem[];
@@ -17,7 +18,7 @@ interface TimelineProps {
   /** `/trips/<id>` */
   base: string;
   /** Hop chips of these Plan Items become buttons that open the travel sheet (items the viewer may edit). */
-  hopEdit?: { tripId: string; itemIds: string[] };
+  hopEdit?: { tripId: string; itemIds: string[]; /** Day chips of the edit sheet. */ days: { day: number; sub: string }[]; /** Days each Place is already on. */ taken: Record<string, number[]> };
   /** Overnight Transits landing on this day, shown first as read-only arrival rows. */
   arrivals?: { item: TransitPlanItem; departDay: number }[];
   /** Calendar date of this day (ISO), to tell a hotel's check-in / night / check-out apart. */
@@ -66,7 +67,17 @@ export function Timeline({ items, places, documents, base, hopEdit, arrivals = [
             </div>
             <div className="flex min-w-0 flex-1 flex-col pb-1.5">
               {item.kind === "place" ? (
-                <PlaceCard place={places.get(item.placeId)} note={item.note} date={date} href={`${base}/places/${encodeURIComponent(item.placeId)}`} />
+                <PlaceCard
+                  place={places.get(item.placeId)}
+                  note={item.note}
+                  date={date}
+                  href={`${base}/places/${encodeURIComponent(item.placeId)}`}
+                  menu={
+                    hopEdit?.itemIds.includes(item.id)
+                      ? { tripId: hopEdit.tripId, itemId: item.id, day: item.day, time: item.time, days: hopEdit.days, taken: hopEdit.taken[item.placeId] ?? [] }
+                      : undefined
+                  }
+                />
               ) : (
                 <TransitCard item={item} documents={documents} base={base} />
               )}
@@ -89,7 +100,7 @@ export function Timeline({ items, places, documents, base, hopEdit, arrivals = [
 
 const stayPhaseText = { in: "เช็คอิน · นอนที่นี่คืนนี้", night: "นอนที่นี่คืนนี้", out: "เช็คเอาท์" } as const;
 
-function PlaceCard({ place, note, date, href }: { place: Place | undefined; note: string; date?: string; href: string }) {
+function PlaceCard({ place, note, date, href, menu }: { place: Place | undefined; note: string; date?: string; href: string; menu?: Omit<PlaceMenuProps, "name" | "note" | "isStay"> }) {
   if (!place) return null;
   const style = placeTypeStyle[place.type];
   const stay = place.stay;
@@ -119,6 +130,7 @@ function PlaceCard({ place, note, date, href }: { place: Place | undefined; note
         {note ? <p className="m-0 text-[13px] text-ink-muted">{note}</p> : null}
         {place.note ? <p className="m-0 line-clamp-2 text-[13px] text-ink-muted">โน้ต: {place.note}</p> : null}
       </div>
+      {menu ? <PlaceMenu {...menu} name={place.name} note={note} isStay={!!stay} /> : null}
       <Icon name="chevronRight" size={16} className="shrink-0 text-ink-subtle" />
     </article>
   );

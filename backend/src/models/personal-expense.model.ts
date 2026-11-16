@@ -10,6 +10,10 @@ export function listPersonalExpenses(tripId: string, ownerId: string): Promise<P
   return collections.personalExpenses().find({ tripId, ownerId }).sort({ date: 1, createdAt: 1 }).toArray();
 }
 
+export function findPersonalExpense(tripId: string, ownerId: string, id: string): Promise<PersonalExpenseDoc | null> {
+  return collections.personalExpenses().findOne({ _id: id, tripId, ownerId });
+}
+
 export async function insertPersonalExpense(doc: PersonalExpenseDoc): Promise<void> {
   await collections.personalExpenses().insertOne(doc);
 }

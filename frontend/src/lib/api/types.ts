@@ -226,7 +226,10 @@ export interface Expense {
   category: ExpenseCategory;
   payerId: ID; // Member id
   method: PaymentMethod;
+  /** Legacy: old Expenses only. New input uses `cardName`. */
   cardLast4?: string;
+  /** Card name, e.g. "UOB PRVI" (only when method is card). */
+  cardName?: string;
   amount: Satang;
   currency: "THB";
   baseAmount: Satang;
@@ -259,6 +262,7 @@ export interface PersonalExpense {
   currency: "THB";
   baseAmount: Satang;
   method: PaymentMethod;
+  cardName?: string;
   note?: string;
   date: ISODate;
   createdAt: Timestamp;

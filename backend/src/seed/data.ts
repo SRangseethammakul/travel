@@ -332,6 +332,7 @@ export function createSeed(now: Date = new Date()): SeedData {
     payer: string;
     method: ExpenseDoc["method"];
     cardLast4?: string;
+    cardName?: string;
     amountBaht: number;
     with: string[];
     date: string;
@@ -349,6 +350,7 @@ export function createSeed(now: Date = new Date()): SeedData {
       payerId,
       method: e.method,
       ...(e.cardLast4 ? { cardLast4: e.cardLast4 } : {}),
+      ...(e.cardName ? { cardName: e.cardName } : {}),
       amount,
       currency: "THB",
       baseAmount: amount,
@@ -363,11 +365,11 @@ export function createSeed(now: Date = new Date()): SeedData {
   const at = (iso: string) => new Date(iso);
 
   const tokyoExpenses: ExpenseSeed[] = [
-    { _id: "e-hotel", title: "ที่พัก 3 คืน", category: "stay", payer: "act", method: "card", cardLast4: "4821", amountBaht: 22000, with: ["act", "mint", "beam", "ploy"], date: "2026-12-12", note: "โรงแรมใกล้สถานีชินจูกุ 2 ห้อง เช็คอิน 15:00 เช็คเอาท์ 10:00", createdAt: at("2026-11-08T14:30:00.000Z") },
+    { _id: "e-hotel", title: "ที่พัก 3 คืน", category: "stay", payer: "act", method: "card", cardName: "UOB", amountBaht: 22000, with: ["act", "mint", "beam", "ploy"], date: "2026-12-12", note: "โรงแรมใกล้สถานีชินจูกุ 2 ห้อง เช็คอิน 15:00 เช็คเอาท์ 10:00", createdAt: at("2026-11-08T14:30:00.000Z") },
     { _id: "e-subway", title: "Tokyo Subway Ticket 72 ชม.", category: "transport", payer: "beam", method: "cash", amountBaht: 1050, with: ["act", "beam", "ploy"], date: "2026-12-12", createdAt: at("2026-11-09T03:10:00.000Z") },
     { _id: "e-ramen", title: "ร้านราเมงซุปเข้มข้น", category: "food", payer: "mint", method: "cash", amountBaht: 1200, with: ["act", "mint", "beam", "ploy"], date: "2026-12-12", createdAt: at("2026-11-09T12:00:00.000Z") },
     { _id: "e-skytree", title: "ตั๋ว Tokyo Skytree", category: "activity", payer: "ploy", method: "promptpay", amountBaht: 2800, with: ["act", "mint", "beam", "ploy"], date: "2026-12-13", createdAt: at("2026-11-09T13:20:00.000Z") },
-    { _id: "e-shabu", title: "ชาบูบุฟเฟ่ต์", category: "food", payer: "mint", method: "card", amountBaht: 3300, with: ["act", "mint", "ploy"], date: "2026-12-13", createdAt: hoursAgo(now, 2) },
+    { _id: "e-shabu", title: "ชาบูบุฟเฟ่ต์", category: "food", payer: "mint", method: "card", cardLast4: "4821", amountBaht: 3300, with: ["act", "mint", "ploy"], date: "2026-12-13", createdAt: hoursAgo(now, 2) },
   ];
   // Khao Yai: total ฿7,860; Act paid ฿2,100 and paid Mint ฿200 back → Act Outstanding −฿320.
   const khaoYaiExpenses: ExpenseSeed[] = [
@@ -398,7 +400,7 @@ export function createSeed(now: Date = new Date()): SeedData {
   ];
 
   // ── Personal Expenses (private to Act; never part of the group totals) ──
-  const personalExpense = (_id: string, title: string, category: PersonalExpenseDoc["category"], method: PersonalExpenseDoc["method"], amountBaht: number, date: string): PersonalExpenseDoc => ({
+  const personalExpense = (_id: string, title: string, category: PersonalExpenseDoc["category"], method: PersonalExpenseDoc["method"], amountBaht: number, date: string, cardName?: string): PersonalExpenseDoc => ({
     _id,
     tripId: T,
     ownerId: memberId(T, "act"),
@@ -408,11 +410,12 @@ export function createSeed(now: Date = new Date()): SeedData {
     currency: "THB",
     baseAmount: amountBaht * 100,
     method,
+    ...(cardName ? { cardName } : {}),
     date,
     createdAt: SEEDED_AT,
   });
   const personalExpenses: PersonalExpenseDoc[] = [
-    personalExpense("pe-donki", "ของฝาก Don Quijote", "shopping", "card", 3000, "2026-12-13"),
+    personalExpense("pe-donki", "ของฝาก Don Quijote", "shopping", "card", 3000, "2026-12-13", "KBank"),
     personalExpense("pe-coffee", "กาแฟเช้า", "food", "cash", 180, "2026-12-12"),
     personalExpense("pe-taxi", "แท็กซี่กลับโรงแรม", "transport", "wallet", 650, "2026-12-14"),
   ];

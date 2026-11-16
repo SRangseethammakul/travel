@@ -140,7 +140,7 @@ City Legs are edited with B2 (`legs`).
 
 | # | Method & path | Role | Body → Response |
 | --- | --- | --- | --- |
-| B29 | `POST /api/trips/:tripId/expenses` | editor+ | `{ title, category, payerId, method, cardLast4?, amount, splitMode, shares: { memberId, amount?, weight? }[], slipDocId?, note?, date }` → `Expense` |
+| B29 | `POST /api/trips/:tripId/expenses` | editor+ | `{ title, category, payerId, method, cardName?, cardLast4?, amount, splitMode, shares: { memberId, amount?, weight? }[], slipDocId?, note?, date }` → `Expense` |
 | B30 | `PATCH /api/trips/:tripId/expenses/:expenseId` | owner, or editor who created it | same fields, partial → `Expense` |
 | B31 | `DELETE /api/trips/:tripId/expenses/:expenseId` | owner, or editor who created it | → `204` |
 | B32 | `POST /api/trips/:tripId/settlements` | self (sender) | `{ toId, amount?, slipDocId? }` → `Settlement` with `status: 'sent'` (the sender reports a transfer; `fromId` = Current Member; `toId` must be an `active` Member, else `400`; see the Settlement rules below) |
@@ -153,6 +153,7 @@ Expense rules (server-side, 400 on failure):
 - `shares`: send `weight`s; the server computes amounts, with leftover satang going the same way.
 - `amount`: send amounts; they must sum exactly to `amount`.
 - Every `memberId` and `payerId` must be a Member of the trip.
+- `cardName` (trimmed, 1–30 chars; blank = absent) only with `method: "card"` (400 `invalid_card`). PATCH: `cardName: null` (or blank) removes it; changing `method` away from card drops it. `cardLast4` is legacy: still stored and returned for old data, still accepted, but clients should send `cardName`.
 
 Settlement rules: status only moves `pending` → `sent` → `confirmed`. Viewers may report (B32) their own transfers, and a viewer who is the receiver may confirm (B33) — kept as is (QA Q3). `pending` comes from a Suggested Transfer in A14 and is not stored until someone acts on it.
 
@@ -182,8 +183,8 @@ A Personal Expense is private to the Member who made it (`ownerId` = Current Mem
 | # | Method & path | Role | Body → Response |
 | --- | --- | --- | --- |
 | B44 | `GET /api/trips/:tripId/personal-expenses` | any (own only) | → `PersonalExpense[]`, sorted by `date`, then `createdAt` |
-| B45 | `POST /api/trips/:tripId/personal-expenses` | any | `{ title, category, amount, method, date, note? }` → `201 PersonalExpense` |
-| B46 | `PATCH /api/trips/:tripId/personal-expenses/:id` | owner of the record | same fields, partial; `note: null` removes the note; empty body → `400` → `PersonalExpense` |
+| B45 | `POST /api/trips/:tripId/personal-expenses` | any | `{ title, category, amount, method, cardName?, date, note? }` → `201 PersonalExpense` |
+| B46 | `PATCH /api/trips/:tripId/personal-expenses/:id` | owner of the record | same fields, partial; `note: null` / `cardName: null` remove them; changing `method` away from card drops `cardName`; empty body → `400` → `PersonalExpense` |
 | B47 | `DELETE /api/trips/:tripId/personal-expenses/:id` | owner of the record | → `204` |
 
 `PersonalExpense` = `{ id, tripId, ownerId, title, category, amount, currency: 'THB', baseAmount, method, note?, date, createdAt, updatedAt? }`.
@@ -214,7 +215,7 @@ The "ตรวจและยืนยัน" button on a settlement activity ca
 ## Differences from SPEC's data model
 
 These fields exist in `frontend/src/lib/api/types.ts` but not in SPEC. The backend should store them:
-- `Expense.date`, `createdAt`, `updatedBy`, `updatedAt`, `cardLast4`, `note`
+- `Expense.date`, `createdAt`, `updatedBy`, `updatedAt`, `cardLast4` (legacy), `cardName`, `note`
 - `Settlement.createdAt`, `sentAt`, `confirmedAt`
 - `ChecklistItem.done`
 - `Activity.readBy`

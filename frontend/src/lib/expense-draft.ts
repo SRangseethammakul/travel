@@ -4,6 +4,7 @@
  * sends Shares: they are always recomputed here with computeSplit.
  */
 import type { ExpenseCategory, ID, PaymentMethod, Share, SplitMode } from "@/lib/api/types";
+import { checkCardName } from "@/lib/card-name";
 import { daysBetween, type ISODate } from "@/lib/date";
 import type { Satang } from "@/lib/money/format";
 import { computeSplit } from "@/lib/money/split";
@@ -24,8 +25,8 @@ export interface ExpenseDraft {
   category: ExpenseCategory;
   payerId: ID;
   method: PaymentMethod;
-  /** Card payments only; "" or 4 digits. */
-  cardLast4?: string;
+  /** Card payments only; trimmed, at most 30 characters, "" = none. */
+  cardName?: string;
   date: ISODate;
   amount: Satang;
   splitMode: SplitMode;
@@ -43,7 +44,7 @@ export const MAX_TITLE = 80;
 export const MAX_SLIP_BYTES = 10 * 1024 * 1024;
 
 export type DraftResult =
-  | { ok: true; title: string; shares: Share[]; cardLast4?: string }
+  | { ok: true; title: string; shares: Share[]; cardName?: string }
   | { ok: false; error: string };
 
 export function checkExpenseDraft(
@@ -64,8 +65,8 @@ export function checkExpenseDraft(
   if (daysBetween(trip.startDate, draft.date) < 0 || daysBetween(draft.date, trip.endDate) < 0) {
     return { ok: false, error: "เลือกวันที่ภายในช่วงทริป" };
   }
-  const card = draft.method === "card" ? (draft.cardLast4 ?? "").trim() : "";
-  if (card && !/^\d{4}$/.test(card)) return { ok: false, error: "เลขท้ายบัตรต้องเป็นตัวเลข 4 หลัก" };
+  const card = checkCardName(draft.method === "card" ? draft.cardName : undefined);
+  if (!card.ok) return card;
   if (draft.slip && (draft.slip.size > MAX_SLIP_BYTES || !/^(image\/|application\/pdf$)/.test(draft.slip.mime))) {
     return { ok: false, error: "สลิปต้องเป็นรูปหรือ PDF ขนาดไม่เกิน 10 MB" };
   }
@@ -84,7 +85,7 @@ export function checkExpenseDraft(
     return { ok: false, error: "ข้อมูลการหารไม่ถูกต้อง" };
   }
   if (!split.balanced) return { ok: false, error: "ยอดที่แบ่งยังไม่ตรงกับจำนวนเงิน" };
-  return { ok: true, title, shares: split.shares, ...(card ? { cardLast4: card } : {}) };
+  return { ok: true, title, shares: split.shares, ...(card.cardName ? { cardName: card.cardName } : {}) };
 }
 
 /** Default date for a new expense: today when inside the trip, else the nearest trip day. */

@@ -46,18 +46,25 @@ describe("checkExpenseDraft", () => {
     ]);
   });
 
-  it("rejects unknown members, empty title, dates outside the trip and bad card digits", () => {
+  it("rejects unknown members, empty title, dates outside the trip and a card name over 30 characters", () => {
     expect(checkExpenseDraft({ ...base, payerId: "kong" }, members, trip).ok).toBe(false);
     expect(checkExpenseDraft({ ...base, participantIds: ["act", "kong"] }, members, trip).ok).toBe(false);
     expect(checkExpenseDraft({ ...base, title: "  " }, members, trip).ok).toBe(false);
     expect(checkExpenseDraft({ ...base, date: "2026-12-16" }, members, trip).ok).toBe(false);
-    expect(checkExpenseDraft({ ...base, method: "card", cardLast4: "48a1" }, members, trip).ok).toBe(false);
+    expect(checkExpenseDraft({ ...base, method: "card", cardName: "x".repeat(31) }, members, trip).ok).toBe(false);
     expect(checkExpenseDraft({ ...base, amount: 0 }, members, trip).ok).toBe(false);
   });
 
-  it("drops card digits for other payment methods", () => {
-    const r = checkExpenseDraft({ ...base, method: "cash", cardLast4: "4821" }, members, trip);
-    expect(r.ok && r.cardLast4).toBeUndefined();
+  it("drops the card name for other payment methods", () => {
+    const r = checkExpenseDraft({ ...base, method: "cash", cardName: "UOB" }, members, trip);
+    expect(r.ok && r.cardName).toBeUndefined();
+  });
+
+  it("trims the card name and treats blank as none", () => {
+    const named = checkExpenseDraft({ ...base, method: "card", cardName: "  UOB PRVI " }, members, trip);
+    expect(named.ok && named.cardName).toBe("UOB PRVI");
+    const blank = checkExpenseDraft({ ...base, method: "card", cardName: "   " }, members, trip);
+    expect(blank.ok && blank.cardName).toBeUndefined();
   });
 });
 

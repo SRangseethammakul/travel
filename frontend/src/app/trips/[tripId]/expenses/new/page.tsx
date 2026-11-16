@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { ExpenseForm } from "@/components/expenses/ExpenseForm";
 import { expenseFormInitial } from "@/components/expenses/form-initial";
 import { BackHeader } from "@/components/ui/BackHeader";
-import { getMembers, getPlaces, getPlanItems, requireTripMember } from "@/lib/api";
+import { getExpenses, getMembers, getPersonalExpenses, getPlaces, getPlanItems, requireTripMember } from "@/lib/api";
+import { usedCardNames } from "@/lib/card-name";
 import { transitModeLabel } from "@/lib/labels";
 import { todayISO } from "@/lib/date";
 import { defaultExpenseDate } from "@/lib/expense-draft";
@@ -14,7 +15,13 @@ export default async function AddExpensePage({ params, searchParams }: PageProps
   const back = `/trips/${encodeURIComponent(tripId)}/expenses`;
   if (!canAddExpense(me)) redirect(back);
   const sp = await searchParams;
-  const [members, items, places] = await Promise.all([getMembers(tripId), getPlanItems(tripId), getPlaces(tripId)]);
+  const [members, items, places, expenses, personal] = await Promise.all([
+    getMembers(tripId),
+    getPlanItems(tripId),
+    getPlaces(tripId),
+    getExpenses(tripId),
+    getPersonalExpenses(tripId),
+  ]);
   // From AddTransit ("บันทึกเป็นค่าใช้จ่ายด้วย"): prefill a "เดินทาง" expense linked to that Transit.
   const transit = items.find((i) => i.kind === "transit" && i.id === sp.transit && !i.expenseId);
   const initial = expenseFormInitial(null, { me, members, defaultDate: defaultExpenseDate(todayISO(), trip) });
@@ -43,6 +50,7 @@ export default async function AddExpensePage({ params, searchParams }: PageProps
         trip={{ startDate: trip.startDate, endDate: trip.endDate }}
         members={members.map((m) => ({ id: m.id, name: m.displayName, color: m.color }))}
         initial={initial}
+        usedCardNames={usedCardNames(expenses, personal)}
         {...(transit ? { transitId: transit.id } : {})}
         {...(hotel ? { stayPlaceId: hotel.id } : {})}
       />

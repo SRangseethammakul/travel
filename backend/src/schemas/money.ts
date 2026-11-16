@@ -13,12 +13,17 @@ const ShareInput = z.strictObject({
 
 const CardLast4 = z.string().regex(/^\d{4}$/);
 
+/** Card name such as "UOB PRVI": trimmed, 1-30 chars; blank counts as absent (create) or removal (PATCH). */
+export const CardName = z.string().trim().max(30).transform((v) => v || undefined);
+export const CardNamePatch = z.string().trim().max(30).transform((v) => v || null);
+
 export const ExpenseCreateBody = z.strictObject({
   title: label(200),
   category: ExpenseDoc.shape.category,
   payerId: Id,
   method: ExpenseDoc.shape.method,
   cardLast4: CardLast4.optional(),
+  cardName: CardName.optional(),
   amount: PositiveSatang,
   splitMode: ExpenseDoc.shape.splitMode,
   shares: z.array(ShareInput).min(1).max(50),
@@ -27,13 +32,14 @@ export const ExpenseCreateBody = z.strictObject({
   date: IsoDate,
 });
 
-/** PATCH: any field; `null` removes `cardLast4` / `slipDocId` / `note`. */
+/** PATCH: any field; `null` removes `cardLast4` / `cardName` / `slipDocId` / `note`. */
 export const ExpenseUpdateBody = z.strictObject({
   title: label(200).optional(),
   category: ExpenseDoc.shape.category.optional(),
   payerId: Id.optional(),
   method: ExpenseDoc.shape.method.optional(),
   cardLast4: CardLast4.nullable().optional(),
+  cardName: CardNamePatch.nullable().optional(),
   amount: PositiveSatang.optional(),
   splitMode: ExpenseDoc.shape.splitMode.optional(),
   shares: z.array(ShareInput).min(1).max(50).optional(),

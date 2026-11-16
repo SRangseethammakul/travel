@@ -51,7 +51,7 @@ async function writeExpense(
     if (!checked.ok) return { error: checked.error };
 
     if (file) uploaded = await uploadSlip(tripId, file);
-    const card = draft.method === "card" ? checked.cardLast4 : undefined;
+    const card = draft.method === "card" ? checked.cardName : undefined;
     const body = {
       title: checked.title,
       category: draft.category,
@@ -63,12 +63,12 @@ async function writeExpense(
       shares: shareInput(draft),
       ...(expenseId
         ? {
-            // PATCH: null clears the field, a missing key keeps it.
-            cardLast4: card ?? null,
+            // PATCH: null clears the field, a missing key keeps it. Legacy cardLast4 is never sent, so old data keeps it.
+            cardName: card ?? null,
             ...(uploaded ? { slipDocId: uploaded } : draft.slip === null ? { slipDocId: null } : {}),
           }
         : {
-            ...(card ? { cardLast4: card } : {}),
+            ...(card ? { cardName: card } : {}),
             ...(uploaded ? { slipDocId: uploaded } : {}),
           }),
     };

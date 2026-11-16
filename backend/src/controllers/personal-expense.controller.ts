@@ -4,6 +4,7 @@ import { newId } from "../db/ids.js";
 import { HttpError } from "../errors.js";
 import {
   deletePersonalExpense,
+  findPersonalExpense,
   insertPersonalExpense,
   listPersonalExpenses,
   updatePersonalExpense,
@@ -34,10 +35,15 @@ export const getPersonalExpenses: RequestHandler = async (req, res) => {
   res.json((await listPersonalExpenses(me.tripId, me._id)).map(personalExpenseView));
 };
 
+const assertCardNameFitsMethod = (cardName: string | null | undefined, method: string) => {
+  if (cardName && method !== "card") throw new HttpError(400, "invalid_card", "ใส่ชื่อบัตรได้เฉพาะการจ่ายด้วยบัตร");
+};
+
 /** B45 POST — any role; owner = me. */
 export const createPersonalExpense: RequestHandler = async (req, res) => {
   const me = currentMember(req);
   const body = PersonalExpenseCreateBody.parse(req.body);
+  assertCardNameFitsMethod(body.cardName, body.method);
   await assertDateInTrip(me.tripId, body.date);
   const doc: PersonalExpenseDoc = {
     _id: newId(),
@@ -49,6 +55,7 @@ export const createPersonalExpense: RequestHandler = async (req, res) => {
     currency: "THB",
     baseAmount: body.amount,
     method: body.method,
+    ...(body.cardName ? { cardName: body.cardName } : {}),
     ...(body.note !== undefined ? { note: body.note } : {}),
     date: body.date,
     createdAt: new Date(),
@@ -62,13 +69,22 @@ export const editPersonalExpense: RequestHandler = async (req, res) => {
   const me = currentMember(req);
   const patch = PersonalExpenseUpdateBody.parse(req.body);
   if (patch.date !== undefined) await assertDateInTrip(me.tripId, patch.date);
-  const { note, ...rest } = patch;
+  const existing = await findPersonalExpense(me.tripId, me._id, param(req, "id"));
+  if (!existing) throw notFound();
+  const method = patch.method ?? existing.method;
+  assertCardNameFitsMethod(patch.cardName, method);
+  const { note, cardName, ...rest } = patch;
   const $set: Partial<PersonalExpenseDoc> = { ...rest, updatedAt: new Date() };
   if (patch.amount !== undefined) $set.baseAmount = patch.amount;
   if (typeof note === "string") $set.note = note;
-  const updated = await updatePersonalExpense(me.tripId, me._id, param(req, "id"), {
+  if (typeof cardName === "string") $set.cardName = cardName;
+  // `null` removes the card name; so does moving the method away from card.
+  const $unset: { note?: ""; cardName?: "" } = {};
+  if (note === null) $unset.note = "";
+  if (cardName === null || (cardName === undefined && method !== "card")) $unset.cardName = "";
+  const updated = await updatePersonalExpense(me.tripId, me._id, existing._id, {
     $set,
-    ...(note === null ? { $unset: { note: "" as const } } : {}),
+    ...(Object.keys($unset).length > 0 ? { $unset } : {}),
   });
   if (!updated) throw notFound();
   res.json(personalExpenseView(updated));

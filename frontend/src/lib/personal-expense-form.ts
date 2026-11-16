@@ -3,6 +3,7 @@
  * Only for fast feedback: the backend decides and its Thai message is shown when it refuses.
  */
 import type { PaymentMethod, PersonalExpenseCategory } from "@/lib/api/types";
+import { checkCardName } from "@/lib/card-name";
 import { daysBetween, type ISODate } from "@/lib/date";
 import { PAYMENT_METHODS } from "@/lib/expense-draft";
 import type { Satang } from "@/lib/money/format";
@@ -19,6 +20,8 @@ export interface PersonalExpenseDraft {
   category: PersonalExpenseCategory;
   amount: Satang;
   method: PaymentMethod;
+  /** Card payments only; trimmed on check, "" = none. */
+  cardName?: string;
   date: ISODate;
   note: string;
 }
@@ -29,6 +32,8 @@ export interface PersonalExpenseInput {
   category: PersonalExpenseCategory;
   amount: Satang;
   method: PaymentMethod;
+  /** null when there is none (PATCH removes it; POST leaves it out). */
+  cardName: string | null;
   date: ISODate;
   note: string | null;
 }
@@ -48,10 +53,12 @@ export function checkPersonalExpenseDraft(
   if (!/^\d{4}-\d{2}-\d{2}$/.test(draft.date) || daysBetween(trip.startDate, draft.date) < 0 || daysBetween(draft.date, trip.endDate) < 0) {
     return { ok: false, error: "เลือกวันที่ภายในช่วงทริป" };
   }
+  const card = checkCardName(draft.method === "card" ? draft.cardName : undefined);
+  if (!card.ok) return card;
   const note = draft.note.trim();
   if (note.length > MAX_PERSONAL_NOTE) return { ok: false, error: `โน้ตยาวได้ไม่เกิน ${MAX_PERSONAL_NOTE} ตัวอักษร` };
   return {
     ok: true,
-    value: { title, category: draft.category, amount: draft.amount, method: draft.method, date: draft.date, note: note || null },
+    value: { title, category: draft.category, amount: draft.amount, method: draft.method, cardName: card.cardName ?? null, date: draft.date, note: note || null },
   };
 }

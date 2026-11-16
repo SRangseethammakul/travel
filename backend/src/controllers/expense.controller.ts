@@ -26,7 +26,7 @@ type ExpenseFields = Omit<z.infer<typeof ExpenseCreateBody>, "shares"> & { share
 /**
  * Checks the rules zod cannot (400): payer and sharers are active Members of the trip (or already
  * on the Expense being edited, so a soft-removed Member does not lock old Expenses), the card
- * digits only for card, the slip only for promptpay and from this trip; then resolves every
+ * digits / card name only for card, the slip only for promptpay and from this trip; then resolves every
  * Share so they sum exactly to the amount.
  */
 async function resolveFields(tripId: string, f: ExpenseFields, alreadyOn: string[] = []) {
@@ -36,6 +36,7 @@ async function resolveFields(tripId: string, f: ExpenseFields, alreadyOn: string
     throw bad("unknown_member", "คนจ่ายและคนที่ร่วมหารต้องเป็นสมาชิกของทริปนี้");
   }
   if (f.cardLast4 && f.method !== "card") throw bad("invalid_card", "ใส่เลขท้ายบัตรได้เฉพาะการจ่ายด้วยบัตร");
+  if (f.cardName && f.method !== "card") throw bad("invalid_card", "ใส่ชื่อบัตรได้เฉพาะการจ่ายด้วยบัตร");
   if (f.slipDocId && f.method !== "promptpay") throw bad("invalid_slip", "แนบสลิปได้เฉพาะการโอน/พร้อมเพย์");
   if (f.slipDocId && !(await documentsExist(tripId, [f.slipDocId]))) throw bad("unknown_document", "ไม่พบสลิปในทริปนี้");
   try {
@@ -54,6 +55,7 @@ function toDoc(f: ExpenseFields, shares: ExpenseDoc["shares"]) {
     payerId: f.payerId,
     method: f.method,
     ...(f.cardLast4 ? { cardLast4: f.cardLast4 } : {}),
+    ...(f.cardName ? { cardName: f.cardName } : {}),
     amount: f.amount,
     currency: "THB" as const,
     baseAmount: f.amount, // THB only for now
@@ -107,6 +109,7 @@ export const patchExpense: RequestHandler = async (req, res) => {
     method,
     // Changing the method away from card / promptpay drops the card digits / slip.
     cardLast4: body.cardLast4 === undefined ? (method === "card" ? existing.cardLast4 : undefined) : (body.cardLast4 ?? undefined),
+    cardName: body.cardName === undefined ? (method === "card" ? existing.cardName : undefined) : (body.cardName ?? undefined),
     amount: body.amount ?? existing.amount,
     splitMode: body.splitMode ?? existing.splitMode,
     shares: body.shares ?? existing.shares,

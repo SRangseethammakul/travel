@@ -2,6 +2,7 @@
 
 import { useId, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
+import { CardNameField } from "./CardNameField";
 import { Chip } from "@/components/ui/Chip";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { fieldClass, fieldLabelClass, textareaClass } from "@/components/ui/field";
@@ -27,6 +28,8 @@ interface PersonalExpenseFormProps {
   trip: { startDate: string; endDate: string };
   /** `amount` in satang, 0 = empty. */
   initial: PersonalExpenseDraft;
+  /** Card names already used in this trip (group and my personal expenses). */
+  usedCardNames?: string[];
   /** Extra content under the fields (the delete button on the edit page). */
   children?: ReactNode;
 }
@@ -35,13 +38,14 @@ interface PersonalExpenseFormProps {
  * Add / edit a Personal Expense: amount, title, date, category, payment method
  * and note (shared fields in the same order as ExpenseForm). No payer, split or slip (self-designed from AddExpense's fields).
  */
-export function PersonalExpenseForm({ tripId, id, trip, initial, children }: PersonalExpenseFormProps) {
+export function PersonalExpenseForm({ tripId, id, trip, initial, usedCardNames = [], children }: PersonalExpenseFormProps) {
   const ids = useId();
   const [amountText, setAmountText] = useState(satangToInput(initial.amount));
   const [title, setTitle] = useState(initial.title);
   const [category, setCategory] = useState(initial.category);
   const [date, setDate] = useState(initial.date);
   const [method, setMethod] = useState(initial.method);
+  const [cardName, setCardName] = useState(initial.cardName ?? "");
   const [note, setNote] = useState(initial.note);
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
@@ -55,7 +59,7 @@ export function PersonalExpenseForm({ tripId, id, trip, initial, children }: Per
     if (!canSave) return;
     setError("");
     startTransition(async () => {
-      const result = await savePersonalExpense(tripId, id, { title, category, amount, method, date, note });
+      const result = await savePersonalExpense(tripId, id, { title, category, amount, method, cardName: method === "card" ? cardName : "", date, note });
       if (result?.error) setError(result.error);
     });
   };
@@ -154,6 +158,8 @@ export function PersonalExpenseForm({ tripId, id, trip, initial, children }: Per
               );
             })}
           </div>
+
+          {method === "card" ? <CardNameField value={cardName} onChange={setCardName} usedNames={usedCardNames} /> : null}
         </fieldset>
 
         <div className="flex flex-col gap-1.5">

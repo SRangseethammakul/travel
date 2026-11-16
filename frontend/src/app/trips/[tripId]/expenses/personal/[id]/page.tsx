@@ -2,13 +2,15 @@ import { notFound } from "next/navigation";
 import { DeletePersonalExpenseButton } from "@/components/expenses/DeletePersonalExpenseButton";
 import { PersonalExpenseForm } from "@/components/expenses/PersonalExpenseForm";
 import { BackHeader } from "@/components/ui/BackHeader";
-import { getPersonalExpenses, requireTripMember } from "@/lib/api";
+import { getExpenses, getPersonalExpenses, requireTripMember } from "@/lib/api";
+import { usedCardNames } from "@/lib/card-name";
 
 /** Edit or delete one of my Personal Expenses. B44 lists only my own, so anyone else's id is a 404. */
 export default async function EditPersonalExpensePage({ params }: PageProps<"/trips/[tripId]/expenses/personal/[id]">) {
   const { tripId, id } = await params;
   const { trip } = await requireTripMember(tripId);
-  const record = (await getPersonalExpenses(tripId)).find((r) => r.id === id);
+  const [personal, expenses] = await Promise.all([getPersonalExpenses(tripId), getExpenses(tripId)]);
+  const record = personal.find((r) => r.id === id);
   if (!record) notFound();
   const back = `/trips/${encodeURIComponent(tripId)}/expenses?view=personal`;
 
@@ -19,11 +21,13 @@ export default async function EditPersonalExpensePage({ params }: PageProps<"/tr
         tripId={tripId}
         id={record.id}
         trip={{ startDate: trip.startDate, endDate: trip.endDate }}
+        usedCardNames={usedCardNames(expenses, personal)}
         initial={{
           title: record.title,
           category: record.category,
           amount: record.amount,
           method: record.method,
+          cardName: record.cardName ?? "",
           date: record.date,
           note: record.note ?? "",
         }}

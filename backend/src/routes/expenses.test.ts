@@ -84,6 +84,17 @@ describe("POST expenses", () => {
     expect((await post({ ...base, amount: 100.5, splitMode: "equal", shares: [{ memberId: m("act") }] })).status).toBe(400);
   });
 
+  it("card name: stored trimmed; 400 with non-card method or over 30 chars; blank = absent", async () => {
+    const post = (extra: object) => request(app()).post(`${T}/expenses`).set(as("act")).send({ ...base, amount: 100, splitMode: "equal", shares: [{ memberId: m("act") }], ...extra });
+    const ok = await post({ method: "card", cardName: "  UOB PRVI " });
+    expect(ok.status).toBe(201);
+    expect(ok.body.cardName).toBe("UOB PRVI");
+    expect((await post({ method: "card", cardName: "   " })).body.cardName).toBeUndefined();
+    expect((await post({ method: "cash", cardName: "UOB" })).status).toBe(400);
+    expect((await post({ method: "card", cardName: "x".repeat(31) })).status).toBe(400);
+    expect((await post({ method: "card", cardName: "x".repeat(30) })).status).toBe(201);
+  });
+
   it("viewer gets 403", async () => {
     const res = await request(app()).post(`${T}/expenses`).set(as("n")).send({ ...base, amount: 100, splitMode: "equal", shares: [{ memberId: m("n") }] });
     expect(res.status).toBe(403);
@@ -112,6 +123,19 @@ describe("PATCH / DELETE expenses", () => {
   it("switching away from card drops the card digits", async () => {
     const res = await request(app()).patch(`${T}/expenses/e-hotel`).set(as("act")).send({ method: "cash" });
     expect(res.body.cardLast4).toBeUndefined();
+    expect(res.body.cardName).toBeUndefined();
+  });
+
+  it("PATCH cardName: set, null removes, non-card method rejected; method change drops it", async () => {
+    const patch = (b: object) => request(app()).patch(`${T}/expenses/e-hotel`).set(as("act")).send(b);
+    expect((await patch({ cardName: "KBank" })).body.cardName).toBe("KBank");
+    expect((await patch({ cardName: "x".repeat(31) })).status).toBe(400);
+    expect((await patch({ cardName: null })).body.cardName).toBeUndefined();
+    expect((await patch({ cardName: "UOB" })).body.cardName).toBe("UOB");
+    expect((await patch({ method: "cash", cardName: "UOB" })).status).toBe(400);
+    const dropped = await patch({ method: "cash" });
+    expect(dropped.status).toBe(200);
+    expect(dropped.body.cardName).toBeUndefined();
   });
 
   it("creator deletes; Transit links are removed; Activity recorded", async () => {

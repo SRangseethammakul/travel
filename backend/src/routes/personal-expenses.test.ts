@@ -21,6 +21,33 @@ beforeEach(async () => {
 
 const body = { title: "ของฝาก Don Quijote", category: "shopping", amount: 300_000, method: "card", date: "2026-12-13" };
 
+describe("cardName", () => {
+  it("create stores it trimmed; rejects non-card method and over 30 chars", async () => {
+    const post = (extra: object) => request(app()).post(P).set(as("mint")).send({ ...body, ...extra });
+    expect((await post({ cardName: " UOB PRVI " })).body.cardName).toBe("UOB PRVI");
+    expect((await post({ cardName: " " })).body.cardName).toBeUndefined();
+    expect((await post({ method: "cash", cardName: "UOB" })).status).toBe(400);
+    expect((await post({ cardName: "x".repeat(31) })).status).toBe(400);
+  });
+
+  it("PATCH sets, null removes, non-card rejected, method change drops it", async () => {
+    const patch = (b: object) => request(app()).patch(`${P}/pe-donki`).set(as("act")).send(b);
+    expect((await patch({ cardName: "UOB" })).body.cardName).toBe("UOB");
+    expect((await patch({ cardName: "x".repeat(31) })).status).toBe(400);
+    expect((await patch({ cardName: null })).body.cardName).toBeUndefined();
+    expect((await patch({ cardName: "UOB" })).status).toBe(200);
+    expect((await patch({ method: "cash", cardName: "UOB" })).status).toBe(400);
+    const dropped = await patch({ method: "cash" });
+    expect(dropped.body.cardName).toBeUndefined();
+    // Setting a card name on a cash record (method unchanged) is rejected.
+    expect((await request(app()).patch(`${P}/pe-coffee`).set(as("act")).send({ cardName: "UOB" })).status).toBe(400);
+  });
+
+  it("someone else's record is still 404", async () => {
+    expect((await request(app()).patch(`${P}/pe-donki`).set(as("mint")).send({ cardName: "UOB" })).status).toBe(404);
+  });
+});
+
 describe("CRUD", () => {
   it("lists only my seeded records, sorted by date", async () => {
     const res = await request(app()).get(P).set(as("act"));
@@ -36,6 +63,7 @@ describe("CRUD", () => {
       currency: "THB",
       baseAmount: 300_000,
       method: "card",
+      cardName: "KBank",
       date: "2026-12-13",
       createdAt: expect.any(String),
     });

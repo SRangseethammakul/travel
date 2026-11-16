@@ -83,6 +83,25 @@ export function checkVisitDraft(draft: VisitDraft, placeIds: readonly ID[], dayC
   return { ok: true, days, time: time || null, note };
 }
 
+/** Edit of a visit already on the plan. `day: null` leaves the day alone (a hotel's days follow its stay). */
+export interface VisitEdit {
+  day: number | null;
+  /** "" clears the time */
+  time: string;
+  note: string;
+}
+
+export type VisitEditResult = { ok: true; day: number | null; time: string | null; note: string } | { ok: false; error: string };
+
+export function checkVisitEdit(edit: VisitEdit, dayCount: number): VisitEditResult {
+  if (edit.day !== null && (!Number.isInteger(edit.day) || edit.day < 1 || edit.day > dayCount)) return { ok: false, error: "วันที่อยู่นอกช่วงทริป" };
+  const time = edit.time.trim();
+  if (time && !isTime(time)) return { ok: false, error: "เวลาไม่ถูกต้อง" };
+  const note = edit.note.trim();
+  if (note.length > 200) return { ok: false, error: "โน้ตยาวได้ไม่เกิน 200 ตัวอักษร" };
+  return { ok: true, day: edit.day, time: time || null, note };
+}
+
 // ── Hop ─────────────────────────────────────────────────────────────────────
 
 export const HOP_MODES: readonly HopMode[] = ["walk", "train", "bus", "taxi", "car"];

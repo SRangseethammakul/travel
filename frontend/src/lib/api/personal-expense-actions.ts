@@ -37,12 +37,15 @@ export async function savePersonalExpense(tripId: ID, id: ID | null, draft: Pers
     if (!trip) return { error: "ไม่พบทริปนี้" };
     const checked = checkPersonalExpenseDraft(draft, trip);
     if (!checked.ok) return { error: checked.error };
-    const { note, ...rest } = checked.value;
+    const { note, cardName, ...rest } = checked.value;
     if (id) {
-      // PATCH: note null clears it.
-      await apiFetch<PersonalExpense>(itemPath(tripId, id), { method: "PATCH", json: { ...rest, note } });
+      // PATCH: note / cardName null clear them.
+      await apiFetch<PersonalExpense>(itemPath(tripId, id), { method: "PATCH", json: { ...rest, note, cardName } });
     } else {
-      await apiFetch<PersonalExpense>(listPath(tripId), { method: "POST", json: note ? { ...rest, note } : rest });
+      await apiFetch<PersonalExpense>(listPath(tripId), {
+        method: "POST",
+        json: { ...rest, ...(note ? { note } : {}), ...(cardName ? { cardName } : {}) },
+      });
     }
   } catch (e) {
     if (id && isGone(e)) {

@@ -10,7 +10,7 @@ import { getDocuments, getPlaces, getPlanItems, requireTripMember } from "@/lib/
 import { cn } from "@/lib/cn";
 import { canEditPlan, canEditPlanEntry } from "@/lib/permissions";
 import { formatLongDayMonth, formatWeekdayDay, todayISO, tripDayDate } from "@/lib/date";
-import { arrivalsOnDay, dayAreasLabel, itemDay, itemsByDay, legCity, nightsLodging, resolveDay, stayTransitWarnings, unscheduledPlaces } from "@/lib/plan";
+import { arrivalsOnDay, dayAreasLabel, itemDay, itemsByDay, legCity, nightsLodging, placeDays, resolveDay, stayTransitWarnings, unscheduledPlaces } from "@/lib/plan";
 
 export default async function PlannerPage({ params, searchParams }: PageProps<"/trips/[tripId]/plan">) {
   const { tripId } = await params;
@@ -81,7 +81,12 @@ export default async function PlannerPage({ params, searchParams }: PageProps<"/
             places={placeById}
             documents={new Map(documents.map((d) => [d.id, d]))}
             base={base}
-            hopEdit={{ tripId, itemIds: dayItems.filter((i) => canEditPlanEntry(me, i)).map((i) => i.id) }}
+            hopEdit={{
+              tripId,
+              itemIds: dayItems.filter((i) => canEditPlanEntry(me, i)).map((i) => i.id),
+              days: days.map((_, i) => ({ day: i + 1, sub: formatWeekdayDay(tripDayDate(trip.startDate, i + 1)) })),
+              taken: Object.fromEntries(placeDays(plan.filter((i) => i.kind === "place"), trip)),
+            }}
             arrivals={arrivals}
             date={date}
           />

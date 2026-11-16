@@ -8,7 +8,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { checkPlaceDraft, cleanLabel, cleanTagName, MAX_TAG_NAME, stayPlanSync, stayTripDays, type PlaceDraft } from "@/lib/place-form";
-import { checkHop, checkLegs, checkTransitDraft, checkVisitDraft, type TransitDraft, type VisitDraft } from "@/lib/plan-form";
+import { checkHop, checkLegs, checkTransitDraft, checkVisitDraft, checkVisitEdit, type TransitDraft, type VisitDraft, type VisitEdit } from "@/lib/plan-form";
 import { itemDay, tripDayCount } from "@/lib/plan";
 import { uploadDocument } from "./documents";
 import type { ActionResult } from "./expense-actions";
@@ -248,6 +248,28 @@ export async function addToPlan(tripId: ID, draft: VisitDraft): Promise<ActionRe
   );
   if (r) return r;
   redirect(`${tripBase(tripId)}/plan?day=${checked.days[0]}`);
+}
+
+/** B26 — change a visit's time / note / day. After moving it to another day the planner opens on that day. */
+export async function updateVisitAction(tripId: ID, itemId: ID, fromDay: number, edit: VisitEdit): Promise<ActionResult> {
+  const trip = await getTrip(tripId);
+  if (!trip) return { error: "ไม่พบทริปนี้" };
+  const checked = checkVisitEdit(edit, tripDayCount(trip));
+  if (!checked.ok) return { error: checked.error };
+  const r = await write(() =>
+    apiFetch(`${tripPath(tripId)}/plan/${encodeURIComponent(itemId)}`, {
+      method: "PATCH",
+      json: { ...(checked.day !== null ? { day: checked.day } : {}), time: checked.time, note: checked.note },
+    }),
+  );
+  if (r) return r;
+  if (checked.day !== null && checked.day !== fromDay) redirect(`${tripBase(tripId)}/plan?day=${checked.day}`);
+  return null;
+}
+
+/** Takes one visit off a day. The Place stays in the trip's list. */
+export async function removePlanItemAction(tripId: ID, itemId: ID): Promise<ActionResult> {
+  return write(() => apiFetch(`${tripPath(tripId)}/plan/${encodeURIComponent(itemId)}`, { method: "DELETE" }));
 }
 
 /** B27 — Hop sheet in the Planner. `input = null` removes the Hop. */

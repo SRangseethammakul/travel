@@ -1,6 +1,7 @@
 import { PersonalExpenseForm } from "@/components/expenses/PersonalExpenseForm";
 import { BackHeader } from "@/components/ui/BackHeader";
-import { requireTripMember } from "@/lib/api";
+import { getExpenses, getPersonalExpenses, requireTripMember } from "@/lib/api";
+import { usedCardNames } from "@/lib/card-name";
 import { todayISO } from "@/lib/date";
 import { defaultExpenseDate } from "@/lib/expense-draft";
 
@@ -8,6 +9,7 @@ import { defaultExpenseDate } from "@/lib/expense-draft";
 export default async function NewPersonalExpensePage({ params }: PageProps<"/trips/[tripId]/expenses/personal/new">) {
   const { tripId } = await params;
   const { trip } = await requireTripMember(tripId);
+  const [expenses, personal] = await Promise.all([getExpenses(tripId), getPersonalExpenses(tripId)]);
   const back = `/trips/${encodeURIComponent(tripId)}/expenses?view=personal`;
 
   return (
@@ -17,11 +19,13 @@ export default async function NewPersonalExpensePage({ params }: PageProps<"/tri
         tripId={tripId}
         id={null}
         trip={{ startDate: trip.startDate, endDate: trip.endDate }}
+        usedCardNames={usedCardNames(expenses, personal)}
         initial={{
           title: "",
           category: "shopping",
           amount: 0,
           method: "cash",
+          cardName: "",
           date: defaultExpenseDate(todayISO(), trip),
           note: "",
         }}
