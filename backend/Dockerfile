@@ -15,5 +15,5 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 RUN mkdir -p .data/uploads && chown -R node:node .data
 USER node
-EXPOSE 4000
+EXPOSE 3000
 CMD ["node", "dist/server.js"]
