@@ -8,7 +8,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { checkPlaceDraft, cleanLabel, cleanTagName, MAX_TAG_NAME, stayPlanSync, stayTripDays, type PlaceDraft } from "@/lib/place-form";
-import { checkHop, checkLegs, checkTransitDraft, checkVisitDraft, checkVisitEdit, type TransitDraft, type VisitDraft, type VisitEdit } from "@/lib/plan-form";
+import { checkHop, checkLegs, checkTransitDraft, checkVisitDraft, checkVisitEdit, transitPatchBody, type TransitDraft, type VisitDraft, type VisitEdit } from "@/lib/plan-form";
 import { itemDay, tripDayCount } from "@/lib/plan";
 import { uploadDocument } from "./documents";
 import type { ActionResult } from "./expense-actions";
@@ -326,6 +326,7 @@ export async function saveTransit(tripId: ID, draft: TransitDraft, cost: number 
         departAt: checked.departAt,
         arriveAt: checked.arriveAt,
         ...(checked.bookingRef ? { bookingRef: checked.bookingRef } : {}),
+        ...(checked.seatInfo ? { seatInfo: checked.seatInfo } : {}),
         docIds: checked.docIds,
         ...(draft.fromPlaceId ? { fromPlaceId: draft.fromPlaceId } : {}),
         ...(draft.toPlaceId ? { toPlaceId: draft.toPlaceId } : {}),
@@ -337,6 +338,42 @@ export async function saveTransit(tripId: ID, draft: TransitDraft, cost: number 
   refresh();
   if (cost !== null) redirect(`${tripBase(tripId)}/expenses/new?transit=${encodeURIComponent(item.id)}&amount=${cost}`);
   redirect(`${tripBase(tripId)}/plan?day=${Math.max(1, itemDay(item as PlanItem, trip))}`);
+}
+
+/** B26 — save an edited Transit, then open the planner on its departure day. A linked expense stays linked. */
+export async function updateTransitAction(tripId: ID, itemId: ID, draft: TransitDraft): Promise<ActionResult> {
+  const [trip, docs] = await Promise.all([getTrip(tripId), getDocuments(tripId)]);
+  if (!trip) return { error: "ไม่พบทริปนี้" };
+  const checked = checkTransitDraft(draft, trip, docs.map((d) => d.id));
+  if (!checked.ok) return { error: checked.error };
+  let item: TransitPlanItem;
+  try {
+    item = await apiFetch<TransitPlanItem>(`${tripPath(tripId)}/plan/${encodeURIComponent(itemId)}`, { method: "PATCH", json: transitPatchBody(checked, draft) });
+  } catch (e) {
+    return { error: actionError(e).error };
+  }
+  refresh();
+  redirect(`${tripBase(tripId)}/plan?day=${Math.max(1, itemDay(item as PlanItem, trip))}`);
+}
+
+/**
+ * B28 — delete a Transit. `alsoExpenseId`: its linked Expense, deleted too (B31) once the Transit is gone
+ * (deleting a Transit never touches the Expense by itself).
+ */
+export async function deleteTransitAction(tripId: ID, itemId: ID, alsoExpenseId?: ID): Promise<ActionResult> {
+  const r = await write(() => apiFetch(`${tripPath(tripId)}/plan/${encodeURIComponent(itemId)}`, { method: "DELETE" }));
+  if (r) return r;
+  if (alsoExpenseId) {
+    try {
+      await apiFetch<void>(`${tripPath(tripId)}/expenses/${encodeURIComponent(alsoExpenseId)}`, { method: "DELETE" });
+    } catch {
+      // The Transit is gone but its cost could not be deleted: land on that expense so the user can finish it.
+      refresh();
+      redirect(`${tripBase(tripId)}/expenses/${encodeURIComponent(alsoExpenseId)}`);
+    }
+    refresh();
+  }
+  return null;
 }
 
 // ── City Legs (16) ──────────────────────────────────────────────────────────

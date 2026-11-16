@@ -27,6 +27,10 @@ export interface PlaceRow {
   tagIds: ID[];
   /** Trip days the Place is on (empty = Unscheduled Place). */
   days: number[];
+  /** Time of the Place's only visit ("19:00"), set when it is on exactly one day and that visit has a time. */
+  time?: string;
+  /** Google Maps link (open only). */
+  mapUrl?: string;
   /** Note typed on the Place; the list shows its first line. */
   note?: string;
   /** Hotel dates, shown as "เช็คอิน 12 – เช็คเอาท์ 15". */
@@ -183,4 +187,11 @@ export function placeRowSub(r: Pick<PlaceRow, "type" | "city" | "area">, group: 
   if (group === "area") return PLACE_TYPE_LABEL[r.type];
   const area = r.area ?? NO_AREA;
   return showCity ? `${r.city} › ${area}` : area;
+}
+
+/** Day label of a row: "วัน 2 · 19:00" (one day, timed), "วัน 1, 3", or null when Unscheduled. */
+export function placeRowWhen(r: Pick<PlaceRow, "days" | "time">): string | null {
+  if (!r.days.length) return null;
+  if (r.days.length === 1 && r.time) return `วัน ${r.days[0]} · ${r.time}`;
+  return `วัน ${r.days.join(", ")}`;
 }

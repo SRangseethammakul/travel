@@ -22,13 +22,13 @@ import {
   getTripBalances,
   requireTripMember,
 } from "@/lib/api";
-import type { ChecklistItem, Place, PlanItem, TransitPlanItem, Trip } from "@/lib/api/types";
+import type { ChecklistItem, Member, Place, PlanItem, TransitPlanItem, Trip } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
 import { formatCountdown, formatDateRange, formatDayMonth, formatTripLength, formatWeekdayDay, todayISO, tripDayDate, tripPhase } from "@/lib/date";
 import { unreadCount } from "@/lib/expenses";
 import { memberRoleLine, transitModeLabel } from "@/lib/labels";
-import { canAddExpense, canEditPlan, canEditTripStructure } from "@/lib/permissions";
-import { dayCardCaption, itemsByDay, nightsLodging, resolveDay, stayTransitWarnings } from "@/lib/plan";
+import { canAddExpense, canEditPlan, canEditPlanEntry, canEditTripStructure } from "@/lib/permissions";
+import { dayCardCaption, itemDay, itemsByDay, nightsLodging, resolveDay, stayTransitWarnings } from "@/lib/plan";
 
 export default async function TripPage({ params }: PageProps<"/trips/[tripId]">) {
   const { tripId } = await params;
@@ -139,7 +139,7 @@ export default async function TripPage({ params }: PageProps<"/trips/[tripId]">)
         {nights.length ? <LodgingNights nights={nights} base={base} day={currentDay} /> : null}
         <StayWarnings warnings={stayTransitWarnings(places, plan, trip)} />
 
-        <TravelDetails trip={trip} plan={plan} places={places} spent={balances.total} base={base} />
+        <TravelDetails trip={trip} me={me} plan={plan} places={places} spent={balances.total} base={base} />
 
         <ChecklistCard href={`${base}/checklist`} items={checklist} meId={me.id} />
 
@@ -213,7 +213,7 @@ const rowIcon: Record<"plane" | "home" | "clock", { icon: IconName; className: s
 };
 
 /** "รายละเอียดการเดินทาง": every Transit (by departure) and every place to stay, meeting point, budget. Rows without data are left out. */
-function TravelDetails({ trip, plan, places, spent, base }: { trip: Trip; plan: PlanItem[]; places: Place[]; spent: number; base: string }) {
+function TravelDetails({ trip, me, plan, places, spent, base }: { trip: Trip; me: Member; plan: PlanItem[]; places: Place[]; spent: number; base: string }) {
   const transits = plan.filter((i): i is TransitPlanItem => i.kind === "transit").sort((a, b) => a.departAt.localeCompare(b.departAt));
   // Stays with dates are shown as "ที่พักแต่ละคืน"; only undated ones stay here.
   const stays = places.filter((p) => p.type === "stay" && !p.stay && plan.some((i) => i.kind === "place" && i.placeId === p.id));
@@ -223,7 +223,11 @@ function TravelDetails({ trip, plan, places, spent, base }: { trip: Trip; plan: 
     const route = `${t.fromCode ?? t.fromText} → ${t.toCode ?? t.toText}`;
     const depart = `${formatDayMonth(t.departAt.slice(0, 10))} ${t.departAt.slice(11, 16)}`;
     const arrive = `${formatDayMonth(t.arriveAt.slice(0, 10))} ${t.arriveAt.slice(11, 16)}`;
-    rows.push({ key: t.id, icon: transitModeIcon[t.mode], tone: "plane", label: transitModeLabel[t.mode], text: `${route} · ${depart} ถึง ${arrive}` });
+    // Whoever may edit it opens the edit form; everyone else lands on its departure day in the planner.
+    const href = canEditPlanEntry(me, t)
+      ? `${base}/plan/transit/${encodeURIComponent(t.id)}/edit`
+      : `${base}/plan?day=${Math.max(1, itemDay(t, trip))}`;
+    rows.push({ key: t.id, icon: transitModeIcon[t.mode], tone: "plane", label: transitModeLabel[t.mode], text: `${route} · ${depart} ถึง ${arrive}`, href });
   }
   for (const stay of stays) {
     rows.push({ key: stay.id, icon: "home", tone: "home", label: "ที่พัก", text: [stay.name, stay.note].filter(Boolean).join(" · "), href: `${base}/places/${encodeURIComponent(stay.id)}` });
@@ -235,23 +239,30 @@ function TravelDetails({ trip, plan, places, spent, base }: { trip: Trip; plan: 
   return (
     <Card className="gap-1">
       <CardHeader title="รายละเอียดการเดินทาง" className="mb-1 min-h-11" />
-      {rows.map((r) => (
-        <div key={r.key} className="flex gap-3 border-b border-line-soft py-2.5">
-          <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-[10px]", rowIcon[r.tone].className)}>
-            <Icon name={r.icon} size={18} />
-          </span>
-          <div className="flex min-w-0 flex-col">
-            <span className="text-[13px] text-ink-muted">{r.label}</span>
-            {r.href ? (
-              <Link href={r.href} className="flex min-h-6 text-ink no-underline hover:text-ink">
-                <span className="font-medium">{r.text}</span>
-              </Link>
-            ) : (
+      {rows.map((r) => {
+        const content = (
+          <>
+            <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-[10px]", rowIcon[r.tone].className)}>
+              <Icon name={r.icon} size={18} />
+            </span>
+            <div className="flex min-w-0 flex-1 flex-col">
+              <span className="text-[13px] text-ink-muted">{r.label}</span>
               <span className="font-medium">{r.text}</span>
-            )}
+            </div>
+            {r.href ? <Icon name="chevronRight" size={16} className="shrink-0 self-center text-ink-subtle" /> : null}
+          </>
+        );
+        const rowClass = "flex min-h-11 gap-3 border-b border-line-soft py-2.5";
+        return r.href ? (
+          <Link key={r.key} href={r.href} className={cn(rowClass, "text-ink no-underline hover:text-ink")}>
+            {content}
+          </Link>
+        ) : (
+          <div key={r.key} className={rowClass}>
+            {content}
           </div>
-        </div>
-      ))}
+        );
+      })}
       {trip.budget !== null ? (
         <div className="flex flex-col gap-2 pt-3 pb-1">
           <div className="flex justify-between text-sm">

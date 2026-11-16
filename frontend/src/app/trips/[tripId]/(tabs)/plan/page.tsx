@@ -6,9 +6,9 @@ import { DayStrip } from "@/components/trip/DayStrip";
 import { Icon } from "@/components/ui/Icon";
 import { buttonClasses } from "@/components/ui/Button";
 import { placeTypeStyle } from "@/components/ui/colors";
-import { getDocuments, getPlaces, getPlanItems, requireTripMember } from "@/lib/api";
+import { getDocuments, getExpenses, getPlaces, getPlanItems, requireTripMember } from "@/lib/api";
 import { cn } from "@/lib/cn";
-import { canEditPlan, canEditPlanEntry } from "@/lib/permissions";
+import { canEditExpense, canEditPlan, canEditPlanEntry } from "@/lib/permissions";
 import { formatLongDayMonth, formatWeekdayDay, todayISO, tripDayDate } from "@/lib/date";
 import { arrivalsOnDay, dayAreasLabel, itemDay, itemsByDay, legCity, nightsLodging, placeDays, resolveDay, stayTransitWarnings, unscheduledPlaces } from "@/lib/plan";
 
@@ -16,7 +16,7 @@ export default async function PlannerPage({ params, searchParams }: PageProps<"/
   const { tripId } = await params;
   const sp = await searchParams;
   const { trip, me } = await requireTripMember(tripId);
-  const [plan, places, documents] = await Promise.all([getPlanItems(tripId), getPlaces(tripId), getDocuments(tripId)]);
+  const [plan, places, documents, expenses] = await Promise.all([getPlanItems(tripId), getPlaces(tripId), getDocuments(tripId), getExpenses(tripId)]);
 
   const base = `/trips/${encodeURIComponent(tripId)}`;
   const days = itemsByDay(plan, trip);
@@ -81,6 +81,7 @@ export default async function PlannerPage({ params, searchParams }: PageProps<"/
             places={placeById}
             documents={new Map(documents.map((d) => [d.id, d]))}
             base={base}
+            expenses={new Map(expenses.map((e) => [e.id, { amount: e.amount, canDelete: canEditExpense(me, e) }]))}
             hopEdit={{
               tripId,
               itemIds: dayItems.filter((i) => canEditPlanEntry(me, i)).map((i) => i.id),

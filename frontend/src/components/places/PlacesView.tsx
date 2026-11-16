@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { Chip, TagLabel } from "@/components/ui/Chip";
 import { Icon } from "@/components/ui/Icon";
+import { MapButton } from "@/components/ui/MapButton";
 import { Segmented } from "@/components/ui/Segmented";
 import { Switch } from "@/components/ui/Switch";
 import { placeTypeStyle } from "@/components/ui/colors";
@@ -19,6 +20,7 @@ import {
   inCity,
   placeFiltersQuery,
   placeRowSub,
+  placeRowWhen,
   tagOptions,
   type PlaceFilters,
   type PlaceGroupBy,
@@ -156,8 +158,9 @@ export function PlacesView({ rows, tags, cities, filters, base, canEdit }: Place
                     ) : null}
                     {p.note ? <p className="m-0 line-clamp-1 text-xs text-ink-muted">โน้ต: {p.note}</p> : null}
                   </div>
+                  {p.mapUrl ? <MapButton href={p.mapUrl} name={p.name} className="-my-1" /> : null}
                   {p.days.length ? (
-                    <span className="shrink-0 text-xs font-semibold text-primary">วัน {p.days.join(", ")}</span>
+                    <span className="shrink-0 text-xs font-semibold text-primary">{placeRowWhen(p)}</span>
                   ) : !canEdit ? (
                     <span className="shrink-0 text-xs text-ink-muted">ยังไม่จัดวัน</span>
                   ) : (

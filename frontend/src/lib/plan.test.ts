@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createSeed, TRIP_IDS } from "@/test/fixtures/seed";
 import { formatDuration } from "@/lib/labels";
 import type { PlanItem, TransitPlanItem } from "@/lib/api/types";
-import { stayTransitWarnings, nightsLodging, arrivalsOnDay, dayAreasLabel, dayCardCaption, hopText, itemsByDay, legCity, placeDays, resolveDay, unscheduledPlaces } from "./plan";
+import { formatVisitLine, placeVisits, stayTransitWarnings, nightsLodging, arrivalsOnDay, dayAreasLabel, dayCardCaption, hopText, itemsByDay, legCity, placeDays, resolveDay, unscheduledPlaces } from "./plan";
 
 const seed = createSeed(new Date("2026-11-11T10:00:00Z"));
 const trip = (id: string) => seed.trips.find((t) => t.id === id)!;
@@ -157,5 +157,40 @@ describe("stayTransitWarnings", () => {
   });
   it("ignores a single stay", () => {
     expect(stayTransitWarnings([stay("A", "x", "2026-12-01", "2026-12-03")], [], t)).toEqual([]);
+  });
+});
+
+describe("placeVisits / formatVisitLine", () => {
+  const visit = (id: string, placeId: string, day: number, time: string | null): PlanItem => ({ kind: "place", id, tripId: "t", day, time, placeId, note: "", createdBy: "act" });
+  const items = [visit("1", "p", 4, null), visit("2", "p", 2, "19:00"), visit("3", "p", 2, "09:30"), visit("4", "q", 1, "10:00")];
+  const trip = { startDate: "2026-12-17" };
+
+  it("sorts a Place's visits by day, then time, untimed last", () => {
+    expect(placeVisits(items, trip).get("p")).toEqual([
+      { day: 2, time: "09:30" },
+      { day: 2, time: "19:00" },
+      { day: 4, time: null },
+    ]);
+  });
+
+  it("includes transit endpoints, on the leave / arrive day", () => {
+    const flight: PlanItem = { kind: "transit", id: "x", tripId: "t", mode: "plane", fromCode: "BKK", fromText: "สุวรรณภูมิ", toCode: "NRT", toText: "นาริตะ", departAt: "2026-12-17T23:00", arriveAt: "2026-12-18T07:00", docIds: [], fromPlaceId: "a", toPlaceId: "b", createdBy: "act" };
+    const v = placeVisits([flight], trip);
+    expect(v.get("a")).toEqual([{ day: 1, time: "23:00", label: "ออกเดินทาง (เครื่องบิน → NRT)" }]);
+    expect(v.get("b")).toEqual([{ day: 2, time: "07:00", label: "ถึง (เครื่องบิน จาก BKK)" }]);
+  });
+
+  it("agrees with placeDays on every Place (Tokyo)", () => {
+    const visits = placeVisits(tokyoItems, tokyo);
+    const days = placeDays(tokyoItems, tokyo);
+    expect([...visits.keys()].sort()).toEqual([...days.keys()].sort());
+    for (const [id, list] of visits) expect([...new Set(list.map((x) => x.day))]).toEqual(days.get(id));
+    expect(visits.get("t-haneda")?.length).toBeGreaterThan(0);
+  });
+
+  it("formats a visit line from the trip start date", () => {
+    expect(formatVisitLine({ day: 2, time: "19:00" }, "2026-12-17")).toBe("วัน 2 · ศ. 18 ธ.ค. · 19:00");
+    expect(formatVisitLine({ day: 4, time: null }, "2026-12-17")).toBe("วัน 4 · อา. 20 ธ.ค. · ยังไม่ระบุเวลา");
+    expect(formatVisitLine({ day: 1, time: "10:30", label: "ถึง (เครื่องบิน จาก BKK)" }, "2026-12-17")).toBe("วัน 1 · พฤ. 17 ธ.ค. · 10:30 · ถึง (เครื่องบิน จาก BKK)");
   });
 });

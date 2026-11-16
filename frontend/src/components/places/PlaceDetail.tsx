@@ -4,9 +4,11 @@ import { placeTypeStyle } from "@/components/ui/colors";
 import type { Member, Place } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
 import { formatDayMonth } from "@/lib/date";
+import type { PlaceVisit } from "@/lib/plan";
 import { canAddPlacePhoto } from "@/lib/permissions";
 import { stayNights } from "@/lib/place-form";
 import { PlacePhotos } from "./PlacePhotos";
+import { PlacePlanInfo } from "./PlacePlanInfo";
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -18,7 +20,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 /** Read-only Place (viewers, and editors on places they did not add). Shows the note, which the list only previews. */
-export function PlaceDetail({ tripId, place, me, tagNames, linkedExpense }: { tripId: string; place: Place; me: Pick<Member, "id" | "role">; tagNames: string[]; linkedExpense?: { id: string; amount: number } | null }) {
+export function PlaceDetail({ tripId, place, me, tagNames, linkedExpense, startDate, visits }: { tripId: string; place: Place; me: Pick<Member, "id" | "role">; tagNames: string[]; linkedExpense?: { id: string; amount: number } | null; startDate: string; visits: PlaceVisit[] }) {
   const style = placeTypeStyle[place.type];
   const stay = place.stay;
   return (
@@ -36,6 +38,7 @@ export function PlaceDetail({ tripId, place, me, tagNames, linkedExpense }: { tr
       {place.photos.length || canAddPlacePhoto(me) ? (
         <PlacePhotos tripId={tripId} placeId={place.id} placeName={place.name} photos={place.photos} me={me} className="rounded-tile bg-surface p-3.5" />
       ) : null}
+      <PlacePlanInfo tripId={tripId} place={place} startDate={startDate} visits={visits} className="rounded-tile bg-surface px-3.5" />
       <dl className="m-0 rounded-tile bg-surface px-3.5">
         {stay ? (
           <>
@@ -58,13 +61,6 @@ export function PlaceDetail({ tripId, place, me, tagNames, linkedExpense }: { tr
             {stay.bookingRef ? <Row label="เลขที่จอง">{stay.bookingRef}</Row> : null}
             {stay.address ? <Row label="ที่อยู่">{stay.address}</Row> : null}
           </>
-        ) : null}
-        {place.mapUrl ? (
-          <Row label="แผนที่">
-            <a href={place.mapUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center font-semibold text-primary">
-              เปิดใน Google Maps
-            </a>
-          </Row>
         ) : null}
         {tagNames.length ? <Row label="Tag">{tagNames.map((t) => `#${t}`).join(" ")}</Row> : null}
         <Row label="โน้ต">{place.note || <span className="text-ink-muted">ไม่มีโน้ต</span>}</Row>

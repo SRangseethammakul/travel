@@ -9,6 +9,7 @@ import {
   parsePlaceFilters,
   placeFiltersQuery,
   placeRowSub,
+  placeRowWhen,
   tagOptions,
   tripCities,
   type PlaceRow,
@@ -128,5 +129,16 @@ describe("Japan trip (PlacesJP mockup)", () => {
   it("offers only tags used in the selected city", () => {
     const osaka = filterPlaces(japan, parsePlaceFilters({ city: "osaka" }, japanCities));
     expect(tagOptions(osaka, tagNames).map((t) => t.name)).toEqual(["สตรีทฟู้ด", "ปิ้งย่าง", "ต้องจอง", "ราเมง"]);
+  });
+});
+
+describe("placeRowWhen", () => {
+  it("shows the time when the Place is on one day and that visit is timed", () => {
+    expect(placeRowWhen({ days: [2], time: "19:00" })).toBe("วัน 2 · 19:00");
+  });
+  it("lists days otherwise, and is null when Unscheduled", () => {
+    expect(placeRowWhen({ days: [2] })).toBe("วัน 2");
+    expect(placeRowWhen({ days: [1, 3], time: "09:00" })).toBe("วัน 1, 3");
+    expect(placeRowWhen({ days: [] })).toBeNull();
   });
 });

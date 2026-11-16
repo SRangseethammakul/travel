@@ -1,7 +1,7 @@
 /**
  * PickPlace (13), AddTransit + Hop (18) and TripRoute (16) helpers. Pure.
  */
-import type { CityLeg, Hop, HopMode, ID, Place, PlanItem, TransitMode, Trip } from "@/lib/api/types";
+import type { CityLeg, Hop, HopMode, ID, Place, PlanItem, TransitMode, TransitPlanItem, Trip } from "@/lib/api/types";
 import { itemDay, legCity, placeDays, tripDayCount } from "@/lib/plan";
 
 // ── PickPlace ───────────────────────────────────────────────────────────────
@@ -135,13 +135,15 @@ export interface TransitDraft {
   arriveDate: string;
   arriveTime: string;
   bookingRef: string;
+  /** "" = none */
+  seatInfo?: string;
   docIds: ID[];
   fromPlaceId?: ID;
   toPlaceId?: ID;
 }
 
 export type TransitResult =
-  | { ok: true; fromText: string; toText: string; fromCode?: string; toCode?: string; departAt: string; arriveAt: string; bookingRef?: string; docIds: ID[] }
+  | { ok: true; fromText: string; toText: string; fromCode?: string; toCode?: string; departAt: string; arriveAt: string; bookingRef?: string; seatInfo?: string; docIds: ID[] }
   | { ok: false; error: string };
 
 /** "สนามบินฮาเนดะ (HND)" → { text: "สนามบินฮาเนดะ", code: "HND" } */
@@ -164,6 +166,8 @@ export function checkTransitDraft(draft: TransitDraft, trip: Pick<Trip, "startDa
   // Times are local to each end (timezones are an open SPEC item), so arrival may look earlier than departure.
   const bookingRef = draft.bookingRef.trim();
   if (bookingRef.length > 40) return { ok: false, error: "เลขที่จองยาวเกินไป" };
+  const seatInfo = (draft.seatInfo ?? "").trim();
+  if (seatInfo.length > 200) return { ok: false, error: "ข้อมูลที่นั่งยาวเกินไป" };
   if (draft.docIds.some((id) => !docIds.includes(id))) return { ok: false, error: "มีเอกสารที่ไม่ได้อยู่ในทริปนี้" };
   return {
     ok: true,
@@ -174,7 +178,48 @@ export function checkTransitDraft(draft: TransitDraft, trip: Pick<Trip, "startDa
     departAt: `${draft.departDate}T${draft.departTime}`,
     arriveAt: `${draft.arriveDate}T${draft.arriveTime}`,
     ...(bookingRef ? { bookingRef } : {}),
+    ...(seatInfo ? { seatInfo } : {}),
     docIds: [...new Set(draft.docIds)],
+  };
+}
+
+/** Form draft of a saved Transit (edit form prefill). Code goes back into the text as "สนามบินฮาเนดะ (HND)". */
+export function transitDraftFromItem(item: TransitPlanItem): TransitDraft {
+  const end = (text: string, code?: string) => (code ? `${text} (${code})` : text);
+  return {
+    mode: item.mode,
+    fromText: end(item.fromText, item.fromCode),
+    toText: end(item.toText, item.toCode),
+    departDate: item.departAt.slice(0, 10),
+    departTime: item.departAt.slice(11, 16),
+    arriveDate: item.arriveAt.slice(0, 10),
+    arriveTime: item.arriveAt.slice(11, 16),
+    bookingRef: item.bookingRef ?? "",
+    seatInfo: item.seatInfo ?? "",
+    docIds: [...item.docIds],
+    ...(item.fromPlaceId ? { fromPlaceId: item.fromPlaceId } : {}),
+    ...(item.toPlaceId ? { toPlaceId: item.toPlaceId } : {}),
+  };
+}
+
+/**
+ * B26 body for a Transit edit. Every editable field is sent so what the user cleared is cleared:
+ * `null` removes an optional field (code, booking ref, seat, Place link). `expenseId` is left alone.
+ */
+export function transitPatchBody(checked: Extract<TransitResult, { ok: true }>, draft: Pick<TransitDraft, "mode" | "fromPlaceId" | "toPlaceId">) {
+  return {
+    mode: draft.mode,
+    fromText: checked.fromText,
+    toText: checked.toText,
+    fromCode: checked.fromCode ?? null,
+    toCode: checked.toCode ?? null,
+    departAt: checked.departAt,
+    arriveAt: checked.arriveAt,
+    bookingRef: checked.bookingRef ?? null,
+    seatInfo: checked.seatInfo ?? null,
+    docIds: checked.docIds,
+    fromPlaceId: draft.fromPlaceId ?? null,
+    toPlaceId: draft.toPlaceId ?? null,
   };
 }
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Icon, transitModeIcon } from "@/components/ui/Icon";
+import { MapButton } from "@/components/ui/MapButton";
 import { placeTypeStyle } from "@/components/ui/colors";
 import type { Place, PlanItem, TransitPlanItem, TripDocument } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
@@ -10,6 +11,7 @@ import { Money } from "@/components/ui/Money";
 import { arrivesLaterDay, hopText } from "@/lib/plan";
 import { HopButton } from "./HopButton";
 import { PlaceMenu, type PlaceMenuProps } from "./PlaceMenu";
+import { TransitMenu, type TransitMenuProps } from "./TransitMenu";
 
 interface TimelineProps {
   items: PlanItem[];
@@ -19,6 +21,8 @@ interface TimelineProps {
   base: string;
   /** Hop chips of these Plan Items become buttons that open the travel sheet (items the viewer may edit). */
   hopEdit?: { tripId: string; itemIds: string[]; /** Day chips of the edit sheet. */ days: { day: number; sub: string }[]; /** Days each Place is already on. */ taken: Record<string, number[]> };
+  /** Expenses linked to Transit cards, to ask about them when a Transit is deleted. */
+  expenses?: ReadonlyMap<string, { amount: number; canDelete: boolean }>;
   /** Overnight Transits landing on this day, shown first as read-only arrival rows. */
   arrivals?: { item: TransitPlanItem; departDay: number }[];
   /** Calendar date of this day (ISO), to tell a hotel's check-in / night / check-out apart. */
@@ -26,7 +30,7 @@ interface TimelineProps {
 }
 
 /** One day of the Planner: time column with a rail, place cards, purple Transit cards and Hop chips. */
-export function Timeline({ items, places, documents, base, hopEdit, arrivals = [], date }: TimelineProps) {
+export function Timeline({ items, places, documents, base, hopEdit, expenses, arrivals = [], date }: TimelineProps) {
   const itemName = (item: PlanItem | undefined) =>
     !item ? "" : item.kind === "place" ? (places.get(item.placeId)?.name ?? "") : (item.toCode ?? item.toText);
   return (
@@ -79,7 +83,21 @@ export function Timeline({ items, places, documents, base, hopEdit, arrivals = [
                   }
                 />
               ) : (
-                <TransitCard item={item} documents={documents} base={base} />
+                <TransitCard
+                  item={item}
+                  documents={documents}
+                  base={base}
+                  menu={
+                    hopEdit?.itemIds.includes(item.id)
+                      ? {
+                          tripId: hopEdit.tripId,
+                          itemId: item.id,
+                          name: `${item.fromCode ?? item.fromText} → ${item.toCode ?? item.toText}`,
+                          ...(item.expenseId && expenses?.get(item.expenseId) ? { expense: { id: item.expenseId, ...expenses.get(item.expenseId)! } } : {}),
+                        }
+                      : undefined
+                  }
+                />
               )}
               {!last && hopEdit?.itemIds.includes(item.id) ? (
                 <HopButton tripId={hopEdit.tripId} itemId={item.id} hop={item.travelToNext} title={`${itemName(item)} → ${itemName(items[i + 1])}`} />
@@ -130,13 +148,14 @@ function PlaceCard({ place, note, date, href, menu }: { place: Place | undefined
         {note ? <p className="m-0 text-[13px] text-ink-muted">{note}</p> : null}
         {place.note ? <p className="m-0 line-clamp-2 text-[13px] text-ink-muted">โน้ต: {place.note}</p> : null}
       </div>
+      {place.mapUrl ? <MapButton href={place.mapUrl} name={place.name} className="-my-2" /> : null}
       {menu ? <PlaceMenu {...menu} name={place.name} note={note} isStay={!!stay} /> : null}
       <Icon name="chevronRight" size={16} className="shrink-0 text-ink-subtle" />
     </article>
   );
 }
 
-function TransitCard({ item, documents, base }: { item: TransitPlanItem; documents: ReadonlyMap<string, TripDocument>; base: string }) {
+function TransitCard({ item, documents, base, menu }: { item: TransitPlanItem; documents: ReadonlyMap<string, TripDocument>; base: string; menu?: TransitMenuProps }) {
   const ref = [item.bookingRef ? `เลขที่จอง ${item.bookingRef}` : null, item.seatInfo].filter(Boolean).join(" · ");
   const docs = item.docIds.map((id) => documents.get(id)).filter((d): d is TripDocument => !!d);
   const chip = "flex min-h-9 items-center gap-1.5 rounded-[10px] border border-transit-line bg-surface px-2.5 text-[13px] font-semibold text-ink";
@@ -154,6 +173,7 @@ function TransitCard({ item, documents, base }: { item: TransitPlanItem; documen
             {item.fromCode ?? item.fromText} → {item.toCode ?? item.toText}
           </h3>
         </div>
+        {menu ? <TransitMenu {...menu} /> : null}
       </div>
       {ref ? <span className="text-xs text-transit-ink-strong">{ref}</span> : null}
       {docs.length || item.expenseId ? (

@@ -4,7 +4,7 @@ import { Fab } from "@/components/ui/Fab";
 import { IconLink } from "@/components/ui/IconButton";
 import { getPlaces, getPlanItems, getTripTags, requireTripMember } from "@/lib/api";
 import { canEditPlan } from "@/lib/permissions";
-import { placeDays } from "@/lib/plan";
+import { placeDays, placeVisits } from "@/lib/plan";
 import { parsePlaceFilters, tripCities, type PlaceRow } from "@/lib/places";
 
 export default async function PlacesPage({ params, searchParams }: PageProps<"/trips/[tripId]/places">) {
@@ -13,18 +13,26 @@ export default async function PlacesPage({ params, searchParams }: PageProps<"/t
   const [places, plan, tags] = await Promise.all([getPlaces(tripId), getPlanItems(tripId), getTripTags(tripId)]);
 
   const days = placeDays(plan, trip);
-  const rows: PlaceRow[] = places.map((p) => ({
+  const visits = placeVisits(plan, trip);
+  const rows: PlaceRow[] = places.map((p) => {
+    const placeDaysList = days.get(p.id) ?? [];
+    const v = visits.get(p.id) ?? [];
+    const time = v.length === 1 ? v[0].time : null;
+    return {
     id: p.id,
     name: p.name,
     type: p.type,
     city: p.city,
     area: p.area,
     tagIds: p.tagIds,
-    days: days.get(p.id) ?? [],
+    days: placeDaysList,
+    ...(time ? { time } : {}),
+    ...(p.mapUrl ? { mapUrl: p.mapUrl } : {}),
     note: p.note,
     ...(p.photos[0] ? { photo: { id: p.photos[0].id, url: p.photos[0].url } } : {}),
     ...(p.stay ? { stay: { checkIn: p.stay.checkIn, checkOut: p.stay.checkOut } } : {}),
-  }));
+    };
+  });
   const cities = tripCities(rows, trip.legs);
   const filters = parsePlaceFilters(await searchParams, cities);
   const unscheduled = rows.filter((r) => !r.days.length).length;

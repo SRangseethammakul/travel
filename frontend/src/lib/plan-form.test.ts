@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PlanItem } from "@/lib/api/types";
-import { checkHop, checkLegs, checkTransitDraft, checkVisitDraft, checkVisitEdit, legStrip, nextFreeDays, pickSections, splitPlaceCode } from "./plan-form";
+import { checkHop, checkLegs, checkTransitDraft, checkVisitDraft, checkVisitEdit, legStrip, nextFreeDays, pickSections, splitPlaceCode, transitDraftFromItem, transitPatchBody } from "./plan-form";
 
 const trip = { startDate: "2026-12-12", endDate: "2026-12-15" };
 const places = [
@@ -65,6 +65,32 @@ describe("transit", () => {
     expect(r.ok && [r.departAt, r.arriveAt, r.fromCode, r.toCode]).toEqual(["2026-12-15T18:00", "2026-12-15T23:30", "HND", "BKK"]);
     expect(checkTransitDraft({ ...draft, departDate: "2026-12-20" }, trip, ["doc-flight"]).ok).toBe(false);
     expect(checkTransitDraft({ ...draft, docIds: ["other"] }, trip, ["doc-flight"]).ok).toBe(false);
+  });
+});
+
+describe("transit edit", () => {
+  const saved = {
+    kind: "transit" as const, id: "tr", tripId: "t", mode: "plane" as const, fromCode: "HND", fromText: "สนามบินฮาเนดะ", toCode: "BKK", toText: "สุวรรณภูมิ",
+    departAt: "2026-12-15T18:00", arriveAt: "2026-12-15T23:30", bookingRef: "ABC123", docIds: ["doc-flight"], expenseId: "e1", fromPlaceId: "hnd", createdBy: "act",
+  };
+  it("prefills the form from a saved Transit, code back inside the text", () => {
+    expect(transitDraftFromItem(saved)).toEqual({
+      mode: "plane", fromText: "สนามบินฮาเนดะ (HND)", toText: "สุวรรณภูมิ (BKK)", departDate: "2026-12-15", departTime: "18:00", arriveDate: "2026-12-15", arriveTime: "23:30",
+      bookingRef: "ABC123", seatInfo: "", docIds: ["doc-flight"], fromPlaceId: "hnd",
+    });
+  });
+  it("round-trips unchanged and sends null for cleared optional fields, never expenseId", () => {
+    const draft = transitDraftFromItem(saved);
+    const same = checkTransitDraft(draft, trip, ["doc-flight"]);
+    expect(same.ok && transitPatchBody(same, draft)).toEqual({
+      mode: "plane", fromText: "สนามบินฮาเนดะ", toText: "สุวรรณภูมิ", fromCode: "HND", toCode: "BKK", departAt: "2026-12-15T18:00", arriveAt: "2026-12-15T23:30",
+      bookingRef: "ABC123", seatInfo: null, docIds: ["doc-flight"], fromPlaceId: "hnd", toPlaceId: null,
+    });
+    const cleared = { ...draft, fromText: "ฮาเนดะ", bookingRef: "", docIds: [], fromPlaceId: undefined, seatInfo: "12A", departTime: "19:15" };
+    const r = checkTransitDraft(cleared, trip, []);
+    const body = r.ok ? transitPatchBody(r, cleared) : null;
+    expect(body).toMatchObject({ fromCode: null, bookingRef: null, docIds: [], fromPlaceId: null, seatInfo: "12A", departAt: "2026-12-15T19:15" });
+    expect(body).not.toHaveProperty("expenseId");
   });
 });
 

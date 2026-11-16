@@ -1,14 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { useId, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { fieldClass, fieldLabelClass, pillClass } from "@/components/ui/field";
-import { saveTransit, uploadTripDocument } from "@/lib/api/plan-actions";
+import { saveTransit, updateTransitAction, uploadTripDocument } from "@/lib/api/plan-actions";
 import type { ID, TransitMode } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
 import { formatBahtInput, parseBahtInput } from "@/lib/money/input";
-import { TRANSIT_MODES } from "@/lib/plan-form";
+import { TRANSIT_MODES, type TransitDraft } from "@/lib/plan-form";
 
 const MODE_LABEL: Record<TransitMode, string> = {
   plane: "เครื่องบิน",
@@ -27,25 +28,29 @@ interface TransitFormProps {
   /** Airport / station / hotel Places to fill ต้นทาง or ปลายทาง. */
   placeOptions: { id: ID; name: string }[];
   canAddExpense: boolean;
+  /** Edit mode: the saved Transit, prefilled. Its linked expense is shown as a link instead of offering a second one. */
+  edit?: { itemId: ID; draft: TransitDraft; expenseHref?: string };
 }
 
 const smallField = "h-10 min-w-0 rounded-[10px] border border-line bg-surface px-2 text-base text-ink";
 
 /** AddTransit (18): a booked journey shown as a purple card in the Planner. */
-export function TransitForm({ tripId, trip, defaultDate, documents, placeOptions, canAddExpense }: TransitFormProps) {
+export function TransitForm({ tripId, trip, defaultDate, documents, placeOptions, canAddExpense, edit }: TransitFormProps) {
   const ids = useId();
-  const [mode, setMode] = useState<TransitMode>("plane");
-  const [fromText, setFromText] = useState("");
-  const [toText, setToText] = useState("");
-  const [fromPlaceId, setFromPlaceId] = useState<ID | undefined>();
-  const [toPlaceId, setToPlaceId] = useState<ID | undefined>();
-  const [departDate, setDepartDate] = useState(defaultDate);
-  const [departTime, setDepartTime] = useState("");
-  const [arriveDate, setArriveDate] = useState(defaultDate);
-  const [arriveTime, setArriveTime] = useState("");
-  const [bookingRef, setBookingRef] = useState("");
+  const init = edit?.draft;
+  const [mode, setMode] = useState<TransitMode>(init?.mode ?? "plane");
+  const [fromText, setFromText] = useState(init?.fromText ?? "");
+  const [toText, setToText] = useState(init?.toText ?? "");
+  const [fromPlaceId, setFromPlaceId] = useState<ID | undefined>(init?.fromPlaceId);
+  const [toPlaceId, setToPlaceId] = useState<ID | undefined>(init?.toPlaceId);
+  const [departDate, setDepartDate] = useState(init?.departDate ?? defaultDate);
+  const [departTime, setDepartTime] = useState(init?.departTime ?? "");
+  const [arriveDate, setArriveDate] = useState(init?.arriveDate ?? defaultDate);
+  const [arriveTime, setArriveTime] = useState(init?.arriveTime ?? "");
+  const [bookingRef, setBookingRef] = useState(init?.bookingRef ?? "");
+  const [seatInfo, setSeatInfo] = useState(init?.seatInfo ?? "");
   const [docs, setDocs] = useState(documents);
-  const [docIds, setDocIds] = useState<ID[]>([]);
+  const [docIds, setDocIds] = useState<ID[]>(init?.docIds ?? []);
   const [withCost, setWithCost] = useState(false);
   const [costText, setCostText] = useState("");
   const [error, setError] = useState("");
@@ -87,11 +92,8 @@ export function TransitForm({ tripId, trip, defaultDate, documents, placeOptions
     if (!canSave) return;
     setError("");
     startTransition(async () => {
-      const r = await saveTransit(
-        tripId,
-        { mode, fromText, toText, departDate, departTime, arriveDate, arriveTime, bookingRef, docIds, fromPlaceId, toPlaceId },
-        withCost ? cost : null,
-      );
+      const draft = { mode, fromText, toText, departDate, departTime, arriveDate, arriveTime, bookingRef, seatInfo, docIds, fromPlaceId, toPlaceId };
+      const r = edit ? await updateTransitAction(tripId, edit.itemId, draft) : await saveTransit(tripId, draft, withCost ? cost : null);
       if (r?.error) setError(r.error);
     });
   };
@@ -155,9 +157,11 @@ export function TransitForm({ tripId, trip, defaultDate, documents, placeOptions
   return (
     <>
       <main className="flex flex-1 flex-col gap-5 px-5 pt-1 pb-5">
-        <p className="m-0 text-[13px] leading-normal text-ink-muted">
-          สำหรับการเดินทางที่จองไว้ เช่น เที่ยวบิน ชินคันเซ็น รถทัวร์ รับรถเช่า ส่วนการเดินทางสั้นๆ ระหว่างสถานที่ ให้กดช่องระหว่างรายการในหน้าแผน
-        </p>
+        {edit ? null : (
+          <p className="m-0 text-[13px] leading-normal text-ink-muted">
+            สำหรับการเดินทางที่จองไว้ เช่น เที่ยวบิน ชินคันเซ็น รถทัวร์ รับรถเช่า ส่วนการเดินทางสั้นๆ ระหว่างสถานที่ ให้กดช่องระหว่างรายการในหน้าแผน
+          </p>
+        )}
 
         <fieldset className="m-0 flex flex-col border-0 p-0">
           <legend className={cn(fieldLabelClass, "mb-2 p-0")}>ประเภท</legend>
@@ -199,6 +203,13 @@ export function TransitForm({ tripId, trip, defaultDate, documents, placeOptions
           <input id={`${ids}-ref`} type="text" maxLength={40} value={bookingRef} onChange={(e) => setBookingRef(e.target.value)} placeholder="เช่น เลขเที่ยวบิน หรือรหัสการจอง" className={fieldClass} />
         </div>
 
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={`${ids}-seat`} className={fieldLabelClass}>
+            ที่นั่ง (ไม่บังคับ)
+          </label>
+          <input id={`${ids}-seat`} type="text" maxLength={200} value={seatInfo} onChange={(e) => setSeatInfo(e.target.value)} placeholder="เช่น 12A หรือ ตู้ 5 ที่นั่ง 3" className={fieldClass} />
+        </div>
+
         <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
           <legend className={cn(fieldLabelClass, "mb-2 p-0")}>แนบเอกสารจากทริป</legend>
           {docs.map((d) => {
@@ -236,7 +247,14 @@ export function TransitForm({ tripId, trip, defaultDate, documents, placeOptions
           ) : null}
         </fieldset>
 
-        {canAddExpense ? (
+        {edit?.expenseHref ? (
+          <Link href={edit.expenseHref} className="flex min-h-12 items-center justify-between gap-3 rounded-2xl bg-bg px-3.5 text-sm font-semibold text-ink no-underline hover:bg-line-soft hover:text-ink">
+            ดูค่าใช้จ่ายที่บันทึกไว้
+            <Icon name="chevronRight" size={16} className="text-ink-subtle" />
+          </Link>
+        ) : null}
+
+        {canAddExpense && !edit ? (
           <section className="flex flex-col gap-2.5 rounded-2xl bg-bg p-3.5">
             <button
               type="button"
@@ -284,7 +302,7 @@ export function TransitForm({ tripId, trip, defaultDate, documents, placeOptions
           </p>
         ) : null}
         <Button size="lg" block disabled={!canSave} onClick={save} aria-busy={pending || undefined} className="h-[54px]">
-          {pending ? "กำลังบันทึก…" : !ready ? "ใส่ต้นทาง ปลายทาง และเวลา" : withCost ? "บันทึก แล้วไปหารค่าเดินทาง" : "บันทึกลงแผน"}
+          {pending ? "กำลังบันทึก…" : !ready ? "ใส่ต้นทาง ปลายทาง และเวลา" : edit ? "บันทึกการแก้ไข" : withCost ? "บันทึก แล้วไปหารค่าเดินทาง" : "บันทึกลงแผน"}
         </Button>
       </footer>
     </>

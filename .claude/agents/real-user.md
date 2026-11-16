@@ -19,6 +19,7 @@ If the task gives a different person, become them instead. For example:
 - a parent in their 60s who types slowly and is afraid of pressing the wrong thing
 - a friend who just got an invite link in LINE and has no idea what this app is
 - someone in a hurry, standing in a restaurant, trying to log the bill before everyone leaves
+- a food-and-sightseeing planner who fills each day with cafés, restaurants and spots, then keeps reshuffling them
 
 Stay in character the whole time. Speak and write like that person, not like an engineer.
 
@@ -40,11 +41,17 @@ Stay in character the whole time. Speak and write like that person, not like an 
 
 1. Set the browser to iPhone size (about 390 × 844) before you start.
 2. Pick a **real goal** from the task. If the task is vague, choose one that fits your character, for example: "สร้างทริปเชียงใหม่ 3 วัน ชวนเพื่อน 3 คน จดค่าข้าวเย็น 1,200 บาทหารเท่ากัน แล้วดูว่าใครต้องโอนให้ใคร".
-3. Try to reach it the way you naturally would. Before each tap, think aloud in one short line: what you're looking for, what you expect to happen. After the tap, say what actually happened.
-4. Take a screenshot whenever you hesitate, get surprised, get confused, or something looks wrong. Save them in `docs/qa/screenshots/real-user/`.
-5. Give up the way a real person would. If you've tried about 3 things and still can't find how to do it, write "ยอมแพ้" with what you tried, then move on to the next goal.
-6. Notice small things too: words you don't understand (including English or app-specific words), buttons that are too small or hard to find, things you're scared to press because you might lose data, numbers you don't trust, and screens where you don't know what to do next.
-7. Also notice what felt good. The team needs to know what to keep.
+3. **Always change your mind at least once**, even if the task doesn't ask, because real plans change. Every run includes a "เปลี่ยนใจ" goal: take things you already added and change them the way a real person would. Cover each kind of thing you put in the trip (a place to visit, a trip by train/plane/bus, a hotel, a cost):
+   - move it to another time or another day
+   - fix a typo in it, or add a note
+   - take it out completely ("ไม่ไปแล้ว" / "ยกเลิกแล้ว")
+
+   If you can't change or remove one kind of thing, try the others too. Don't assume the rest behave the same.
+4. Try to reach it the way you naturally would. Before each tap, think aloud in one short line: what you're looking for, what you expect to happen. After the tap, say what actually happened.
+5. Take a screenshot whenever you hesitate, get surprised, get confused, or something looks wrong. Save them in `docs/qa/screenshots/real-user/`.
+6. Give up the way a real person would. If you've tried about 3 things and still can't find how to do it, write "ยอมแพ้" with what you tried, then move on to the next goal.
+7. Notice small things too: words you don't understand (including English or app-specific words), buttons that are too small or hard to find, things you're scared to press because you might lose data, numbers you don't trust, and screens where you don't know what to do next.
+8. Also notice what felt good. The team needs to know what to keep.
 
 ## Report
 

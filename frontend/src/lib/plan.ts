@@ -3,8 +3,8 @@
  * Plan Items arrive already sorted by day then time (lib/api getPlanItems).
  */
 import type { CityLeg, Hop, ID, Place, PlanItem, TransitPlanItem, Trip } from "@/lib/api/types";
-import { addDays, daysBetween, tripLength, tripPhase, type ISODate } from "@/lib/date";
-import { hopModeLabel } from "@/lib/labels";
+import { addDays, daysBetween, formatDayMonth, tripLength, tripPhase, type ISODate } from "@/lib/date";
+import { hopModeLabel, transitModeLabel } from "@/lib/labels";
 
 type TripDates = Pick<Trip, "startDate" | "endDate">;
 
@@ -38,23 +38,9 @@ export function arrivalsOnDay(items: readonly PlanItem[], trip: Pick<Trip, "star
   );
 }
 
-/** Days (sorted, unique) each Place appears on, as a visit or as a transit endpoint. */
+/** Days (sorted, unique) each Place appears on, as a visit or as a transit endpoint. Derived from placeVisits so both always agree. */
 export function placeDays(items: readonly PlanItem[], trip: Pick<Trip, "startDate">): Map<ID, number[]> {
-  const map = new Map<ID, Set<number>>();
-  const add = (id: ID | undefined, day: number) => {
-    if (!id) return;
-    if (!map.has(id)) map.set(id, new Set());
-    map.get(id)!.add(day);
-  };
-  for (const item of items) {
-    const day = itemDay(item, trip);
-    if (item.kind === "place") add(item.placeId, day);
-    else {
-      add(item.fromPlaceId, day);
-      add(item.toPlaceId, day);
-    }
-  }
-  return new Map([...map].map(([id, days]) => [id, [...days].sort((a, b) => a - b)]));
+  return new Map([...placeVisits(items, trip)].map(([id, visits]) => [id, [...new Set(visits.map((v) => v.day))]]));
 }
 
 /** Unscheduled Places: no Plan Item yet (library order kept). */
@@ -182,4 +168,51 @@ export function stayTransitWarnings(places: readonly Place[], plan: readonly Pla
     out.push(`เช็คอิน ${b.name} วันที่ ${dayOf(b.stay.checkIn)} แต่เดินทางเข้า${b.city}วันที่ ${dayOf(t.departAt.slice(0, 10))}`);
   }
   return out;
+}
+
+export interface PlaceVisit {
+  day: number;
+  /** "19:00", or null when not timed yet. */
+  time: string | null;
+  /** Set for a transit endpoint: "บินออก (เครื่องบิน → NRT)" / "ถึง (เครื่องบิน จาก BKK)". */
+  label?: string;
+}
+
+/**
+ * Every appearance of each Place in the plan, by day then time (untimed last): place visits plus
+ * transit endpoints (leaving from / arriving at). The one source for the Places list and the detail.
+ * A transit leaves on its departure day and arrives on its arrival day (later for overnight).
+ */
+export function placeVisits(items: readonly PlanItem[], trip: Pick<Trip, "startDate">): Map<ID, PlaceVisit[]> {
+  const map = new Map<ID, PlaceVisit[]>();
+  const add = (id: ID | undefined, visit: PlaceVisit) => {
+    if (!id) return;
+    if (!map.has(id)) map.set(id, []);
+    map.get(id)!.push(visit);
+  };
+  for (const item of items) {
+    if (item.kind === "place") {
+      add(item.placeId, { day: item.day, time: item.time });
+      continue;
+    }
+    const mode = transitModeLabel[item.mode];
+    add(item.fromPlaceId, {
+      day: itemDay(item, trip),
+      time: item.departAt.slice(11, 16),
+      label: `ออกเดินทาง (${mode} → ${item.toCode ?? item.toText})`,
+    });
+    add(item.toPlaceId, {
+      day: daysBetween(trip.startDate, item.arriveAt.slice(0, 10)) + 1,
+      time: item.arriveAt.slice(11, 16),
+      label: `ถึง (${mode} จาก ${item.fromCode ?? item.fromText})`,
+    });
+  }
+  for (const list of map.values()) list.sort((a, b) => a.day - b.day || (a.time ?? "99:99").localeCompare(b.time ?? "99:99"));
+  return map;
+}
+
+/** "วัน 2 · ศ. 18 ธ.ค. · 19:00" / "… · ยังไม่ระบุเวลา"; transit endpoints add their label. */
+export function formatVisitLine(visit: PlaceVisit, startDate: ISODate): string {
+  const line = `วัน ${visit.day} · ${formatDayMonth(addDays(startDate, visit.day - 1))} · ${visit.time ?? "ยังไม่ระบุเวลา"}`;
+  return visit.label ? `${line} · ${visit.label}` : line;
 }
