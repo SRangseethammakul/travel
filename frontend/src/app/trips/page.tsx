@@ -15,7 +15,7 @@ import { outstandingBalances } from "@/lib/money/balance";
 import { formatMoney } from "@/lib/money/format";
 import { parseTripsTab, tripCardStatus, tripTab, type TripsTab } from "@/lib/trips";
 
-export const metadata: Metadata = { title: "ทริปของฉัน · [ชื่อแอป]" };
+export const metadata: Metadata = { title: "ทริปของฉัน · Plan Trip" };
 
 function first(v: string | string[] | undefined) {
   return Array.isArray(v) ? v[0] : v;

@@ -5,7 +5,7 @@ import { getInvitePreview } from "@/lib/api";
 import { signIn } from "@/lib/api/auth-actions";
 import { joinTokenFromPath, safeNextPath } from "@/lib/next-path";
 
-export const metadata: Metadata = { title: "เข้าสู่ระบบ · [ชื่อแอป]" };
+export const metadata: Metadata = { title: "เข้าสู่ระบบ · Plan Trip" };
 
 function first(v: string | string[] | undefined) {
   return Array.isArray(v) ? v[0] : v;
@@ -46,7 +46,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
               <path d="M3 13h18" />
             </svg>
           </span>
-          <h1 className="m-0 font-display text-[26px] font-semibold">[ชื่อแอป]</h1>
+          <h1 className="m-0 font-display text-[26px] font-semibold">Plan Trip</h1>
           <p className="m-0 leading-[1.55] text-ink-subtle">
             วางแผนเที่ยวกับเพื่อน จดค่าใช้จ่าย
             <br />

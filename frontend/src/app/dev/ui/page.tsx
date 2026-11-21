@@ -23,7 +23,7 @@ import {
 import { getCurrentMember, getCurrentUser, getMembers, getTripBalances } from "@/lib/api";
 import { TRIP_IDS } from "@/test/fixtures/seed";
 
-export const metadata: Metadata = { title: "UI components · [ชื่อแอป]", robots: { index: false } };
+export const metadata: Metadata = { title: "UI components · Plan Trip", robots: { index: false } };
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (

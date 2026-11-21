@@ -9,7 +9,7 @@ import { getInvite, getMembers, inviteExpiryOption, isInviteActive, requireTripM
 import { formatTimestamp } from "@/lib/date";
 import { canManageMembers } from "@/lib/permissions";
 
-export const metadata: Metadata = { title: "สมาชิกและสิทธิ์ · [ชื่อแอป]" };
+export const metadata: Metadata = { title: "สมาชิกและสิทธิ์ · Plan Trip" };
 
 const ROLE_HELP = [
   ["ผู้จัดทริป", "แก้ได้ทุกอย่าง จัดการสมาชิกและลิงก์เชิญ ลบทริป"],

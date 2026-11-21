@@ -4,7 +4,7 @@ import { BackHeader } from "@/components/ui/BackHeader";
 import { getCurrentUser } from "@/lib/api";
 import { addDays, todayISO } from "@/lib/date";
 
-export const metadata: Metadata = { title: "สร้างทริปใหม่ · [ชื่อแอป]" };
+export const metadata: Metadata = { title: "สร้างทริปใหม่ · Plan Trip" };
 
 export default async function CreateTripPage() {
   const user = await getCurrentUser();

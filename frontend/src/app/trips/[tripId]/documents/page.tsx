@@ -4,7 +4,7 @@ import { BackHeader } from "@/components/ui/BackHeader";
 import { getDocuments, getDocumentUrl, getMembers, requireTripMember } from "@/lib/api";
 import { canDeleteDocument, canUploadDocument } from "@/lib/permissions";
 
-export const metadata: Metadata = { title: "เอกสารของทริป · [ชื่อแอป]" };
+export const metadata: Metadata = { title: "เอกสารของทริป · Plan Trip" };
 
 /** Trip documents (A6 list, B13 open, B12 upload, B14 delete). Self-designed: SPEC lists this page as open. */
 export default async function DocumentsPage({ params }: PageProps<"/trips/[tripId]/documents">) {
