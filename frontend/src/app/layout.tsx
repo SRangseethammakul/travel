@@ -18,7 +18,7 @@ const plexThai = IBM_Plex_Sans_Thai({
 });
 
 export const metadata: Metadata = {
-  title: "[ชื่อแอป]",
+  title: "Plan Trip",
   description: "วางแผนเที่ยวเป็นกลุ่ม จดค่าใช้จ่าย หารเงิน และโอนคืน",
 };
 

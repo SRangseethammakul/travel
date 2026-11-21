@@ -5,7 +5,7 @@ import { BackHeader } from "@/components/ui/BackHeader";
 import { requireTripMember } from "@/lib/api";
 import { canEditTripStructure } from "@/lib/permissions";
 
-export const metadata: Metadata = { title: "แก้ไขทริป · [ชื่อแอป]" };
+export const metadata: Metadata = { title: "แก้ไขทริป · Plan Trip" };
 
 /** "แก้ไขทริป" (owner only, B2). No mockup: CreateTrip's fields, kept minimal. */
 export default async function EditTripPage({ params }: PageProps<"/trips/[tripId]/edit">) {

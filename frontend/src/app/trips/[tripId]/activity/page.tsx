@@ -19,7 +19,7 @@ import { cn } from "@/lib/cn";
 import { formatTimestamp } from "@/lib/date";
 import { formatMoney } from "@/lib/money/format";
 
-export const metadata: Metadata = { title: "ความเคลื่อนไหว · [ชื่อแอป]" };
+export const metadata: Metadata = { title: "ความเคลื่อนไหว · Plan Trip" };
 
 const TAG: Record<ActivityType, { label: string; className: string }> = {
   expense: { label: "฿", className: "bg-todo-soft text-todo" },

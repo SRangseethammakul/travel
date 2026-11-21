@@ -9,7 +9,7 @@ import { getInvitePreview, getSessionUserId } from "@/lib/api";
 import { formatDateRange, formatTripLength } from "@/lib/date";
 import { formatMoney } from "@/lib/money/format";
 
-export const metadata: Metadata = { title: "เข้าร่วมทริป · [ชื่อแอป]" };
+export const metadata: Metadata = { title: "เข้าร่วมทริป · Plan Trip" };
 
 function first(v: string | string[] | undefined) {
   return Array.isArray(v) ? v[0] : v;

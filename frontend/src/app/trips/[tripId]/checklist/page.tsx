@@ -8,7 +8,7 @@ import { groupChecklist, remainingSuggestions } from "@/lib/checklist";
 import { formatCountdown, todayISO } from "@/lib/date";
 import { canEditChecklistItem, canTickChecklistItem } from "@/lib/permissions";
 
-export const metadata: Metadata = { title: "เช็คลิสต์ · [ชื่อแอป]" };
+export const metadata: Metadata = { title: "เช็คลิสต์ · Plan Trip" };
 
 function first(v: string | string[] | undefined) {
   return Array.isArray(v) ? v[0] : v;
