@@ -63,3 +63,15 @@ export function settleAmount(text: string, remaining: Satang): { amount: Satang 
   if (amount > remaining) return { error: `ยอดโอนต้องไม่เกินยอดที่ค้าง ${formatMoney(remaining)}` };
   return { amount };
 }
+
+/**
+ * The transfer strip on the Expenses page: what I still have to pay (pending,
+ * sent, waiting — a pair's sent row stays before its waiting row) and what
+ * others reported to me that I can confirm (sent only). Confirmed rows are not listed.
+ */
+export function transferStrip(rows: readonly TransferRow[], meId: ID): { toPay: TransferRow[]; toConfirm: TransferRow[] } {
+  return {
+    toPay: rows.filter((r) => r.fromId === meId && r.status !== "confirmed"),
+    toConfirm: rows.filter((r) => r.toId === meId && r.status === "sent"),
+  };
+}

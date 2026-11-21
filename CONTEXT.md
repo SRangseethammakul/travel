@@ -49,7 +49,7 @@ A **Member**'s **Net Balance** after subtracting **Settlements** that are confir
 _Avoid_: Balance, remaining, debt
 
 **Settlement**:
-A real money transfer from one **Member** to another to pay down **Outstanding**. It is pending until sent, sent until the receiver confirms it, and only then confirmed.
+A real money transfer from one **Member** to another to pay down **Outstanding**. It is pending until sent, sent until the receiver confirms it, and only then confirmed. Its amount may be less than the **Suggested Transfer** (paying part now, the rest later), but a pair has at most one sent Settlement at a time.
 _Avoid_: Payment, repayment, transfer
 
 **Suggested Transfer**:

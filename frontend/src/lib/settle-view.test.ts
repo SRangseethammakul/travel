@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TransferRow } from "./expenses";
-import { myOtherRows, pickSettleRow, settleAmount, settleViewer, waitingAmount } from "./settle-view";
+import { myOtherRows, pickSettleRow, settleAmount, settleViewer, transferStrip, waitingAmount } from "./settle-view";
 
 // Tokyo trip: Mint → Act confirmed ฿3,100, Beam → Act sent ฿5,800, Ploy → Act pending ฿5,150.
 const rows: TransferRow[] = [
@@ -77,5 +77,23 @@ describe("settleAmount", () => {
   it("refuses more than 2 decimals or non-numbers", () => {
     expect(settleAmount("12.345", 65_000)).toEqual({ error: "ใส่ยอดเป็นตัวเลข ทศนิยมไม่เกิน 2 ตำแหน่ง" });
     expect(settleAmount("abc", 65_000)).toEqual({ error: "ใส่ยอดเป็นตัวเลข ทศนิยมไม่เกิน 2 ตำแหน่ง" });
+  });
+});
+
+describe("transferStrip", () => {
+  it("payer sees pending rows to pay; receiver sees sent rows to confirm", () => {
+    expect(transferStrip(rows, "ploy")).toEqual({ toPay: [rows[2]], toConfirm: [] });
+    expect(transferStrip(rows, "act")).toEqual({ toPay: [], toConfirm: [rows[1]] });
+  });
+  it("omits confirmed rows, so a settled member sees nothing", () => {
+    expect(transferStrip(rows, "mint")).toEqual({ toPay: [], toConfirm: [] });
+  });
+  it("keeps a partial report's sent row before its waiting remainder", () => {
+    const partial: TransferRow[] = [
+      { key: "beam>act", fromId: "beam", toId: "act", amount: 300_000, status: "sent" },
+      { key: "beam>act:rest", fromId: "beam", toId: "act", amount: 280_000, status: "waiting" },
+    ];
+    expect(transferStrip(partial, "beam").toPay.map((r) => r.status)).toEqual(["sent", "waiting"]);
+    expect(transferStrip(partial, "act").toConfirm.map((r) => r.amount)).toEqual([300_000]);
   });
 });
