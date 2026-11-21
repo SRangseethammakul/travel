@@ -9,7 +9,7 @@ import { Icon } from "@/components/ui/Icon";
 import { addChecklistItemAction, assignChecklistItem, removeChecklistItem, toggleChecklistItem } from "@/lib/api/checklist-actions";
 import type { ChecklistScope, ColorKey, ID } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
-import { MAX_CHECKLIST_TEXT } from "@/lib/checklist";
+import { CUSTOM_CATEGORY, MAX_CHECKLIST_CATEGORY, MAX_CHECKLIST_TEXT, matchCategory } from "@/lib/checklist";
 
 export interface ChecklistRow {
   id: ID;
@@ -48,8 +48,18 @@ function ErrorText({ children }: { children: string }) {
 /** Rows, suggestions and the add bar of one checklist scope. */
 export function ChecklistView({ tripId, scope, groups, people, suggestions, canAdd }: ChecklistViewProps) {
   const inputId = useId();
+  const categoryInputId = useId();
   const isGroup = scope === "group";
   const [draft, setDraft] = useState("");
+  const [category, setCategory] = useState(CUSTOM_CATEGORY);
+  // Existing categories first, "เพิ่มเอง" last — new items can join any of them.
+  const categories = [...groups.map((g) => g.category).filter((c) => c !== CUSTOM_CATEGORY), CUSTOM_CATEGORY];
+  const pickedCategory = categories.includes(category) ? category : CUSTOM_CATEGORY;
+  // null = picking a chip; a string = typing a new category name.
+  const [newCategory, setNewCategory] = useState<string | null>(null);
+  const creating = newCategory !== null;
+  const targetCategory = creating ? matchCategory(newCategory, categories) : pickedCategory;
+  const canSubmit = Boolean(draft.trim()) && (!creating || Boolean(targetCategory));
   const [assigning, setAssigning] = useState<ChecklistRow | null>(null);
   const [removing, setRemoving] = useState<ChecklistRow | null>(null);
   const [error, setError] = useState("");
@@ -64,10 +74,10 @@ export function ChecklistView({ tripId, scope, groups, people, suggestions, canA
       else after?.();
     });
 
-  const add = (text: string, clearDraft: boolean) => {
+  const add = (text: string, cat: string = CUSTOM_CATEGORY, after?: () => void) => {
     const clean = text.trim();
-    if (!clean) return;
-    run(() => addChecklistItemAction(tripId, scope, clean), clearDraft ? () => setDraft("") : undefined);
+    if (!clean || !cat) return;
+    run(() => addChecklistItemAction(tripId, scope, clean, cat), after);
   };
 
   return (
@@ -159,7 +169,7 @@ export function ChecklistView({ tripId, scope, groups, people, suggestions, canA
                   key={s}
                   type="button"
                   disabled={pending}
-                  onClick={() => add(s, false)}
+                  onClick={() => add(s)}
                   aria-label={`เพิ่ม ${s}`}
                   className="relative flex min-h-9 cursor-pointer items-center gap-1 rounded-full border border-dashed border-primary bg-primary-wash px-3 text-[13px] font-semibold text-primary-ink before:absolute before:inset-x-0 before:-inset-y-1 before:content-[''] hover:bg-primary-soft disabled:cursor-wait"
                 >
@@ -174,26 +184,88 @@ export function ChecklistView({ tripId, scope, groups, people, suggestions, canA
 
       {canAdd ? (
         <form
-          className="sticky bottom-0 z-10 flex gap-2 border-t border-line bg-surface px-5 pt-3 pb-[calc(28px+env(safe-area-inset-bottom))]"
+          className="sticky bottom-0 z-10 flex flex-col gap-2 border-t border-line bg-surface px-5 pt-3 pb-[calc(28px+env(safe-area-inset-bottom))]"
           onSubmit={(e) => {
             e.preventDefault();
-            add(draft, true);
+            if (!canSubmit) return;
+            const cat = targetCategory;
+            add(draft, cat, () => {
+              setDraft("");
+              setNewCategory(null);
+              setCategory(cat);
+            });
           }}
         >
-          <label htmlFor={inputId} className="sr-only">
-            เพิ่มรายการใหม่
-          </label>
-          <input
-            id={inputId}
-            value={draft}
-            maxLength={MAX_CHECKLIST_TEXT}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder={isGroup ? "เพิ่มรายการของกลุ่ม" : "เพิ่มของที่ต้องเตรียม"}
-            className="h-[50px] min-w-0 flex-1 rounded-icon border border-line-strong bg-surface px-3.5 text-base text-ink placeholder:text-ink-muted"
-          />
-          <Button type="submit" disabled={!draft.trim() || pending} aria-busy={pending || undefined} className="h-[50px] px-[18px]">
-            เพิ่ม
-          </Button>
+          {creating ? (
+            <div className="flex items-center gap-2">
+              <label htmlFor={categoryInputId} className="sr-only">
+                ชื่อหมวดใหม่
+              </label>
+              <input
+                id={categoryInputId}
+                autoFocus
+                value={newCategory}
+                maxLength={MAX_CHECKLIST_CATEGORY}
+                onChange={(e) => setNewCategory(e.target.value)}
+                placeholder="ชื่อหมวดใหม่ เช่น ของฝาก"
+                className="h-10 min-w-0 flex-1 rounded-full border border-dashed border-primary bg-primary-wash px-3.5 text-base font-semibold text-ink placeholder:font-normal placeholder:text-ink-muted"
+              />
+              <button
+                type="button"
+                aria-label="ยกเลิกหมวดใหม่"
+                onClick={() => setNewCategory(null)}
+                className="relative flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-[10px] border-0 bg-transparent text-ink-muted before:absolute before:-inset-1 before:content-[''] hover:bg-bg hover:text-ink"
+              >
+                <Icon name="close" size={14} />
+              </button>
+            </div>
+          ) : (
+            <div role="radiogroup" aria-label="เพิ่มเข้าหมวด" className="-mx-5 flex gap-1.5 overflow-x-auto px-5 [scrollbar-width:none]">
+              {categories.map((c) => {
+                const on = c === pickedCategory;
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => setCategory(c)}
+                    className={cn(
+                      "flex min-h-9 shrink-0 cursor-pointer items-center gap-1 rounded-full border px-3 text-[13px] font-semibold whitespace-nowrap transition-colors duration-150",
+                      on ? "border-primary bg-primary-soft text-primary-ink" : "border-line bg-surface text-ink-subtle hover:border-ink-muted",
+                    )}
+                  >
+                    {on ? <Icon name="check" size={12} /> : null}
+                    {c}
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                onClick={() => setNewCategory("")}
+                className="flex min-h-9 shrink-0 cursor-pointer items-center gap-1 rounded-full border border-dashed border-primary bg-primary-wash px-3 text-[13px] font-semibold whitespace-nowrap text-primary-ink hover:bg-primary-soft"
+              >
+                <Icon name="plus" size={12} />
+                หมวดใหม่
+              </button>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <label htmlFor={inputId} className="sr-only">
+              เพิ่มรายการใหม่{targetCategory && targetCategory !== CUSTOM_CATEGORY ? ` ในหมวด ${targetCategory}` : ""}
+            </label>
+            <input
+              id={inputId}
+              value={draft}
+              maxLength={MAX_CHECKLIST_TEXT}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder={isGroup ? "เพิ่มรายการของกลุ่ม" : "เพิ่มของที่ต้องเตรียม"}
+              className="h-[50px] min-w-0 flex-1 rounded-icon border border-line-strong bg-surface px-3.5 text-base text-ink placeholder:text-ink-muted"
+            />
+            <Button type="submit" disabled={!canSubmit || pending} aria-busy={pending || undefined} className="h-[50px] px-[18px]">
+              เพิ่ม
+            </Button>
+          </div>
         </form>
       ) : null}
 

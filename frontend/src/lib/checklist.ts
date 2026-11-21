@@ -33,3 +33,11 @@ export function remainingSuggestions(suggestions: readonly string[], items: read
 }
 
 export const MAX_CHECKLIST_TEXT = 120;
+/** Same limit as the backend's `category` field. */
+export const MAX_CHECKLIST_CATEGORY = 50;
+
+/** A typed category name: an existing one if it matches (ignoring case and extra spaces), else the cleaned name. */
+export function matchCategory(name: string, categories: readonly string[]): string {
+  const clean = name.trim().replace(/\s+/g, " ");
+  return categories.find((c) => normalize(c) === normalize(clean)) ?? clean;
+}
