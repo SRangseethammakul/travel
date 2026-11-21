@@ -167,7 +167,7 @@ export const TransitPlanItemDoc = z.strictObject({
   _id: Id,
   tripId: Id,
   kind: z.literal("transit"),
-  mode: z.enum(["plane", "train", "bus", "car", "boat", "other"]),
+  mode: z.enum(["plane", "train", "bus", "car", "boat", "walk", "other"]),
   fromCode: text(10).optional(),
   fromText: text(200),
   toCode: text(10).optional(),

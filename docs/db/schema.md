@@ -268,7 +268,7 @@ Owned by a User, reused across all their trips.
   _id: string;
   tripId: string;
   kind: 'transit';
-  mode: 'plane' | 'train' | 'bus' | 'car' | 'boat' | 'other';
+  mode: 'plane' | 'train' | 'bus' | 'car' | 'boat' | 'walk' | 'other';
   fromCode?: string; fromText: string;
   toCode?: string;   toText: string;
   departAt: string;            // "YYYY-MM-DDTHH:mm" local
@@ -637,7 +637,7 @@ const hop = {
       required: ['kind', 'mode', 'fromText', 'toText', 'departAt', 'arriveAt', 'docIds', 'createdBy'],
       properties: {
         _id: id, tripId: id, kind: { enum: ['transit'] },
-        mode: { enum: ['plane', 'train', 'bus', 'car', 'boat', 'other'] },
+        mode: { enum: ['plane', 'train', 'bus', 'car', 'boat', 'walk', 'other'] },
         fromCode: text(10), fromText: text(200), toCode: text(10), toText: text(200),
         departAt: localDateTime, arriveAt: localDateTime,
         durationMinutes: { bsonType: 'int', minimum: 0, maximum: 10080 },

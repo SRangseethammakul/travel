@@ -176,7 +176,7 @@ export interface PlacePlanItem {
   createdBy: ID;
 }
 
-export type TransitMode = "plane" | "train" | "bus" | "car" | "boat" | "other";
+export type TransitMode = "plane" | "train" | "bus" | "car" | "boat" | "walk" | "other";
 
 export interface TransitPlanItem {
   kind: "transit";

@@ -23,6 +23,7 @@ export const transitModeLabel: Record<TransitMode, string> = {
   bus: "รถบัส",
   car: "รถยนต์",
   boat: "เรือ",
+  walk: "เดิน",
   other: "การเดินทาง",
 };
 

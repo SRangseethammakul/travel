@@ -284,7 +284,7 @@ export const collectionDefs: CollectionDef[] = [
               _id: id,
               tripId: id,
               kind: { enum: ["transit"] },
-              mode: { enum: ["plane", "train", "bus", "car", "boat", "other"] },
+              mode: { enum: ["plane", "train", "bus", "car", "boat", "walk", "other"] },
               fromCode: text(10),
               fromText: text(200),
               toCode: text(10),
