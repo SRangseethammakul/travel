@@ -41,7 +41,14 @@ export function DocumentList({ tripId, rows, canUpload }: { tripId: ID; rows: Do
         const form = new FormData();
         form.append("file", f, f.name);
         form.append("name", fileBaseName(f.name).slice(0, 120));
-        const r = await uploadTripDocument(tripId, form);
+        let r: Awaited<ReturnType<typeof uploadTripDocument>>;
+        try {
+          r = await uploadTripDocument(tripId, form);
+        } catch {
+          // The request itself failed (e.g. a proxy rejected the body as too large) — don't crash the page.
+          setError(`อัปโหลด ${f.name} ไม่สำเร็จ ลองไฟล์ที่เล็กลง หรือลองใหม่อีกครั้ง`);
+          return;
+        }
         if ("error" in r) {
           setError(r.error);
           return;

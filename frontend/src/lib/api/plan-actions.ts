@@ -40,6 +40,16 @@ async function write(run: () => Promise<unknown>): Promise<ActionResult> {
  * A hotel with stay dates goes onto the plan for those days by itself and opens the plan.
  */
 export async function savePlace(tripId: ID, draft: PlaceDraft, then: "list" | "plan", fromDay?: number, asExpense = false): Promise<ActionResult> {
+  const result = await createPlace(tripId, draft, then, fromDay, asExpense);
+  if ("error" in result) return result;
+  redirect(result.next);
+}
+
+/**
+ * B15 without the redirect: returns the new Place's id and where `savePlace` would have gone,
+ * so the form can upload the picked photos first and then navigate itself.
+ */
+export async function createPlace(tripId: ID, draft: PlaceDraft, then: "list" | "plan", fromDay?: number, asExpense = false): Promise<{ error: string } | { placeId: ID; next: string }> {
   const checked = checkPlaceDraft(draft);
   if (!checked.ok) return { error: checked.error };
   let place: Place;
@@ -76,11 +86,14 @@ export async function savePlace(tripId: ID, draft: PlaceDraft, then: "list" | "p
     }
     refresh();
     // "บันทึกเป็นค่าใช้จ่ายด้วย": continue to AddExpense prefilled from this stay.
-    if (asExpense && checked.stay.price) redirect(stayExpenseHref(tripBase(tripId), place.id));
-    if (placed) redirect(`${tripBase(tripId)}/plan?day=${days[0]}`);
+    if (asExpense && checked.stay.price) return { placeId: place.id, next: stayExpenseHref(tripBase(tripId), place.id) };
+    if (placed) return { placeId: place.id, next: `${tripBase(tripId)}/plan?day=${days[0]}` };
   }
   refresh();
-  redirect(then === "plan" ? `${tripBase(tripId)}/plan/add?place=${encodeURIComponent(place.id)}${fromDay ? `&day=${fromDay}` : ""}` : `${tripBase(tripId)}/places`);
+  return {
+    placeId: place.id,
+    next: then === "plan" ? `${tripBase(tripId)}/plan/add?place=${encodeURIComponent(place.id)}${fromDay ? `&day=${fromDay}` : ""}` : `${tripBase(tripId)}/places`,
+  };
 }
 
 /**

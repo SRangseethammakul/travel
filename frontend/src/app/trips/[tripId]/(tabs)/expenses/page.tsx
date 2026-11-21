@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { TabPageHeader } from "@/components/trip/TabPageHeader";
+import { TransferStrip } from "@/components/expenses/TransferStrip";
 import { Fab } from "@/components/ui/Fab";
 import { Icon } from "@/components/ui/Icon";
 import { Money } from "@/components/ui/Money";
 import { Segmented } from "@/components/ui/Segmented";
 import { expenseCategoryStyle } from "@/components/ui/colors";
-import { getExpenses, getMembers, getPersonalExpenses, getTripBalances, requireTripMember } from "@/lib/api";
+import { getExpenses, getMembers, getPersonalExpenses, getSettlements, getTripBalances, requireTripMember } from "@/lib/api";
 import type { Member, PersonalExpense, Trip } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
-import { groupExpensesByDay, personalTotals, shareCaption } from "@/lib/expenses";
+import { groupExpensesByDay, personalTotals, shareCaption, suggestedRow, transferRows } from "@/lib/expenses";
 import { paymentMethodLabel } from "@/lib/labels";
 import { canAddExpense } from "@/lib/permissions";
+import { transferStrip } from "@/lib/settle-view";
 
 type View = "group" | "personal";
 
@@ -33,7 +35,12 @@ export default async function ExpensesPage({ params, searchParams }: PageProps<"
   const view: View = (await searchParams).view === "personal" ? "personal" : "group";
   const { trip, me } = await requireTripMember(tripId);
   if (view === "personal") return <PersonalView trip={trip} me={me} />;
-  const [expenses, members, balances] = await Promise.all([getExpenses(tripId), getMembers(tripId), getTripBalances(tripId)]);
+  const [expenses, members, balances, settlements] = await Promise.all([
+    getExpenses(tripId),
+    getMembers(tripId),
+    getTripBalances(tripId),
+    getSettlements(tripId),
+  ]);
 
   const base = `/trips/${encodeURIComponent(tripId)}`;
   const names = new Map(members.map((m) => [m.id, m.displayName]));
@@ -45,6 +52,16 @@ export default async function ExpensesPage({ params, searchParams }: PageProps<"
   const outstanding = mine?.outstanding ?? 0;
   const days = groupExpensesByDay(expenses, trip);
   const canAdd = canAddExpense(me);
+  const strip = solo
+    ? { toPay: [], toConfirm: [] }
+    : transferStrip(
+        transferRows(
+          members.map((m) => m.id),
+          settlements,
+          balances.transfers.map(suggestedRow),
+        ),
+        me.id,
+      );
   const status = solo
     ? "ยังไม่มีเพื่อนร่วมทริป · เพิ่มเพื่อน"
     : outstanding > 0
@@ -96,6 +113,7 @@ export default async function ExpensesPage({ params, searchParams }: PageProps<"
       </TabPageHeader>
 
       <main className="flex flex-col gap-[18px] px-5 pt-1 pb-24">
+        <TransferStrip base={base} toPay={strip.toPay} toConfirm={strip.toConfirm} members={members} />
         {days.map((d) => (
           <section key={d.date} aria-labelledby={`day-${d.date}`} className="flex flex-col gap-2">
             <h2 id={`day-${d.date}`} className="m-0 flex justify-between text-sm font-semibold text-ink-muted">

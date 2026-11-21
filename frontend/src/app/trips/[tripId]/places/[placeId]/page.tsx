@@ -13,8 +13,11 @@ import { placeVisits } from "@/lib/plan";
 import { tripCities } from "@/lib/places";
 
 /** Place detail: owner / the editor who added it get the edit form, everyone else a read-only view with the note. */
-export default async function PlaceDetailPage({ params }: PageProps<"/trips/[tripId]/places/[placeId]">) {
+export default async function PlaceDetailPage({ params, searchParams }: PageProps<"/trips/[tripId]/places/[placeId]">) {
   const { tripId, placeId } = await params;
+  // Set by AddPlace when some of the photos picked there did not upload.
+  const failedParam = Number((await searchParams).photoFailed);
+  const photoFailed = Number.isInteger(failedParam) && failedParam > 0 ? failedParam : 0;
   const { trip, me } = await requireTripMember(tripId);
   const place = await getPlace(tripId, placeId);
   if (!place) notFound();
@@ -50,6 +53,11 @@ export default async function PlaceDetailPage({ params }: PageProps<"/trips/[tri
     <div className="flex min-h-dvh flex-1 flex-col bg-surface">
       <BackHeader title="แก้ไขสถานที่" subtitle={place.name} href={back} kind="close" />
       <PlacePlanInfo tripId={tripId} place={place} startDate={trip.startDate} visits={visits} className="mx-5 mt-1 rounded-tile border border-line bg-bg/60 px-3.5" />
+      {photoFailed ? (
+        <p role="alert" className="mx-5 mt-3 mb-0 rounded-chip bg-danger-soft px-3 py-2 text-[13px] font-semibold text-danger-ink">
+          บันทึกสถานที่แล้ว แต่อัปโหลดรูปไม่สำเร็จ {photoFailed} รูป ลองเพิ่มรูปอีกครั้งด้านล่าง
+        </p>
+      ) : null}
       <PlacePhotos tripId={tripId} placeId={place.id} placeName={place.name} photos={place.photos} me={me} className="mx-5 mt-3 rounded-tile border border-line bg-bg/60 p-3.5" />
       <PlaceForm
         key={placeId}

@@ -1,17 +1,22 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useId, useState, useTransition, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { placeTypeStyle } from "@/components/ui/colors";
 import { addPillClass, fieldClass, fieldLabelClass, pillClass, textareaClass } from "@/components/ui/field";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { deletePlaceAction, savePlace, updatePlaceAction } from "@/lib/api/plan-actions";
+import { uploadPlacePhotoAction } from "@/lib/api/place-photo-actions";
+import { createPlace, deletePlaceAction, savePlace, updatePlaceAction } from "@/lib/api/plan-actions";
 import type { ID, Place, PlaceType } from "@/lib/api/types";
 import { formatMoney } from "@/lib/money/format";
 import { formatBahtInput, satangToInput } from "@/lib/money/input";
 import { cn } from "@/lib/cn";
+import { prepareImage } from "@/lib/image-resize";
+import { MAX_PHOTO_BYTES } from "@/lib/place-photos";
+import { NewPlacePhotos } from "./NewPlacePhotos";
 import { checkPlaceDraft, cleanLabel, cleanTagName, defaultStayDates, isMapUrl, isNewTagName, MAX_PLACE_NAME, MAX_TAGS, PLACE_TYPES, stayExpenseSync, stayNights, tagSuggestions, type LinkedStayExpense, type PlaceDraft } from "@/lib/place-form";
 
 export interface FormTag {
@@ -151,6 +156,11 @@ export function PlaceForm({ tripId, userId, cities, areasByCity, legHints, defau
   const [error, setError] = useState("");
   const [pasteHint, setPasteHint] = useState("");
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
+  // AddPlace only: photos picked before the Place exists, uploaded after it is saved.
+  const [photos, setPhotos] = useState<File[]>([]);
+  /** "2/5" while the picked photos upload after the save. */
+  const [photoProgress, setPhotoProgress] = useState("");
 
   const allTags = [...myTags, ...tripTags];
   const tagName = (id: ID) => allTags.find((t) => t.id === id)?.name ?? "";
@@ -221,11 +231,42 @@ export function PlaceForm({ tripId, userId, cities, areasByCity, legHints, defau
     setError("");
     setSyncAsk(null);
     startTransition(async () => {
+      if (!initial && photos.length) {
+        await saveWithPhotos(then);
+        return;
+      }
       const result = initial
         ? await updatePlaceAction(tripId, initial.id, draftNow, initial.stay ?? null, { asExpense: offerExpense && asExpense, expenseSync })
         : await savePlace(tripId, draftNow, then, fromDay, offerExpense && asExpense);
       if (result?.error) setError(result.error);
     });
+  };
+
+  // B15 then B15a per photo (resized first). The Place stays saved when a photo fails:
+  // open its page instead, where the missing photos can be added again.
+  const saveWithPhotos = async (then: "list" | "plan") => {
+    const created = await createPlace(tripId, draftNow, then, fromDay, offerExpense && asExpense);
+    if ("error" in created) {
+      setError(created.error);
+      return;
+    }
+    let failed = 0;
+    for (const [i, photo] of photos.entries()) {
+      setPhotoProgress(`${i + 1}/${photos.length}`);
+      try {
+        const file = await prepareImage(photo);
+        if (file.size > MAX_PHOTO_BYTES) {
+          failed++;
+          continue;
+        }
+        const form = new FormData();
+        form.append("file", file, file.name);
+        if (await uploadPlacePhotoAction(tripId, created.placeId, form)) failed++;
+      } catch {
+        failed++;
+      }
+    }
+    router.push(failed ? `/trips/${encodeURIComponent(tripId)}/places/${encodeURIComponent(created.placeId)}?photoFailed=${failed}` : created.next);
   };
 
   const remove = (withExpense: boolean) => {
@@ -528,6 +569,8 @@ export function PlaceForm({ tripId, userId, cities, areasByCity, legHints, defau
           <textarea id={`${ids}-note`} rows={2} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} className={textareaClass} />
         </div>
 
+        {editing ? null : <NewPlacePhotos files={photos} onChange={setPhotos} disabled={pending} />}
+
         {editing ? (
           <button
             type="button"
@@ -564,7 +607,7 @@ export function PlaceForm({ tripId, userId, cities, areasByCity, legHints, defau
           </p>
         ) : null}
         <Button type="submit" size="lg" block disabled={!canSave} aria-busy={pending || undefined} className="h-[54px]">
-          {pending ? "กำลังบันทึก…" : editing ? "บันทึกการแก้ไข" : "บันทึก"}
+          {pending ? (photoProgress ? `กำลังอัปโหลดรูป ${photoProgress}…` : "กำลังบันทึก…") : editing ? "บันทึกการแก้ไข" : "บันทึก"}
         </Button>
       </footer>
       {initial ? (

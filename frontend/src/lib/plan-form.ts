@@ -122,7 +122,7 @@ export function checkHop(input: { mode: string; minutes: string; note: string })
 
 // ── Transit ─────────────────────────────────────────────────────────────────
 
-export const TRANSIT_MODES: readonly TransitMode[] = ["plane", "train", "bus", "car", "boat", "other"];
+export const TRANSIT_MODES: readonly TransitMode[] = ["plane", "train", "bus", "car", "boat", "walk", "other"];
 
 export interface TransitDraft {
   mode: TransitMode;

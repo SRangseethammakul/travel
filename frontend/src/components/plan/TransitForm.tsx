@@ -17,6 +17,7 @@ const MODE_LABEL: Record<TransitMode, string> = {
   bus: "รถทัวร์",
   car: "รถเช่า",
   boat: "เรือ",
+  walk: "เดิน",
   other: "อื่นๆ",
 };
 
