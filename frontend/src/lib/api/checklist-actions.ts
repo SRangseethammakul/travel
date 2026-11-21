@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { CUSTOM_CATEGORY, MAX_CHECKLIST_TEXT } from "@/lib/checklist";
+import { CUSTOM_CATEGORY, MAX_CHECKLIST_CATEGORY, MAX_CHECKLIST_TEXT } from "@/lib/checklist";
 import type { ActionResult } from "./expense-actions";
 import { actionError, apiFetch, tripPath } from "./http";
 import type { ChecklistItem, ChecklistScope, ID } from "./types";
@@ -31,14 +31,15 @@ export async function assignChecklistItem(tripId: ID, itemId: ID, assigneeId: ID
   return write(tripId, () => apiFetch<ChecklistItem>(itemPath(tripId, itemId), { method: "PATCH", json: { assigneeId: assigneeId || null } }));
 }
 
-/** B35 — typed items and picked suggestions both go to the "custom" category. */
-export async function addChecklistItemAction(tripId: ID, scope: ChecklistScope, text: string): Promise<ActionResult> {
+/** B35 — goes into `category` (an existing one or "เพิ่มเอง"); suggestions use "เพิ่มเอง". */
+export async function addChecklistItemAction(tripId: ID, scope: ChecklistScope, text: string, category: string = CUSTOM_CATEGORY): Promise<ActionResult> {
   if (scope !== "group" && scope !== "personal") return { error: "ประเภทเช็คลิสต์ไม่ถูกต้อง" };
   const clean = text.trim().replace(/\s+/g, " ");
   if (!clean) return { error: "พิมพ์รายการก่อนกดเพิ่ม" };
   if (clean.length > MAX_CHECKLIST_TEXT) return { error: `รายการยาวเกิน ${MAX_CHECKLIST_TEXT} ตัวอักษร` };
+  const cat = String(category ?? "").trim().replace(/\s+/g, " ").slice(0, MAX_CHECKLIST_CATEGORY).trim() || CUSTOM_CATEGORY;
   return write(tripId, () =>
-    apiFetch<ChecklistItem>(`${tripPath(tripId)}/checklist`, { method: "POST", json: { scope, text: clean, category: CUSTOM_CATEGORY } }),
+    apiFetch<ChecklistItem>(`${tripPath(tripId)}/checklist`, { method: "POST", json: { scope, text: clean, category: cat } }),
   );
 }
 
