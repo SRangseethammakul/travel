@@ -4,6 +4,7 @@
  * helpers, not actions the browser may call.
  */
 import { ApiError, apiFetch, tripPath } from "./http";
+import { localizePhotoUrl } from "./place-photos";
 import type { ID, TripDocument } from "./types";
 
 /** The uploaded slip, or null when nothing was picked. */
@@ -41,8 +42,8 @@ export async function deleteDocumentQuietly(tripId: ID, docId: ID): Promise<void
 
 /**
  * B13 GET /api/trips/:tripId/documents/:docId/url → a short-lived signed link.
- * Returned as a path (`/api/files/…?exp&sig`): Next rewrites `/api/*` to the
- * backend, so the link works on whatever origin serves the page (docs/adr/0001).
+ * Local driver: returned as a path (`/api/files/…?exp&sig`) — Next rewrites `/api/*`
+ * to the backend (docs/adr/0001). S3 driver: the presigned link is returned as is.
  * null when the Document is gone or the link cannot be made.
  */
 export async function getDocumentUrl(tripId: ID, docId: ID): Promise<string | null> {
@@ -50,8 +51,8 @@ export async function getDocumentUrl(tripId: ID, docId: ID): Promise<string | nu
     const { url } = await apiFetch<{ url: string; expiresAt: string }>(
       `${tripPath(tripId)}/documents/${encodeURIComponent(docId)}/url`,
     );
-    const parsed = new URL(url, "http://localhost");
-    return `${parsed.pathname}${parsed.search}`;
+    // Local driver → path on the web origin; a presigned S3 link stays absolute (another host).
+    return localizePhotoUrl(url);
   } catch (e) {
     if (e instanceof ApiError) return null;
     throw e;
