@@ -4,13 +4,11 @@ import { useState } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button } from "@/components/ui/Button";
-import { solidBg } from "@/components/ui/colors";
 import { signOut } from "@/lib/api/auth-actions";
 import type { User } from "@/lib/api/types";
-import { cn } from "@/lib/cn";
 
 /** Round "A" button on Trips: shows the signed-in account and sign-out (self-designed sheet). */
-export function AccountButton({ user }: { user: Pick<User, "name" | "email" | "provider" | "color"> }) {
+export function AccountButton({ user }: { user: Pick<User, "name" | "email" | "provider" | "color" | "avatarUrl"> }) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -19,12 +17,9 @@ export function AccountButton({ user }: { user: Pick<User, "name" | "email" | "p
         aria-label="บัญชีของฉัน"
         aria-haspopup="dialog"
         onClick={() => setOpen(true)}
-        className={cn(
-          "flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 font-display text-base font-semibold text-surface transition-opacity hover:opacity-90",
-          solidBg[user.color],
-        )}
+        className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 transition-opacity hover:opacity-90"
       >
-        {user.name.charAt(0).toUpperCase()}
+        <Avatar name={user.name} color={user.color} src={user.avatarUrl} size="xl" />
       </button>
       <BottomSheet
         open={open}
@@ -44,7 +39,7 @@ export function AccountButton({ user }: { user: Pick<User, "name" | "email" | "p
         }
       >
         <div className="flex items-center gap-3">
-          <Avatar name={user.name} color={user.color} size="xl" />
+          <Avatar name={user.name} color={user.color} src={user.avatarUrl} size="xl" />
           <span className="flex min-w-0 flex-col">
             <span className="font-semibold">{user.name}</span>
             <span className="truncate text-[13px] text-ink-muted">
