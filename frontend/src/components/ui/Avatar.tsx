@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import type { ColorKey } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
 import { solidBg } from "./colors";
@@ -13,6 +16,8 @@ const sizes = {
 interface AvatarProps {
   name: string;
   color: ColorKey;
+  /** Profile picture (LINE / Google). Falls back to the initial if missing or it fails to load. */
+  src?: string;
   size?: keyof typeof sizes;
   /** White ring, for overlapping stacks. */
   ring?: boolean;
@@ -21,19 +26,33 @@ interface AvatarProps {
   className?: string;
 }
 
-export function Avatar({ name, color, size = "lg", ring, label, className }: AvatarProps) {
+export function Avatar({ name, color, src, size = "lg", ring, label, className }: AvatarProps) {
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const showImage = !!src && failedSrc !== src;
   return (
     <span
       {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
       className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-full font-display font-semibold text-surface",
+        "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-display font-semibold text-surface",
         solidBg[color],
         sizes[size],
         ring && "border-2 border-surface",
         className,
       )}
     >
-      {name.trim().charAt(0).toUpperCase()}
+      {showImage ? (
+        // Plain <img>: provider hosts vary, and Google answers 403 to some referrers.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={src}
+          alt=""
+          referrerPolicy="no-referrer"
+          className="size-full object-cover"
+          onError={() => setFailedSrc(src)}
+        />
+      ) : (
+        name.trim().charAt(0).toUpperCase()
+      )}
     </span>
   );
 }
