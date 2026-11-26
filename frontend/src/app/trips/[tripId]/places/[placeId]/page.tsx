@@ -1,79 +1,38 @@
 import { notFound } from "next/navigation";
-import { PlaceForm } from "@/components/places/PlaceForm";
 import { PlaceDetail } from "@/components/places/PlaceDetail";
-import { PlacePlanInfo } from "@/components/places/PlacePlanInfo";
-import { PlacePhotos } from "@/components/places/PlacePhotos";
 import { BackHeader } from "@/components/ui/BackHeader";
-import { getCurrentUserId, getMembers, getPlaces, getPlanItems, getTripTags, getUserTags, requireTripMember } from "@/lib/api";
+import { getTripTags, getPlanItems, requireTripMember } from "@/lib/api";
 import { getExpense } from "@/lib/api/queries";
 import { getPlace } from "@/lib/api/plan-queries";
-import { canAddExpense, canEditExpense, canEditPlanEntry } from "@/lib/permissions";
-import { areasInCity, legHint } from "@/lib/place-form";
+import { canEditExpense, canEditPlanEntry } from "@/lib/permissions";
 import { placeVisits } from "@/lib/plan";
-import { tripCities } from "@/lib/places";
 
-/** Place detail: owner / the editor who added it get the edit form, everyone else a read-only view with the note. */
-export default async function PlaceDetailPage({ params, searchParams }: PageProps<"/trips/[tripId]/places/[placeId]">) {
+/** Place detail: a read-only view for every member; the owner / the editor who added it get an "แก้ไข" button to the edit page. */
+export default async function PlaceDetailPage({ params }: PageProps<"/trips/[tripId]/places/[placeId]">) {
   const { tripId, placeId } = await params;
-  // Set by AddPlace when some of the photos picked there did not upload.
-  const failedParam = Number((await searchParams).photoFailed);
-  const photoFailed = Number.isInteger(failedParam) && failedParam > 0 ? failedParam : 0;
   const { trip, me } = await requireTripMember(tripId);
   const place = await getPlace(tripId, placeId);
   if (!place) notFound();
-  const back = `/trips/${encodeURIComponent(tripId)}/places`;
-  const [places, tripTags, userId, plan] = await Promise.all([getPlaces(tripId), getTripTags(tripId), getCurrentUserId(), getPlanItems(tripId)]);
+  const base = `/trips/${encodeURIComponent(tripId)}`;
+  const [tripTags, plan] = await Promise.all([getTripTags(tripId), getPlanItems(tripId)]);
   const tagNames = new Map(tripTags.map((t) => [t.id, t.name]));
-  const canEdit = canEditPlanEntry(me, place);
   const visits = placeVisits(plan, trip).get(place.id) ?? [];
   // The Expense this hotel's price is recorded in (null when none, or it was deleted meanwhile).
   const expense = place.stay?.expenseId ? await getExpense(tripId, place.stay.expenseId) : null;
   const linkedExpense = expense ? { id: expense.id, title: expense.title, amount: expense.amount, splitMode: expense.splitMode, canEdit: canEditExpense(me, expense) } : null;
 
-  if (!canEdit) {
-    return (
-      <div className="flex min-h-dvh flex-1 flex-col bg-bg">
-        <BackHeader title={place.name} href={back} />
-        <PlaceDetail tripId={tripId} place={place} me={me} startDate={trip.startDate} visits={visits} linkedExpense={linkedExpense} tagNames={place.tagIds.flatMap((id) => tagNames.get(id) ?? [])} />
-      </div>
-    );
-  }
-
-  const [myTags, members] = await Promise.all([getUserTags(), getMembers(tripId)]);
-  const cities = tripCities(places, trip.legs);
-  const areasByCity = Object.fromEntries(cities.map((c) => [c, areasInCity(places, c).flatMap((a) => (a.area ? [a.area] : []))]));
-  const legHints = Object.fromEntries(
-    cities.flatMap((c) => {
-      const hint = legHint(trip.legs, c);
-      return hint ? [[c, hint]] : [];
-    }),
-  );
-
   return (
-    <div className="flex min-h-dvh flex-1 flex-col bg-surface">
-      <BackHeader title="แก้ไขสถานที่" subtitle={place.name} href={back} kind="close" />
-      <PlacePlanInfo tripId={tripId} place={place} startDate={trip.startDate} visits={visits} className="mx-5 mt-1 rounded-tile border border-line bg-bg/60 px-3.5" />
-      {photoFailed ? (
-        <p role="alert" className="mx-5 mt-3 mb-0 rounded-chip bg-danger-soft px-3 py-2 text-[13px] font-semibold text-danger-ink">
-          บันทึกสถานที่แล้ว แต่อัปโหลดรูปไม่สำเร็จ {photoFailed} รูป ลองเพิ่มรูปอีกครั้งด้านล่าง
-        </p>
-      ) : null}
-      <PlacePhotos tripId={tripId} placeId={place.id} placeName={place.name} photos={place.photos} me={me} className="mx-5 mt-3 rounded-tile border border-line bg-bg/60 p-3.5" />
-      <PlaceForm
-        key={placeId}
+    <div className="flex min-h-dvh flex-1 flex-col bg-bg">
+      <BackHeader title={place.name} href={`${base}/places`} />
+      <PlaceDetail
         tripId={tripId}
-        userId={userId}
-        cities={cities}
-        areasByCity={areasByCity}
-        legHints={legHints}
-        defaultCity={place.city}
-        initial={place}
-        canAddExpense={canAddExpense(me)}
-        memberCount={members.length}
+        place={place}
+        me={me}
+        startDate={trip.startDate}
+        visits={visits}
         linkedExpense={linkedExpense}
-        tripDates={{ start: trip.startDate, end: trip.endDate }}
-        myTags={myTags.map((t) => ({ id: t.id, name: t.name, ownerId: t.ownerId }))}
-        tripTags={tripTags.filter((t) => t.ownerId !== userId).map((t) => ({ id: t.id, name: t.name, ownerId: t.ownerId }))}
+        tagNames={place.tagIds.flatMap((id) => tagNames.get(id) ?? [])}
+        {...(canEditPlanEntry(me, place) ? { editHref: `${base}/places/${encodeURIComponent(placeId)}/edit` } : {})}
       />
     </div>
   );

@@ -1,11 +1,12 @@
 import Link from "next/link";
+import { ButtonLink } from "@/components/ui/Button";
 import { Money } from "@/components/ui/Money";
 import { placeTypeStyle } from "@/components/ui/colors";
 import type { Member, Place } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
 import { formatDayMonth } from "@/lib/date";
 import type { PlaceVisit } from "@/lib/plan";
-import { canAddPlacePhoto } from "@/lib/permissions";
+import { canAddExpense, canAddPlacePhoto } from "@/lib/permissions";
 import { stayNights } from "@/lib/place-form";
 import { PlacePhotos } from "./PlacePhotos";
 import { PlacePlanInfo } from "./PlacePlanInfo";
@@ -19,21 +20,26 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-/** Read-only Place (viewers, and editors on places they did not add). Shows the note, which the list only previews. */
-export function PlaceDetail({ tripId, place, me, tagNames, linkedExpense, startDate, visits }: { tripId: string; place: Place; me: Pick<Member, "id" | "role">; tagNames: string[]; linkedExpense?: { id: string; amount: number } | null; startDate: string; visits: PlaceVisit[] }) {
+/** Read-only Place, shown to every member (tapping a place never opens the form). Shows the note, which the list only previews; editors get an "แก้ไข" button to the edit page. */
+export function PlaceDetail({ tripId, place, me, tagNames, linkedExpense, startDate, visits, editHref }: { tripId: string; place: Place; me: Pick<Member, "id" | "role">; tagNames: string[]; linkedExpense?: { id: string; amount: number } | null; startDate: string; visits: PlaceVisit[]; editHref?: string }) {
   const style = placeTypeStyle[place.type];
   const stay = place.stay;
   return (
     <main className="flex flex-col gap-3 px-5 pt-1 pb-8">
       <section className="flex items-stretch gap-3 rounded-tile bg-surface p-3.5">
         <span aria-hidden="true" className={cn("w-1.5 shrink-0 rounded-full", style.bar)} />
-        <div className="flex min-w-0 flex-col gap-0.5">
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className={cn("text-xs font-semibold", style.text)}>{style.label}</span>
           <h2 className="m-0 font-display text-lg font-semibold">{place.name}</h2>
           <span className="text-[13px] text-ink-muted">
             {place.city} · {place.area ?? "ไม่ระบุย่าน"}
           </span>
         </div>
+        {editHref ? (
+          <ButtonLink href={editHref} variant="secondary" size="sm" className="ml-auto self-start">
+            แก้ไข
+          </ButtonLink>
+        ) : null}
       </section>
       {place.photos.length || canAddPlacePhoto(me) ? (
         <PlacePhotos tripId={tripId} placeId={place.id} placeName={place.name} photos={place.photos} me={me} className="rounded-tile bg-surface p-3.5" />
@@ -48,6 +54,14 @@ export function PlaceDetail({ tripId, place, me, tagNames, linkedExpense, startD
             {stay.price ? (
               <Row label="ราคารวม">
                 <Money value={stay.price} />
+              </Row>
+            ) : null}
+            {!linkedExpense && !stay.expenseId && stay.price && canAddExpense(me) ? (
+              <Row label="ค่าใช้จ่าย">
+                <span className="text-ink-muted">ยังไม่ได้จดเป็นค่าใช้จ่าย</span>
+                <Link href={`/trips/${encodeURIComponent(tripId)}/expenses/new?stay=${encodeURIComponent(place.id)}`} className="flex min-h-11 items-center font-semibold text-primary">
+                  จดเป็นค่าใช้จ่าย
+                </Link>
               </Row>
             ) : null}
             {linkedExpense ? (

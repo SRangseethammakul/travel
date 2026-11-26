@@ -10,16 +10,35 @@ import { redirect } from "next/navigation";
 import { checkPlaceDraft, cleanLabel, cleanTagName, MAX_TAG_NAME, stayPlanSync, stayTripDays, type PlaceDraft } from "@/lib/place-form";
 import { checkHop, checkLegs, checkTransitDraft, checkVisitDraft, checkVisitEdit, transitPatchBody, type TransitDraft, type VisitDraft, type VisitEdit } from "@/lib/plan-form";
 import { itemDay, tripDayCount } from "@/lib/plan";
+import { stayExpenseSavedText } from "@/lib/stay-expense";
+import { formatMoney } from "@/lib/money/format";
 import { uploadDocument } from "./documents";
 import type { ActionResult } from "./expense-actions";
+import { createStayExpenseFor } from "./expense-write";
+import { flash } from "./flash";
 import { actionError, apiFetch, tripPath } from "./http";
+import { getPlace } from "./plan-queries";
 import { getDocuments, getExpense, getPlanItems, getPlaces, getTrip } from "./queries";
+import { getTripWithMe } from "./session";
 import type { CityLeg, ID, Place, PlaceStay, PlanItem, TransitPlanItem } from "./types";
 
 const refresh = () => revalidatePath("/", "layout");
 const tripBase = (tripId: ID) => `/trips/${encodeURIComponent(tripId)}`;
-/** AddExpense prefilled from a hotel's stay (title, ที่พัก, check-in date and price are read from the Place). */
-const stayExpenseHref = (base: string, placeId: ID) => `${base}/expenses/new?stay=${encodeURIComponent(placeId)}`;
+const placeWord = (type: Place["type"]) => (type === "stay" ? "ที่พัก" : "สถานที่");
+
+/** Creates the hotel's expense in the same save and leaves the toast text; a failure keeps the hotel and says so. */
+async function recordStayExpense(tripId: ID, place: Place, prefix: string, errorPrefix: string): Promise<void> {
+  const found = await getTripWithMe(tripId);
+  const r = found ? await createStayExpenseFor(tripId, place, found.me) : { error: "ไม่พบทริปนี้" };
+  if ("error" in r) {
+    await flash(`${errorPrefix}: ${r.error}`, { tone: "error" });
+    return;
+  }
+  refresh();
+  await flash(stayExpenseSavedText(prefix, r.expense.amount, r.memberCount), {
+    link: { href: `${tripBase(tripId)}/expenses/${encodeURIComponent(r.expense.id)}/edit`, label: "แก้การหาร" },
+  });
+}
 const tagPath = (tagId: ID) => `/api/me/tags/${encodeURIComponent(tagId)}`;
 
 /** Runs a backend write; an ApiError becomes `{ error }` with the backend's Thai message. */
@@ -85,11 +104,25 @@ export async function createPlace(tripId: ID, draft: PlaceDraft, then: "list" | 
       }
     }
     refresh();
-    // "บันทึกเป็นค่าใช้จ่ายด้วย": continue to AddExpense prefilled from this stay.
-    if (asExpense && checked.stay.price) return { placeId: place.id, next: stayExpenseHref(tripBase(tripId), place.id) };
+    // "บันทึกเป็นค่าใช้จ่ายด้วย": the expense is created right here, so the hotel is never left half-done.
+    if (asExpense && checked.stay.price) {
+      const before = await getTripWithMe(tripId);
+      const r = before ? await createStayExpenseFor(tripId, { ...place, stay: place.stay ?? checked.stay }, before.me) : { error: "ไม่พบทริปนี้" };
+      if ("error" in r) {
+        await flash(`บันทึกที่พักแล้ว แต่จดค่าใช้จ่ายไม่สำเร็จ: ${r.error}`, { tone: "error" });
+        return { placeId: place.id, next: `${tripBase(tripId)}/places/${encodeURIComponent(place.id)}` };
+      }
+      refresh();
+      await flash(stayExpenseSavedText("บันทึกที่พักและค่าใช้จ่าย", r.expense.amount, r.memberCount), {
+        link: { href: `${tripBase(tripId)}/expenses/${encodeURIComponent(r.expense.id)}/edit`, label: "แก้การหาร" },
+      });
+      return { placeId: place.id, next: placed ? `${tripBase(tripId)}/plan?day=${days[0]}` : `${tripBase(tripId)}/places/${encodeURIComponent(place.id)}` };
+    }
+    await flash("บันทึกที่พักแล้ว");
     if (placed) return { placeId: place.id, next: `${tripBase(tripId)}/plan?day=${days[0]}` };
   }
   refresh();
+  await flash(`บันทึก${placeWord(checked.type)}แล้ว`);
   return {
     placeId: place.id,
     next: then === "plan" ? `${tripBase(tripId)}/plan/add?place=${encodeURIComponent(place.id)}${fromDay ? `&day=${fromDay}` : ""}` : `${tripBase(tripId)}/places`,
@@ -99,8 +132,8 @@ export async function createPlace(tripId: ID, draft: PlaceDraft, then: "list" | 
 /**
  * B16 — edit a Place (owner, or the editor who added it). Hotel fields are removed when the type is no longer "stay".
  * The plan follows the stay: days dropped from the stay lose their untouched visit, new days get one (see `stayPlanSync`).
- * `asExpense` continues to AddExpense for the hotel's price (offered only when the hotel had no price before, so a
- * later edit cannot create a second expense for the same stay).
+ * `asExpense` records the hotel's price as an Expense in this same save (offered only while the hotel has no
+ * linked expense, so a later edit cannot create a second one for the same stay). Ends on the hotel's page.
  */
 export async function updatePlaceAction(
   tripId: ID,
@@ -150,7 +183,11 @@ export async function updatePlaceAction(
   }
   // The hotel's price changed and the user chose to follow it with the linked cost.
   const linkedId = prevStay?.expenseId;
-  if (linkedId && checked.stay?.price && expenseSync === "manual") redirect(`${tripBase(tripId)}/expenses/${encodeURIComponent(linkedId)}/edit`);
+  if (linkedId && checked.stay?.price && expenseSync === "manual") {
+    await flash("แก้ไขแล้ว");
+    redirect(`${tripBase(tripId)}/expenses/${encodeURIComponent(linkedId)}/edit`);
+  }
+  let message = `แก้ไข${placeWord(checked.type)}แล้ว`;
   if (linkedId && checked.stay?.price && expenseSync === "update") {
     try {
       const expense = await getExpense(tripId, linkedId);
@@ -166,9 +203,17 @@ export async function updatePlaceAction(
       return { error: `บันทึกที่พักแล้ว แต่แก้ยอดค่าใช้จ่ายไม่สำเร็จ: ${actionError(e).error}` };
     }
     refresh();
+    message = `${message} · แก้ค่าใช้จ่ายเป็น ${formatMoney(checked.stay.price)} แล้ว`;
   }
-  if (asExpense && checked.stay?.price && !linkedId) redirect(stayExpenseHref(tripBase(tripId), placeId));
-  redirect(`${tripBase(tripId)}/places`);
+  if (asExpense && checked.stay?.price && !linkedId) {
+    const place = await getPlace(tripId, placeId);
+    if (place) {
+      await recordStayExpense(tripId, place, `${message} · บันทึกค่าใช้จ่าย`, `${message} แต่จดค่าใช้จ่ายไม่สำเร็จ`);
+      redirect(`${tripBase(tripId)}/places/${encodeURIComponent(placeId)}`);
+    }
+  }
+  await flash(message);
+  redirect(`${tripBase(tripId)}/places/${encodeURIComponent(placeId)}`);
 }
 
 /**
@@ -177,6 +222,7 @@ export async function updatePlaceAction(
  * delete never costs the user the expense.
  */
 export async function deletePlaceAction(tripId: ID, placeId: ID, alsoExpenseId?: ID): Promise<ActionResult> {
+  const [place, expense] = await Promise.all([getPlace(tripId, placeId).catch(() => null), alsoExpenseId ? getExpense(tripId, alsoExpenseId).catch(() => null) : null]);
   const r = await write(() => apiFetch(`${tripPath(tripId)}/places/${encodeURIComponent(placeId)}`, { method: "DELETE" }));
   if (r) return r;
   if (alsoExpenseId) {
@@ -188,7 +234,10 @@ export async function deletePlaceAction(tripId: ID, placeId: ID, alsoExpenseId?:
       redirect(`${tripBase(tripId)}/expenses/${encodeURIComponent(alsoExpenseId)}`);
     }
     refresh();
+    await flash(`ลบ${placeWord(place?.type ?? "sight")}และค่าใช้จ่าย${expense ? ` ${formatMoney(expense.amount)}` : ""} แล้ว`);
+    redirect(`${tripBase(tripId)}/places`);
   }
+  await flash(`ลบ${placeWord(place?.type ?? "sight")}แล้ว`);
   redirect(`${tripBase(tripId)}/places`);
 }
 
@@ -349,6 +398,7 @@ export async function saveTransit(tripId: ID, draft: TransitDraft, cost: number 
     return { error: actionError(e).error };
   }
   refresh();
+  await flash("บันทึกการเดินทางแล้ว");
   if (cost !== null) redirect(`${tripBase(tripId)}/expenses/new?transit=${encodeURIComponent(item.id)}&amount=${cost}`);
   redirect(`${tripBase(tripId)}/plan?day=${Math.max(1, itemDay(item as PlanItem, trip))}`);
 }
@@ -367,6 +417,7 @@ export async function updateTransitAction(tripId: ID, itemId: ID, draft: Transit
     return { error: actionError(e).error };
   }
   refresh();
+  await flash("แก้ไขการเดินทางแล้ว");
   redirect(`${tripBase(tripId)}/plan?day=${Math.max(1, itemDay(item as PlanItem, trip))}`);
 }
 
@@ -375,6 +426,7 @@ export async function updateTransitAction(tripId: ID, itemId: ID, draft: Transit
  * (deleting a Transit never touches the Expense by itself).
  */
 export async function deleteTransitAction(tripId: ID, itemId: ID, alsoExpenseId?: ID): Promise<ActionResult> {
+  // This action does not navigate: the caller tells the toast to look for the cookie (FLASH_EVENT).
   const r = await write(() => apiFetch(`${tripPath(tripId)}/plan/${encodeURIComponent(itemId)}`, { method: "DELETE" }));
   if (r) return r;
   if (alsoExpenseId) {
@@ -386,7 +438,10 @@ export async function deleteTransitAction(tripId: ID, itemId: ID, alsoExpenseId?
       redirect(`${tripBase(tripId)}/expenses/${encodeURIComponent(alsoExpenseId)}`);
     }
     refresh();
+    await flash("ลบการเดินทางและค่าใช้จ่ายแล้ว");
+    return null;
   }
+  await flash("ลบการเดินทางแล้ว");
   return null;
 }
 

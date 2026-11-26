@@ -6,6 +6,7 @@ export { Card, CardHeader } from "./Card";
 export { Chip, Pill, TagLabel } from "./Chip";
 export { ConfirmDialog } from "./ConfirmDialog";
 export { Fab } from "./Fab";
+export { FlashToast } from "./FlashToast";
 export { Icon, type IconName } from "./Icon";
 export { IconButton, IconLink } from "./IconButton";
 export { Money } from "./Money";

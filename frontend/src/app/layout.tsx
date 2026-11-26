@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_Thai, Prompt } from "next/font/google";
+import { Suspense } from "react";
+import { FlashToast } from "@/components/ui/FlashToast";
 import { UserSwitcher } from "@/components/dev/UserSwitcher";
 import "./globals.css";
 
@@ -36,6 +38,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <div className="relative mx-auto flex min-h-dvh w-full max-w-app flex-col bg-bg">
           {process.env.NODE_ENV === "development" ? <UserSwitcher /> : null}
           {children}
+          <Suspense fallback={null}>
+            <FlashToast />
+          </Suspense>
         </div>
       </body>
     </html>
