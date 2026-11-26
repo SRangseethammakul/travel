@@ -89,6 +89,24 @@ export function approveMember(tripId: string, memberId: string): Promise<MemberD
     .findOneAndUpdate({ _id: memberId, tripId, status: "pending" }, { $set: { status: "active" } }, { returnDocument: "after" });
 }
 
+/**
+ * Reject a pending Claim: the Member goes back to Unclaimed (`userId: null`, active), so the
+ * real person can still claim the name. Null when the Member is not a pending Claim.
+ */
+export function revertPendingClaim(tripId: string, memberId: string): Promise<MemberDoc | null> {
+  return collections.members().findOneAndUpdate(
+    { _id: memberId, tripId, status: "pending", claimedAt: { $exists: true } },
+    { $set: { userId: null, status: "active" }, $unset: { joinedVia: "", claimedAt: "" } },
+    { returnDocument: "after" },
+  );
+}
+
+/** Reject a pending newcomer (joined under a new name): the Member is deleted. */
+export async function deletePendingMember(tripId: string, memberId: string): Promise<boolean> {
+  const r = await collections.members().deleteOne({ _id: memberId, tripId, status: "pending", claimedAt: { $exists: false } });
+  return r.deletedCount === 1;
+}
+
 export function findMemberAnyStatus(tripId: string, memberId: string): Promise<MemberDoc | null> {
   return collections.members().findOne({ _id: memberId, tripId });
 }

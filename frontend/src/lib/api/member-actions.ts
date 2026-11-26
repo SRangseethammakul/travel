@@ -51,6 +51,11 @@ export async function approveMemberAction(tripId: ID, memberId: ID): Promise<Act
   return write(() => apiFetch<Member>(`${memberPath(tripId, memberId)}/approve`, { method: "POST" }));
 }
 
+/** B11a — turn a `pending` request down: a Claim goes back to the Unclaimed name, a newcomer is removed. */
+export async function rejectMemberAction(tripId: ID, memberId: ID): Promise<ActionResult> {
+  return write(() => apiFetch<{ member: Member | null }>(`${memberPath(tripId, memberId)}/reject`, { method: "POST" }));
+}
+
 /** B7 needs both settings; the one not being changed comes from the current invite (A5). */
 async function putInvite(tripId: ID, patch: { expiresIn?: InviteExpiry; requireApproval?: boolean }): Promise<Invite> {
   const current = await getInvite(tripId);

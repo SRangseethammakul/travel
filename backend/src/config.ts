@@ -39,6 +39,11 @@ const ConfigSchema = z
   LINE_CHANNEL_SECRET: optional,
 })
   .superRefine((c, ctx) => {
+    // Browsers reach us through Next, so with 0 every client has Next's IP and one client could
+    // use up the shared OAuth limit and lock everyone out of sign-in.
+    if (c.NODE_ENV === "production" && c.TRUST_PROXY < 1) {
+      ctx.addIssue({ code: "custom", path: ["TRUST_PROXY"], message: "must be at least 1 in production (the proxy in front of Next that appends X-Forwarded-For)" });
+    }
     if (c.STORAGE_DRIVER !== "s3") return;
     for (const key of ["S3_ENDPOINT", "S3_BUCKET", "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY"] as const) {
       if (!c[key]) ctx.addIssue({ code: "custom", path: [key], message: "required when STORAGE_DRIVER=s3" });
