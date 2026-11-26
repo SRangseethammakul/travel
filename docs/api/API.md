@@ -15,7 +15,7 @@ Types (`Trip`, `Member`, `Expense`, …) refer to `frontend/src/lib/api/types.ts
 - The **Current Member** is always derived on the server from the session + `tripId`. The client never sends "who I am".
 - Not a Member of the trip → `404` (don't reveal the trip exists). Wrong role → `403`.
 - Errors: `{ "error": { "code": string, "message": string } }` with 400 / 401 / 403 / 404 / 409. `message` is Thai. Also `413` (`file_too_large`, uploads) and `429` (`rate_limited`).
-- Rate limits (30 per 15 min): OAuth start/callback per client IP (needs `TRUST_PROXY` set to the proxies in front, see backend `config.ts`); uploads (B12, B15a) per User; logout (B42) not limited.
+- Rate limits (30 per 15 min): OAuth start/callback per client IP (needs `TRUST_PROXY` set to the proxies in front, see backend `config.ts`; production refuses to start with `TRUST_PROXY=0`); uploads (B12, B15a) per User; logout (B42) not limited.
 - Net Balance, Outstanding, and Suggested Transfers are computed per request, never stored.
 - Every write adds an `Activity`.
 
@@ -82,6 +82,7 @@ Roles column: **any** = any Member of the trip · **editor+** = owner or editor 
 | B9 | `GET /api/join/:token` | public | 10 JoinTrip | → `{ trip: Pick<Trip, 'name' \| 'destination' \| 'startDate' \| 'endDate' \| 'cover'>; members: { member: Member; expenseCount: number; total: Satang }[] }` (Unclaimed Members with what is linked to them); expired → 410 |
 | B10 | `POST /api/join/:token` | signed in | 10 | `{ claimMemberId }` or `{ displayName }` → `{ tripId, member: Member, pending: boolean }` (`pending` when approval is required); claiming an already-claimed Member → 409 |
 | B11 | `POST /api/trips/:tripId/members/:memberId/approve` | owner | 20 / 21 | → `Member` |
+| B11a | `POST /api/trips/:tripId/members/:memberId/reject` | owner | 20 | → `{ member: Member \| null }`: a pending Claim goes back to the Unclaimed Member (claimable again), a pending newcomer is deleted; not pending → 409 |
 
 ### Documents (phase 5)
 

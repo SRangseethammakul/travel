@@ -215,6 +215,33 @@ describe("invite + join", () => {
     expect((await request(app()).post(`/api/trips/japan-spring/members/${memberId}/approve`).set(as("act"))).status).toBe(409);
   });
 
+  it("reject: a pending Claim goes back to Unclaimed (claimable again); a pending newcomer is deleted", async () => {
+    const invite = await request(app()).put("/api/trips/japan-spring/invite").set(as("act")).send({ expiresIn: "1d", requireApproval: true });
+    const token = invite.body.token as string;
+    const placeholder = await request(app()).post("/api/trips/japan-spring/members").set(as("act")).send({ displayName: "Real Friend" });
+    const placeholderId = placeholder.body.id as string;
+
+    const squat = await request(app()).post(`/api/join/${token}`).set(as("eva")).send({ claimMemberId: placeholderId });
+    expect(squat.body.pending).toBe(true);
+    const unclaimedIds = async () => ((await request(app()).get(`/api/join/${token}`)).body.members as { member: { id: string } }[]).map((m) => m.member.id);
+    expect(await unclaimedIds()).not.toContain(placeholderId);
+
+    const reject = (memberId: string, user = "act") => request(app()).post(`/api/trips/japan-spring/members/${memberId}/reject`).set(as(user));
+    expect((await reject(placeholderId, "n")).status).toBe(403);
+    const res = await reject(placeholderId);
+    expect(res.status).toBe(200);
+    expect(res.body.member).toMatchObject({ id: placeholderId, userId: null, status: "active" });
+    expect(res.body.member.claimedAt).toBeUndefined();
+    expect(await unclaimedIds()).toContain(placeholderId);
+    expect((await reject(placeholderId)).status).toBe(409);
+
+    // eva can ask again (no leftover Member blocks them), this time under a new name; reject deletes it.
+    const again = await request(app()).post(`/api/join/${token}`).set(as("eva")).send({ displayName: "Eva" });
+    expect(again.status).toBe(200);
+    expect((await reject(again.body.member.id)).body).toEqual({ member: null });
+    expect((await reject(again.body.member.id)).status).toBe(404);
+  });
+
   it("joining needs a signed-in User", async () => {
     expect((await request(app()).post("/api/join/tokyo-winter-7d-seed-invite").send({ displayName: "x" })).status).toBe(401);
   });

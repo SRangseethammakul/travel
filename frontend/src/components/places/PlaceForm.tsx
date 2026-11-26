@@ -16,6 +16,7 @@ import { formatBahtInput, satangToInput } from "@/lib/money/input";
 import { cn } from "@/lib/cn";
 import { prepareImage } from "@/lib/image-resize";
 import { MAX_PHOTO_BYTES } from "@/lib/place-photos";
+import { stayExpenseSplitText } from "@/lib/stay-expense";
 import { NewPlacePhotos } from "./NewPlacePhotos";
 import { checkPlaceDraft, cleanLabel, cleanTagName, defaultStayDates, isMapUrl, isNewTagName, MAX_PLACE_NAME, MAX_TAGS, PLACE_TYPES, stayExpenseSync, stayNights, tagSuggestions, type LinkedStayExpense, type PlaceDraft } from "@/lib/place-form";
 
@@ -266,7 +267,7 @@ export function PlaceForm({ tripId, userId, cities, areasByCity, legHints, defau
         failed++;
       }
     }
-    router.push(failed ? `/trips/${encodeURIComponent(tripId)}/places/${encodeURIComponent(created.placeId)}?photoFailed=${failed}` : created.next);
+    router.push(failed ? `/trips/${encodeURIComponent(tripId)}/places/${encodeURIComponent(created.placeId)}/edit?photoFailed=${failed}` : created.next);
   };
 
   const remove = (withExpense: boolean) => {
@@ -363,7 +364,7 @@ export function PlaceForm({ tripId, userId, cities, areasByCity, legHints, defau
         >
           <span className="flex flex-col">
             <span className="text-sm font-semibold">บันทึกเป็นค่าใช้จ่ายด้วย</span>
-            <span className="text-xs text-ink-muted">ให้เพื่อนร่วมทริปหาร {formatMoney(stayPrice)} · ไปหน้าหารเงินต่อหลังบันทึก</span>
+            <span className="text-xs text-ink-muted">คุณจ่าย {formatMoney(stayPrice)} · {stayExpenseSplitText(stayPrice, memberCount)}</span>
           </span>
           <span aria-hidden="true" className={cn("flex h-[26px] w-11 shrink-0 rounded-full p-[3px] transition-colors duration-200", asExpense ? "justify-end bg-primary" : "justify-start bg-control")}>
             <span className="size-5 rounded-full bg-surface shadow-seg" />

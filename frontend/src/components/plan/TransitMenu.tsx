@@ -8,6 +8,7 @@ import { Icon } from "@/components/ui/Icon";
 import { deleteTransitAction } from "@/lib/api/plan-actions";
 import type { ID } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
+import { FLASH_EVENT } from "@/lib/flash";
 import { formatMoney } from "@/lib/money/format";
 
 export interface TransitMenuProps {
@@ -32,7 +33,10 @@ export function TransitMenu({ tripId, itemId, name, expense }: TransitMenuProps)
       setError("");
       const r = await deleteTransitAction(tripId, itemId, withExpense && expense?.canDelete ? expense.id : undefined);
       if (r?.error) setError(r.error);
-      else setSheet(null);
+      else {
+        setSheet(null);
+        window.dispatchEvent(new Event(FLASH_EVENT));
+      }
     });
 
   const canDeleteBoth = !!expense?.canDelete;

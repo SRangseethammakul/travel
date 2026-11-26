@@ -21,6 +21,12 @@ describe("loadConfig", () => {
     expect(() => loadConfig({ ...valid, SESSION_SECRET: "short" })).toThrow(/SESSION_SECRET/);
   });
 
+  it("needs TRUST_PROXY ≥ 1 in production (else every client shares Next's IP for the OAuth limit)", () => {
+    expect(() => loadConfig({ ...valid, NODE_ENV: "production" })).toThrow(/TRUST_PROXY/);
+    expect(loadConfig({ ...valid, NODE_ENV: "production", TRUST_PROXY: "1" }).TRUST_PROXY).toBe(1);
+    expect(loadConfig(valid).TRUST_PROXY).toBe(0);
+  });
+
   it("treats empty optional values as unset", () => {
     expect(loadConfig({ ...valid, LINE_CHANNEL_ID: "" }).LINE_CHANNEL_ID).toBeUndefined();
   });

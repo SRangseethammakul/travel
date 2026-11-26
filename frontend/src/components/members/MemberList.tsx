@@ -6,7 +6,7 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Icon } from "@/components/ui/Icon";
-import { approveMemberAction, changeRole, removeMemberAction } from "@/lib/api/member-actions";
+import { approveMemberAction, changeRole, rejectMemberAction, removeMemberAction } from "@/lib/api/member-actions";
 import type { ID, Member, Role } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
 import { roleLabel } from "@/lib/labels";
@@ -72,6 +72,13 @@ export function MemberList({ tripId, rows, canManage }: { tripId: ID; rows: Memb
       if (result?.error) setListError(result.error);
     });
 
+  const reject = (row: MemberRow) =>
+    startTransition(async () => {
+      setListError("");
+      const result = await rejectMemberAction(tripId, row.id);
+      if (result?.error) setListError(result.error);
+    });
+
   return (
     <>
       {listError ? <ErrorText>{listError}</ErrorText> : null}
@@ -93,9 +100,14 @@ export function MemberList({ tripId, rows, canManage }: { tripId: ID; rows: Memb
                 <span className={cn("text-xs", m.unclaimed || m.pending ? "text-todo" : "text-ink-muted")}>{m.login}</span>
               </span>
               {canManage && m.pending ? (
-                <Button size="sm" onClick={() => approve(m)} disabled={pending} aria-label={`อนุมัติ ${m.displayName} เข้าทริป`} className="shrink-0">
-                  อนุมัติ
-                </Button>
+                <>
+                  <Button size="sm" variant="danger-outline" onClick={() => reject(m)} disabled={pending} aria-label={`ไม่อนุมัติ ${m.displayName}`} className="shrink-0">
+                    ไม่อนุมัติ
+                  </Button>
+                  <Button size="sm" onClick={() => approve(m)} disabled={pending} aria-label={`อนุมัติ ${m.displayName} เข้าทริป`} className="shrink-0">
+                    อนุมัติ
+                  </Button>
+                </>
               ) : null}
               {canManage ? (
                 <button

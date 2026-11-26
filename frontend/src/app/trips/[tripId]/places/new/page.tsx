@@ -48,7 +48,7 @@ export default async function AddPlacePage({ params, searchParams }: PageProps<"
         fromDay={fromDay}
         {...(typeParam ? { defaultType: typeParam } : {})}
         canAddExpense={canAddExpense(me)}
-        memberCount={members.length}
+        memberCount={members.filter((m) => !m.status || m.status === "active").length}
         myTags={myTags.map((t) => ({ id: t.id, name: t.name, ownerId: t.ownerId }))}
         tripTags={tripTags.filter((t) => t.ownerId !== userId).map((t) => ({ id: t.id, name: t.name, ownerId: t.ownerId }))}
       />

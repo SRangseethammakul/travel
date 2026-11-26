@@ -12,10 +12,12 @@ import {
   approveMember,
   countActiveOwners,
   deleteMember,
+  deletePendingMember,
   findMemberAnyStatus,
   findTripMember,
   insertMembers,
   listTripMembers,
+  revertPendingClaim,
   setMemberRole,
   softRemoveMember,
 } from "../models/member.model.js";
@@ -116,4 +118,29 @@ export const approve: RequestHandler = async (req, res) => {
   }
   await addActivity({ tripId: me.tripId, actorId: me._id, type: "member", refId: memberId, text: `อนุมัติ ${approved.displayName} เข้าร่วมทริป` });
   res.json(memberView(approved));
+};
+
+/**
+ * POST /api/trips/:tripId/members/:memberId/reject (owner) — turn down a pending request.
+ * A pending Claim goes back to an Unclaimed Member (the name stays claimable, its Expenses
+ * untouched); a pending newcomer is deleted. Either way their personal checklist goes too.
+ * → `{ member: Member | null }` (the Unclaimed Member again, or null when deleted).
+ */
+export const reject: RequestHandler = async (req, res) => {
+  const me = currentMember(req);
+  const memberId = param(req, "memberId");
+  const existing = await findMemberAnyStatus(me.tripId, memberId);
+  if (!existing || existing.status === "removed") throw new HttpError(404, "member_not_found", "ไม่พบสมาชิกคนนี้");
+  if (existing.status !== "pending") throw new HttpError(409, "not_pending", "สมาชิกคนนี้ไม่ได้รออนุมัติ");
+
+  let member: MemberDoc | null = null;
+  if (existing.claimedAt) {
+    member = await revertPendingClaim(me.tripId, memberId);
+    if (!member) throw new HttpError(409, "not_pending", "สมาชิกคนนี้ไม่ได้รออนุมัติ");
+  } else if (!(await deletePendingMember(me.tripId, memberId))) {
+    throw new HttpError(409, "not_pending", "สมาชิกคนนี้ไม่ได้รออนุมัติ");
+  }
+  await removeMemberFromChecklist(me.tripId, memberId);
+  await addActivity({ tripId: me.tripId, actorId: me._id, type: "member", refId: member ? memberId : null, text: `ปฏิเสธคำขอเข้าร่วมทริปของ ${existing.displayName}` });
+  res.json({ member: member ? memberView(member) : null });
 };
