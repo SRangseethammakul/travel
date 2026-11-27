@@ -64,22 +64,23 @@ Follow the preloaded `karpathy-guidelines` skill on every task:
 
 ## Architecture: MVC
 
-Every resource follows the same MVC flow: **route → controller → model**, with the response shaped by a **view**.
+Every resource follows the same MVC flow: **route → controller → service → model**, with the response shaped by a **view**.
 
 | Layer      | Path                                       | Does                                                                                                                                                                                                     | Must not                                    |
 | ---------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
 | Route      | `src/routes/<resource>.routes.ts`          | Maps method + path to middleware (`requireUser`, `requireMember`, `requireRole`) and a controller function                                                                                               | Contain logic                               |
-| Controller | `src/controllers/<resource>.controller.ts` | Parses params/query/body with zod, checks rules that need the request (e.g. "editor may edit only own Expense"), calls models and `domain/`, adds the Activity, returns `res.status(..).json(view(...))` | Touch MongoDB directly                      |
+| Controller | `src/controllers/<resource>.controller.ts` | HTTP only: reads `currentMember`/`currentUser`, params, query, body (zod `.parse`), `req.file`, cookies and redirects; calls one service function; returns `res.status(..).json(view(...))`                | Import `models/` or `db/`, hold business rules |
+| Service    | `src/services/<resource>.service.ts`       | Business rules: permission checks on loaded data, `domain/` calls, storage calls, `addActivity`; takes plain arguments (`me`, `user`, ids, parsed input), returns docs, throws `HttpError` (it decides 400/403/404/409) | Know about `req`/`res`, express, or views   |
 | Model      | `src/models/<resource>.model.ts`           | All MongoDB access for one collection: typed collection, queries, conditional updates, indexes it relies on                                                                                              | Know about `req`/`res` or HTTP status codes |
 | View       | `src/views/<resource>.view.ts`             | Turns a document into the API JSON: `_id` → `id`, `Date` → ISO string, drop private fields (`token`, `fileKey`, other people's personal items)                                                           | Query the DB                                |
 
 Shared pieces stay outside the MVC folders:
 
-- `src/domain/` — pure logic with tests (money: `split`, `balance`, `settle`). Controllers call it; it never imports models, express, or the driver.
+- `src/domain/` — pure logic with tests (money: `split`, `balance`, `settle`). Services call it; it never imports models, express, or the driver.
 - `src/schemas/` (zod), `src/auth/` (middleware), `src/db/` (MongoClient, validators, index creation), `src/seed/`, `src/errors.ts` (error class → `{ error: { code, message } }` in the error middleware).
 - `src/app.ts` builds the express app and mounts all routes; `src/server.ts` only starts it (so supertest can use `app`).
 
-Models signal "not found / wrong state" by returning `null` or a result the controller checks; the controller decides the status code (404/403/409).
+Models signal "not found / wrong state" by returning `null` or a result the service checks; the service decides the status code (404/403/409).
 
 ## How to work
 

@@ -1,7 +1,7 @@
 import type { ErrorRequestHandler, RequestHandler } from "express";
 import { ZodError } from "zod";
 
-/** Thrown by controllers/middleware; rendered as `{ error: { code, message } }`. */
+/** Thrown by services/middleware; rendered as `{ error: { code, message } }`. */
 export class HttpError extends Error {
   constructor(
     readonly status: number,
