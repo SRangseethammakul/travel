@@ -10,7 +10,7 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import request from "supertest";
 import { afterAll, beforeAll, expect } from "vitest";
 import { createApp } from "../app.js";
-import type { Config } from "../config.js";
+import type { Config } from "../config/config.js";
 import { closeDb, connectDb, getDb } from "../db/client.js";
 import { ensureSchema } from "../db/schema.js";
 import { seed } from "../seed/seed.js";

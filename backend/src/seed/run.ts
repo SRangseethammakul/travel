@@ -1,5 +1,5 @@
 /** `npm run seed` — reset the dev database to the 4 seed trips. */
-import { loadConfig } from "../config.js";
+import { loadConfig } from "../config/config.js";
 import { closeDb, connectDb } from "../db/client.js";
 import { ensureSchema } from "../db/schema.js";
 import { logger } from "../utils/logger.js";

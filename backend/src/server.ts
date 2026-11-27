@@ -1,5 +1,5 @@
 import { createApp } from "./app.js";
-import { loadConfig } from "./config.js";
+import { loadConfig } from "./config/config.js";
 import { closeDb, connectDb } from "./db/client.js";
 import { ensureSchema } from "./db/schema.js";
 import { logger } from "./utils/logger.js";

@@ -3,7 +3,7 @@ import type { RequestHandler } from "express";
 import { z } from "zod";
 import { authorizeUrl, credentials, fetchProfile, type OAuthProfile, type Provider } from "../auth/oauth.js";
 import { clearSession, setSession } from "../auth/session.js";
-import type { Config } from "../config.js";
+import type { Config } from "../config/config.js";
 import { HttpError } from "../errors.js";
 import * as auth from "../services/auth.service.js";
 import { logger } from "../utils/logger.js";

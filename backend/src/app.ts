@@ -4,7 +4,7 @@ import express from "express";
 import helmet from "helmet";
 import { mockUser } from "./auth/middleware.js";
 import { sessionUser } from "./auth/session.js";
-import type { Config } from "./config.js";
+import type { Config } from "./config/config.js";
 import { errorHandler, notFoundHandler } from "./errors.js";
 import { requestLogger } from "./utils/logger.js";
 import { healthRoutes } from "./routes/health.routes.js";

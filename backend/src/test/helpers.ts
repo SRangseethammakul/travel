@@ -8,7 +8,7 @@
  */
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { afterAll, beforeAll } from "vitest";
-import type { Config } from "../config.js";
+import type { Config } from "../config/config.js";
 import { closeDb, connectDb, getDb } from "../db/client.js";
 import { ensureSchema } from "../db/schema.js";
 import { seed } from "../seed/seed.js";

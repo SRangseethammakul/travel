@@ -1,5 +1,5 @@
 import type { Request, RequestHandler } from "express";
-import type { Config } from "../config.js";
+import type { Config } from "../config/config.js";
 import { HttpError } from "../errors.js";
 import { findActiveMember } from "../models/member.model.js";
 import { findUserById } from "../models/user.model.js";
