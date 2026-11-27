@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { switchMockUser } from "@/lib/api/dev-actions";
 import { getSignedInUser, listUsers } from "@/lib/api";
 import { cn } from "@/lib/cn";
@@ -27,6 +28,9 @@ export async function UserSwitcher() {
           "ยังไม่ได้เข้าสู่ระบบ"
         )}
       </span>
+      <Link href="/admin" className="flex min-h-11 items-center px-2 text-xs font-semibold">
+        /admin
+      </Link>
       {users.map((u) => {
         const current = u.id === me?.id;
         return (

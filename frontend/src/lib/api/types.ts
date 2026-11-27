@@ -331,3 +331,94 @@ export interface TripBalances {
   rows: MemberBalanceRow[];
   transfers: { from: Member; to: Member; amount: Satang; settlement: Settlement | null }[];
 }
+
+// ── Admin (docs/design/SPEC.md "ผู้ดูแลระบบ"; /api/admin/*) ─────────────────────
+
+export interface AdminPage<T> {
+  items: T[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+export interface AdminUserRow {
+  id: ID;
+  name: string;
+  email: string;
+  provider: AuthProvider;
+  color: ColorKey;
+  avatarUrl?: string;
+  tripCount: number;
+  createdAt: Timestamp;
+  lastSeenAt: Timestamp | null;
+}
+
+export type AdminTripStatus = "upcoming" | "ongoing" | "past";
+
+export interface AdminTripOwner {
+  memberId: ID;
+  name: string;
+  userId: ID | null;
+}
+
+export interface AdminTripRow {
+  id: ID;
+  name: string;
+  destination: string;
+  startDate: ISODate;
+  endDate: ISODate;
+  cover: ColorKey;
+  status: AdminTripStatus;
+  owners: AdminTripOwner[];
+  memberCount: number;
+  /** Satang; Expenses only, never personal expenses. */
+  spent: Satang;
+}
+
+export interface AdminDelta {
+  current: number;
+  previous: number;
+}
+
+export interface AdminOverview {
+  totals: { users: number; trips: number };
+  kpis: { usersNew: AdminDelta; tripsNew: AdminDelta; activeTrips7d: AdminDelta; signups7d: AdminDelta };
+  daily: { date: string; users: number; trips: number }[];
+  providers: { google: number; line: number };
+  usersInTripPct: number;
+  avgMembersPerTrip: number;
+  recentUsers: AdminUserRow[];
+  busiestTrips: (AdminTripRow & { activity7d: number })[];
+}
+
+export interface AdminUserDetail {
+  user: AdminUserRow & { sessionVersion: number };
+  trips: { id: ID; name: string; startDate: ISODate; endDate: ISODate; cover: ColorKey; status: AdminTripStatus; memberCount: number; role: Role }[];
+  activity: { id: ID; tripId: ID; tripName: string; type: ActivityType; text: string; createdAt: Timestamp }[];
+}
+
+export interface AdminTripDetail {
+  trip: AdminTripRow & { createdBy: { id: ID; name: string } | null };
+  members: { id: ID; displayName: string; role: Role; userId: ID | null; color: ColorKey; status: string }[];
+  counts: { places: number; planItems: number; expenses: number; settlements: number; checklistItems: number; activity7d: number };
+  activity: { id: ID; actorName: string; type: ActivityType; text: string; createdAt: Timestamp }[];
+}
+
+export interface AdminRequestLog {
+  id: ID;
+  at: Timestamp;
+  method: string;
+  path: string;
+  status: number;
+  ms: number;
+  userId: ID | null;
+}
+
+export interface AdminSystem {
+  api: { uptimeSec: number; p95Ms1h: number };
+  mongo: { ok: boolean; pingMs: number; collections: number };
+  storage: { driver: string };
+  rateLimit: { blocked24h: number };
+  errorsByHour: { hour: string; c4xx: number; c5xx: number; total: number }[];
+  logs: AdminPage<AdminRequestLog>;
+}
