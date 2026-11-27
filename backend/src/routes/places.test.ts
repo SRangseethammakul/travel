@@ -123,6 +123,26 @@ describe("Place stay (hotel details)", () => {
     expect(removed.body.stay).toBeUndefined();
   });
 
+  it("stores optional checkInTime / checkOutTime; PATCH replaces them; bad format 400", async () => {
+    const post = (b: object) => request(app()).post(`${T}/places`).set(as("mint")).send(b);
+    const timed = { ...stay, checkInTime: "15:00", checkOutTime: "11:30" };
+    const res = await post({ ...hotel, stay: timed });
+    expect(res.status).toBe(201);
+    expect(res.body.stay).toEqual(timed);
+    const got = await request(app()).get(`${T}/places/${res.body.id}`).set(as("mint"));
+    expect(got.body.stay).toEqual(timed);
+    const patched = await request(app()).patch(`${T}/places/${res.body.id}`).set(as("mint")).send({ stay: { ...stay, checkInTime: "14:00" } });
+    expect(patched.body.stay).toEqual({ ...stay, checkInTime: "14:00" });
+    for (const bad of ["25:00", "9:00", "12:60", "noon"]) {
+      const r = await post({ ...hotel, stay: { ...stay, checkInTime: bad } });
+      expect(r.status).toBe(400);
+      expect(r.body.error.code).toBeDefined();
+      expect((await post({ ...hotel, stay: { ...stay, checkOutTime: bad } })).status).toBe(400);
+    }
+    expect((await request(app()).patch(`${T}/places/${res.body.id}`).set(as("mint")).send({ stay: { ...stay, checkOutTime: "25:00" } })).status).toBe(400);
+    expect((await post({ ...hotel, stay })).body.stay).toEqual(stay);
+  });
+
   it("400 for non-stay type, bad order, out of trip dates, float price", async () => {
     const post = (b: object) => request(app()).post(`${T}/places`).set(as("mint")).send(b);
     expect((await post({ ...hotel, type: "food" })).status).toBe(400);

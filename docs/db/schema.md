@@ -207,7 +207,7 @@ Metadata only; the file is in object storage behind a signed URL.
   mapUrl?: string;
   note: string;
   costPerPerson?: int;         // satang
-  stay?: { checkIn: string; checkOut: string; price?: int; bookingRef?: string; address?: string; expenseId?: Id }; // type "stay" only; dates YYYY-MM-DD within trip, checkOut > checkIn; price satang
+  stay?: { checkIn: string; checkOut: string; checkInTime?: string /* HH:mm */; checkOutTime?: string /* HH:mm */; price?: int; bookingRef?: string; address?: string; expenseId?: Id }; // type "stay" only; dates YYYY-MM-DD within trip, checkOut > checkIn; price satang
   photos?: {                   // max 10; absent on older Places = []
     _id: string;
     fileKey: string;           // object-storage key `${tripId}/places/${placeId}/${photoId}`, never a URL
@@ -604,7 +604,7 @@ const hop = {
     mapUrl: text(2000), note: text(2000),
     costPerPerson: money,
     stay: { bsonType: "object", additionalProperties: false, required: ["checkIn","checkOut"],
-            properties: { checkIn: text(10), checkOut: text(10), price: money, bookingRef: text(100), address: text(300), expenseId: id } },
+            properties: { checkIn: text(10), checkOut: text(10), checkInTime: hhmm, checkOutTime: hhmm, price: money, bookingRef: text(100), address: text(300), expenseId: id } },
     photos: { bsonType: 'array', maxItems: 10, items: {
       bsonType: 'object', additionalProperties: false,
       required: ['_id', 'fileKey', 'mime', 'size', 'uploadedBy', 'createdAt'],

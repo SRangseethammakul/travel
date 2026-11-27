@@ -204,6 +204,8 @@ export const collectionDefs: CollectionDef[] = [
             properties: {
               checkIn: text(10),
               checkOut: text(10),
+              checkInTime: hhmm,
+              checkOutTime: hhmm,
               price: money,
               bookingRef: text(100),
               address: text(300),
