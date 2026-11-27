@@ -19,7 +19,7 @@ export default async function EditTransitPage({ params }: PageProps<"/trips/[tri
 
   return (
     <div className="flex min-h-dvh flex-1 flex-col bg-surface">
-      <BackHeader title="แก้ไขการเดินทาง" href={back} kind="close" />
+      <BackHeader title="แก้ตั๋ว / การเดินทางที่จองไว้" href={back} kind="close" />
       <TransitForm
         tripId={tripId}
         trip={{ startDate: trip.startDate, endDate: trip.endDate }}

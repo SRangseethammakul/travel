@@ -18,7 +18,7 @@ import { prepareImage } from "@/lib/image-resize";
 import { MAX_PHOTO_BYTES } from "@/lib/place-photos";
 import { stayExpenseSplitText } from "@/lib/stay-expense";
 import { NewPlacePhotos } from "./NewPlacePhotos";
-import { checkPlaceDraft, cleanLabel, cleanTagName, defaultStayDates, isMapUrl, isNewTagName, MAX_PLACE_NAME, MAX_TAGS, PLACE_TYPES, stayExpenseSync, stayNights, tagSuggestions, type LinkedStayExpense, type PlaceDraft } from "@/lib/place-form";
+import { checkPlaceDraft, cleanLabel, cleanTagName, DEFAULT_CHECK_IN_TIME, DEFAULT_CHECK_OUT_TIME, defaultStayDates, isMapUrl, isNewTagName, MAX_PLACE_NAME, MAX_TAGS, PLACE_TYPES, stayExpenseSync, stayNights, stayPriceForNights, tagSuggestions, type LinkedStayExpense, type PlaceDraft } from "@/lib/place-form";
 
 export interface FormTag {
   id: ID;
@@ -143,6 +143,9 @@ export function PlaceForm({ tripId, userId, cities, areasByCity, legHints, defau
   const seed = defaultStayDates({ startDate: tripDates.start, endDate: tripDates.end }, initial ? undefined : fromDay);
   const [checkIn, setCheckIn] = useState(initial?.stay?.checkIn ?? seed.checkIn);
   const [checkOut, setCheckOut] = useState(initial?.stay?.checkOut ?? seed.checkOut);
+  // Times default to 14:00 / 12:00 for a new stay and for an old one saved before times existed.
+  const [checkInTime, setCheckInTime] = useState(initial?.stay?.checkInTime ?? DEFAULT_CHECK_IN_TIME);
+  const [checkOutTime, setCheckOutTime] = useState(initial?.stay?.checkOutTime ?? DEFAULT_CHECK_OUT_TIME);
   const [price, setPrice] = useState(initial?.stay?.price ? satangToInput(initial.stay.price) : "");
   const [bookingRef, setBookingRef] = useState(initial?.stay?.bookingRef ?? "");
   const [address, setAddress] = useState(initial?.stay?.address ?? "");
@@ -170,7 +173,7 @@ export function PlaceForm({ tripId, userId, cities, areasByCity, legHints, defau
   const canCreate = isNewTagName(draftTag, allTags, [...newTags, ...tagIds.map(tagName)]);
   const full = tagIds.length + newTags.length >= MAX_TAGS;
   const mapInvalid = mapUrl.trim() !== "" && !isMapUrl(mapUrl.trim());
-  const draftNow: PlaceDraft = { name, mapUrl, type, city, area, tagIds, newTagNames: newTags, note, checkIn, checkOut, price, bookingRef, address };
+  const draftNow: PlaceDraft = { name, mapUrl, type, city, area, tagIds, newTagNames: newTags, note, checkIn, checkOut, checkInTime, checkOutTime, price, bookingRef, address };
   const check = checkPlaceDraft(draftNow);
   const canSave = check.ok && !pending;
   const stayPrice = check.ok ? (check.stay?.price ?? 0) : 0;
@@ -183,6 +186,8 @@ export function PlaceForm({ tripId, userId, cities, areasByCity, legHints, defau
   // Nights changed but the price was left alone: the price (and linked cost) may now be wrong.
   const nightsNow = checkIn && checkOut && checkOut > checkIn ? stayNights({ checkIn, checkOut }) : null;
   const nightsChanged = !!savedStay?.price && nightsNow !== null && nightsNow !== stayNights(savedStay) && stayPrice === savedStay.price;
+  const suggestedPrice = nightsChanged && savedStay?.price && nightsNow ? stayPriceForNights(savedStay.price, stayNights(savedStay), nightsNow) : null;
+  const perNight = savedStay?.price ? Math.round(savedStay.price / stayNights(savedStay)) : 0;
   // Tell the user what is missing instead of leaving the button grey.
   const missing = check.ok ? "" : check.error;
 
@@ -318,6 +323,20 @@ export function PlaceForm({ tripId, userId, cities, areasByCity, legHints, defau
           />
         </div>
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={`${ids}-in-time`} className="text-[13px] font-semibold">
+            เวลาเช็คอิน
+          </label>
+          <input id={`${ids}-in-time`} type="time" value={checkInTime} onChange={(e) => setCheckInTime(e.target.value)} className={cn(fieldClass, "px-2.5")} />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={`${ids}-out-time`} className="text-[13px] font-semibold">
+            เวลาเช็คเอาท์
+          </label>
+          <input id={`${ids}-out-time`} type="time" value={checkOutTime} onChange={(e) => setCheckOutTime(e.target.value)} className={cn(fieldClass, "px-2.5")} />
+        </div>
+      </div>
       <div className="flex flex-col gap-1.5">
         <label htmlFor={`${ids}-price`} className="text-[13px] font-semibold">
           ราคารวมทั้งหมด (บาท)
@@ -338,6 +357,15 @@ export function PlaceForm({ tripId, userId, cities, areasByCity, legHints, defau
             เปลี่ยนจาก {savedStay ? stayNights(savedStay) : 0} คืนเป็น {nightsNow} คืนแล้ว แต่ราคายังเป็น {formatMoney(stayPrice)} ตรวจราคา
             {linked ? "และค่าใช้จ่ายที่บันทึกไว้" : ""}ด้วยว่าถูกไหม
           </p>
+        ) : null}
+        {suggestedPrice && nightsNow ? (
+          <button
+            type="button"
+            onClick={() => setPrice(satangToInput(suggestedPrice))}
+            className="min-h-11 rounded-chip border border-primary bg-surface px-3 text-left text-[13px] font-semibold text-primary"
+          >
+            ปรับราคาเป็น {formatMoney(suggestedPrice)} ({formatMoney(perNight)}/คืน × {nightsNow} คืน)
+          </button>
         ) : null}
       </div>
       {linked ? (

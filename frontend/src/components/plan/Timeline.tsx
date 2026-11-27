@@ -100,7 +100,7 @@ export function Timeline({ items, places, documents, base, hopEdit, expenses, ar
                 />
               )}
               {!last && hopEdit?.itemIds.includes(item.id) ? (
-                <HopButton tripId={hopEdit.tripId} itemId={item.id} hop={item.travelToNext} title={`${itemName(item)} → ${itemName(items[i + 1])}`} />
+                <HopButton tripId={hopEdit.tripId} itemId={item.id} hop={item.travelToNext} title={`${itemName(item)} → ${itemName(items[i + 1])}`} transitHref={`${base}/plan/transit/new${item.kind === "place" ? `?day=${item.day}` : ""}`} />
               ) : !last && item.travelToNext ? (
                 <span className="mt-1.5 mb-0.5 inline-flex min-h-9 items-center gap-1.5 self-start rounded-[10px] bg-interest-soft px-2.5 text-xs font-semibold text-interest-ink">
                   <Icon name="route" size={14} />

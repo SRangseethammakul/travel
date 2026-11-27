@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useId, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
-import { Icon } from "@/components/ui/Icon";
+import { Icon, transitModeIcon } from "@/components/ui/Icon";
 import { fieldClass, fieldLabelClass, pillClass } from "@/components/ui/field";
 import { saveTransit, updateTransitAction, uploadTripDocument } from "@/lib/api/plan-actions";
 import type { ID, TransitMode } from "@/lib/api/types";
@@ -169,6 +169,7 @@ export function TransitForm({ tripId, trip, defaultDate, documents, placeOptions
           <div role="radiogroup" aria-label="ประเภท" className="flex flex-wrap gap-2">
             {TRANSIT_MODES.map((m) => (
               <button key={m} type="button" role="radio" aria-checked={mode === m} onClick={() => setMode(m)} className={pillClass(mode === m)}>
+                <Icon name={transitModeIcon[m]} size={16} />
                 {MODE_LABEL[m]}
               </button>
             ))}

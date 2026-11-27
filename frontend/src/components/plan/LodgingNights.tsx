@@ -49,7 +49,7 @@ export function LodgingNights({ nights, base, day }: { nights: readonly LodgingN
                     <span className="truncate text-[15px] font-semibold">{g.place.name}</span>
                     {g.place.stay ? (
                       <span className="text-xs text-ink-muted">
-                        {formatDayMonth(g.place.stay.checkIn)} – {formatDayMonth(g.place.stay.checkOut)} · {stayNights(g.place.stay)} คืน
+                        {formatDayMonth(g.place.stay.checkIn)}{g.place.stay.checkInTime ? ` ${g.place.stay.checkInTime}` : ""} – {formatDayMonth(g.place.stay.checkOut)}{g.place.stay.checkOutTime ? ` ${g.place.stay.checkOutTime}` : ""} · {stayNights(g.place.stay)} คืน
                         {g.place.stay.price ? (
                           <>
                             {" · "}

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useId, useState, useTransition } from "react";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button } from "@/components/ui/Button";
@@ -18,12 +19,14 @@ interface HopButtonProps {
   hop: Hop | undefined;
   /** "Tokyo Skytree → ชาบูบุฟเฟ่ต์" */
   title: string;
+  /** Transit "new" page for the same day (for the booked-ticket hint). */
+  transitHref: string;
 }
 
 const small = "h-11 min-w-0 rounded-chip border border-line-strong bg-surface px-3 text-base text-ink";
 
 /** Hop chip between two Plan Items; opens the travel sheet (Planner mockup). */
-export function HopButton({ tripId, itemId, hop, title }: HopButtonProps) {
+export function HopButton({ tripId, itemId, hop, title, transitHref }: HopButtonProps) {
   const ids = useId();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<HopMode>(hop?.mode ?? "train");
@@ -53,7 +56,7 @@ export function HopButton({ tripId, itemId, hop, title }: HopButtonProps) {
         <button
           type="button"
           onClick={openSheet}
-          aria-label={`แก้การเดินทางไปรายการถัดไป: ${hopText(hop)}`}
+          aria-label={`แก้วิธีไปที่ถัดไป: ${hopText(hop)}`}
           className="mt-1.5 mb-0.5 inline-flex min-h-9 cursor-pointer items-center gap-1.5 self-start rounded-[10px] border-0 bg-interest-soft px-2.5 text-xs font-semibold text-interest-ink hover:bg-interest-soft/70"
         >
           <Icon name="route" size={14} />
@@ -63,22 +66,23 @@ export function HopButton({ tripId, itemId, hop, title }: HopButtonProps) {
         <button
           type="button"
           onClick={openSheet}
-          className="mt-1.5 mb-0.5 inline-flex min-h-9 cursor-pointer items-center gap-1 self-start rounded-[10px] border-[1.5px] border-dashed border-control bg-transparent px-2.5 text-xs font-semibold text-ink-soft hover:border-ink-muted"
+          aria-label="เพิ่มวิธีไปที่ถัดไป"
+          className="mt-1.5 mb-0.5 inline-flex min-h-11 cursor-pointer items-center gap-1 self-start rounded-[10px] border-[1.5px] border-dashed border-control bg-transparent px-2.5 text-xs font-semibold text-ink-soft hover:border-ink-muted"
         >
           <Icon name="plus" size={12} />
-          เพิ่มการเดินทาง
+          วิธีไป
         </button>
       )}
 
       <BottomSheet
         open={open}
         onClose={() => setOpen(false)}
-        caption="การเดินทาง"
+        caption="ไปที่ถัดไปยังไง"
         title={title}
         footer={
           <div className="grid grid-cols-2 gap-2">
             <Button variant={hop ? "danger-outline" : "secondary"} disabled={pending} onClick={() => (hop ? write(null) : setOpen(false))}>
-              {hop ? "ลบการเดินทาง" : "ยกเลิก"}
+              {hop ? "ลบวิธีไป" : "ยกเลิก"}
             </Button>
             <Button disabled={pending} aria-busy={pending || undefined} onClick={() => write({ mode, minutes, note })}>
               {pending ? "กำลังบันทึก…" : "บันทึก"}
@@ -93,6 +97,14 @@ export function HopButton({ tripId, itemId, hop, title }: HopButtonProps) {
             </button>
           ))}
         </div>
+        {mode === "train" || mode === "bus" ? (
+          <p className="m-0 text-[13px] text-ink-muted">
+            จองตั๋วไว้แล้ว?{" "}
+            <Link href={transitHref} className="inline-flex min-h-11 items-center font-semibold text-primary underline">
+              ใส่เป็นตั๋วเดินทางแทน
+            </Link>
+          </p>
+        ) : null}
         <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-2">
           <div className="flex flex-col gap-1">
             <label htmlFor={`${ids}-min`} className="text-xs font-semibold text-ink-muted">

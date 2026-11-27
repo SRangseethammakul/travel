@@ -97,6 +97,8 @@ export const StayDoc = z
   .strictObject({
     checkIn: IsoDate,
     checkOut: IsoDate,
+    checkInTime: HHmm.optional(),
+    checkOutTime: HHmm.optional(),
     price: Satang.optional(),
     bookingRef: text(100).optional(),
     address: text(300).optional(),
