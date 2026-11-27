@@ -28,6 +28,7 @@ export const testConfig: Config = {
   STORAGE_DRIVER: "local",
   S3_REGION: "us-east-1",
   TRUST_PROXY: 0,
+  ADMIN_USER_IDS: [],
 };
 
 /** Request header that signs in as a seed User (`act`, `mint`, `beam`, `ploy`, `n`). */

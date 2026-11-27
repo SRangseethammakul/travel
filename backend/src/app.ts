@@ -2,7 +2,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
-import { mockUser } from "./auth/middleware.js";
+import { mockUser, requireAdmin } from "./auth/middleware.js";
 import { sessionUser } from "./auth/session.js";
 import type { Config } from "./config/config.js";
 import { errorHandler, notFoundHandler } from "./errors.js";
@@ -23,6 +23,8 @@ import { authRoutes } from "./routes/auth.routes.js";
 import { checklistRoutes, checklistSuggestionRoutes } from "./routes/checklist.routes.js";
 import { documentRoutes, fileRoutes } from "./routes/document.routes.js";
 import { personalExpenseRoutes } from "./routes/personal-expense.routes.js";
+import { adminRoutes } from "./routes/admin.routes.js";
+import { requestLogWriter } from "./utils/request-log.js";
 import { initFileStore } from "./storage/files.js";
 
 /**
@@ -32,7 +34,7 @@ import { initFileStore } from "./storage/files.js";
  * mounted with `requireUser, requireMember` here, and adds `requireRole(...)` per write route.
  * Controllers read the trip from `currentMember(req).tripId`.
  */
-export function createApp(config: Config) {
+export function createApp(config: Config, opts: { recordRequests?: boolean } = {}) {
   const common = { urlSecret: config.FILE_URL_SECRET, publicApiUrl: config.PUBLIC_API_URL };
   initFileStore(
     config.STORAGE_DRIVER === "s3"
@@ -53,6 +55,9 @@ export function createApp(config: Config) {
   if (config.TRUST_PROXY > 0) app.set("trust proxy", config.TRUST_PROXY);
   // Signed file URLs are opened from the frontend origin (same site, other port).
   app.use(requestLogger);
+  // Admin request log: off under tests unless a test opts in.
+  // Request logging is off under NODE_ENV=test; tests that need it pass { recordRequests: true }.
+  if (opts.recordRequests ?? config.NODE_ENV !== "test") app.use(requestLogWriter);
   app.use(helmet({ crossOriginResourcePolicy: { policy: "same-site" } }));
   app.use(cors({ origin: config.CORS_ORIGIN, credentials: true }));
   app.use(express.json());
@@ -83,6 +88,7 @@ export function createApp(config: Config) {
   app.use("/api/trips/:tripId/documents", requireUser, requireMember, documentRoutes);
   app.use("/api/files", fileRoutes);
   app.use("/api/auth", authRoutes(config));
+  app.use("/api/admin", requireUser, requireAdmin(config.ADMIN_USER_IDS), adminRoutes(config));
 
   app.use(notFoundHandler);
   app.use(errorHandler);

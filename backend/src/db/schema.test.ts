@@ -79,6 +79,8 @@ describe("indexes", () => {
       "checklist_trip_scope_owner",
       "activities_trip_created",
       "activities_trip_type_created",
+      "activities_created",
+      "activities_actor_created",
     ];
     const names: string[] = [];
     for (const def of collectionDefs) {

@@ -3,6 +3,7 @@ import type { Config } from "../config/config.js";
 import { HttpError } from "../errors.js";
 import { findActiveMember } from "../models/member.model.js";
 import { findUserById } from "../models/user.model.js";
+import { touchLastSeen } from "./session.js";
 import type { MemberDoc, Role, UserDoc } from "../schemas/models.js";
 
 declare module "express-serve-static-core" {
@@ -26,6 +27,7 @@ export function mockUser(nodeEnv: Config["NODE_ENV"]): RequestHandler {
     const userId: unknown = req.cookies?.[MOCK_USER_COOKIE];
     if (!req.user && typeof userId === "string" && userId) {
       req.user = (await findUserById(userId)) ?? undefined;
+      if (req.user) void touchLastSeen(req.user);
     }
     next();
   };
@@ -36,6 +38,14 @@ export const requireUser: RequestHandler = (req, _res, next) => {
   if (!req.user) throw new HttpError(401, "unauthenticated", "กรุณาเข้าสู่ระบบ");
   next();
 };
+
+/** 404 (never 403, so the admin area is not revealed) unless the signed-in User is listed in ADMIN_USER_IDS. Mount after `requireUser`. */
+export function requireAdmin(adminIds: readonly string[]): RequestHandler {
+  return (req, _res, next) => {
+    if (!adminIds.includes(currentUser(req)._id)) throw new HttpError(404, "not_found", "ไม่พบหน้านี้");
+    next();
+  };
+}
 
 /** 404 unless the User is an active Member of `:tripId` — never reveal that the trip exists. */
 export const requireMember: RequestHandler = async (req, _res, next) => {

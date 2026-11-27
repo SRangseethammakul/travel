@@ -39,6 +39,16 @@ const ConfigSchema = z
   GOOGLE_CLIENT_SECRET: optional,
   LINE_CHANNEL_ID: optional,
   LINE_CHANNEL_SECRET: optional,
+  /** Comma-separated User ids allowed into /api/admin (docs/adr/0002). Empty or unset = nobody. */
+  ADMIN_USER_IDS: z
+    .string()
+    .optional()
+    .transform((v) =>
+      (v ?? "")
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean),
+    ),
 })
   .superRefine((c, ctx) => {
     // Browsers reach us through Next, so with 0 every client has Next's IP and one client could

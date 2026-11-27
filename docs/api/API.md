@@ -211,6 +211,29 @@ The "ตรวจและยืนยัน" button on a settlement activity ca
 | B42 | `POST /api/auth/logout` | signed in | Bump the User's `sessionVersion` (all their session cookies stop working) and clear the cookie → `204`. Without a session still `204`. |
 | B43 | `POST /api/dev/login` | dev only | `{ userId }` → sets `mock-user` (replaces `switchMockUser` and the mock Login buttons); 404 in production |
 
+### Admin (screens 23-27, `/admin`)
+
+All under `/api/admin`. Role: **admin** = signed-in User whose id is in env `ADMIN_USER_IDS` (docs/adr/0002). Signed out → `401`; any other User → `404 not_found` (never `403`). Read-only except sign-out. Personal Expenses, personal checklist items and Documents are never returned. Dates are ISO strings, money is satang. `Page<T>` = `{ items: T[], page, pageSize: 20, total }`; bad query values → `400`.
+
+Shared shapes:
+- `AdminUserRow` = `{ id, name, email, provider: "google"|"line", color, avatarUrl?, tripCount (active memberships), createdAt, lastSeenAt: string|null }`
+- `AdminTripRow` = `{ id, name, destination, startDate, endDate, cover, status: "upcoming"|"ongoing"|"past" (dates vs today in Asia/Bangkok), owners: { memberId, name (Member displayName), userId: string|null }[] (active owners), memberCount (active), spent (sum of Expense amounts, no Personal Expenses) }`
+
+| Method & path | Role | Query → Response |
+| --- | --- | --- |
+| `GET /api/admin/whoami` | admin | → `{ user }` (same shape as `/api/me`) |
+| `GET /api/admin/overview` | admin | `?days=7\|30\|90` (default 30) → `{ totals: { users, trips }, kpis: { usersNew, tripsNew, activeTrips7d, signups7d }` (each `{ current, previous }`; `previous` is the window before; the two `7d` ones are always 7 days), `daily: { date, users, trips }[]` (Bangkok dates, `days` long, oldest first, zero-filled), `providers: { google, line }, usersInTripPct, avgMembersPerTrip, recentUsers: AdminUserRow[5], busiestTrips: (AdminTripRow & { activity7d })[≤5] }` |
+| `GET /api/admin/users` | admin | `?q=&provider=google\|line&sort=createdAt\|lastSeenAt\|name&dir=asc\|desc&page=1` (default `createdAt desc`; `q` = name or email contains) → `Page<AdminUserRow>` |
+| `GET /api/admin/users/:id` | admin | → `{ user: AdminUserRow & { sessionVersion }, trips: { id, name, startDate, endDate, cover, status, memberCount, role }[], activity: { id, tripId, tripName, type, text, createdAt }[10] }`; unknown → `404` |
+| `POST /api/admin/users/:id/signout` | admin | → `204`. Bumps `sessionVersion` (all devices). Own id → `409 cannot_sign_out_self`; unknown → `404`. Logs `admin_force_signout`. |
+| `GET /api/admin/trips` | admin | `?q=&status=upcoming\|ongoing\|past&sort=startDate\|createdAt&dir=asc\|desc&page=1` (default `startDate desc`; `q` = trip name, destination, or an owner's Member displayName / User name contains) → `Page<AdminTripRow>` |
+| `GET /api/admin/trips/:id` | admin | → `{ trip: AdminTripRow & { createdBy: { id, name } \| null }, members: { id, displayName, role, userId, color, status }[], counts: { places, planItems, expenses, settlements, checklistItems (group only), activity7d }, activity: { id, actorName, type, text, createdAt }[5] }`; unknown → `404` |
+| `GET /api/admin/system` | admin | `?filter=all\|4xx\|5xx\|slow&page=1` → `{ api: { uptimeSec, p95Ms1h: number\|null }, mongo: { ok, pingMs: number\|null, collections }, storage: { driver }, rateLimit: { blocked24h }, errorsByHour: { hour, c4xx, c5xx, total (all logged requests that hour) }[24], logs: Page<{ id, at, method, path, status, ms, userId: string\|null }> }` (newest first; slow = `ms >= 500`; stats come from the capped `requestLogs`; if MongoDB is down still `200` with `mongo.ok: false` and empty stats) |
+
+Trip detail `members` includes pending Members (with their `status`) and leaves out removed ones. The 24h stats (`errorsByHour`, `blocked24h`, `p95Ms1h`) are computed from the capped `requestLogs`, so they only cover the last 1,000 logged requests and undercount on a busy day. Under `NODE_ENV=test` requests are not logged unless the app is built with `createApp(config, { recordRequests: true })`.
+
+`User.lastSeenAt` is written when a session is accepted, at most every 10 minutes. `requestLogs` keeps the latest 1,000 requests, skipping `/api/health` and `/api/admin/*`, with no query string.
+
 ---
 
 ## Differences from SPEC's data model
