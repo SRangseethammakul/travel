@@ -39,3 +39,12 @@ export async function setLastSeen(userId: string, now: Date, staleBefore: Date):
     .users()
     .updateOne({ _id: userId, $or: [{ lastSeenAt: { $exists: false } }, { lastSeenAt: { $lt: staleBefore } }] }, { $set: { lastSeenAt: now } });
 }
+
+/** User id → picture, for the Users that have one. Single query, `avatarUrl` only. */
+export async function findAvatarsByUserIds(userIds: string[]): Promise<Map<string, string>> {
+  const users = await collections
+    .users()
+    .find({ _id: { $in: userIds }, avatarUrl: { $exists: true } }, { projection: { avatarUrl: 1 } })
+    .toArray();
+  return new Map(users.flatMap((u) => (u.avatarUrl ? [[u._id, u.avatarUrl] as const] : [])));
+}

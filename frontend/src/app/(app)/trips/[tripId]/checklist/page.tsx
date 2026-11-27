@@ -87,7 +87,7 @@ export default async function ChecklistPage({ params, searchParams }: PageProps<
         tripId={tripId}
         scope={scope}
         groups={groups}
-        people={members.map((m) => ({ id: m.id, name: m.displayName, color: m.color }))}
+        people={members.map((m) => ({ id: m.id, name: m.displayName, color: m.color, avatarUrl: m.avatarUrl }))}
         suggestions={suggestions}
         canAdd={canAdd}
       />

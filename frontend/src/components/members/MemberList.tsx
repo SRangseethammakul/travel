@@ -13,7 +13,7 @@ import { roleLabel } from "@/lib/labels";
 
 const ROLES: Role[] = ["owner", "editor", "viewer"];
 
-export interface MemberRow extends Pick<Member, "id" | "displayName" | "color" | "role"> {
+export interface MemberRow extends Pick<Member, "id" | "displayName" | "color" | "role" | "avatarUrl"> {
   /** "เข้าสู่ระบบด้วย LINE" or "ยังไม่เข้าร่วม" (the app cannot know whether a link was sent). */
   login: string;
   unclaimed: boolean;
@@ -91,7 +91,7 @@ export function MemberList({ tripId, rows, canManage }: { tripId: ID; rows: Memb
           );
           return (
             <li key={m.id} className="flex min-h-16 items-center gap-3 border-b border-line-soft py-2 pr-3 pl-3.5 last:border-b-0">
-              <Avatar name={m.displayName} color={m.color} size="lg" />
+              <Avatar name={m.displayName} color={m.color} src={m.avatarUrl} size="lg" />
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="truncate font-semibold">
                   {m.displayName}

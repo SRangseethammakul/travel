@@ -2,6 +2,7 @@ import type { RequestHandler } from "express";
 import { currentMember, currentUser } from "../auth/middleware.js";
 import { CreateTripInput, TripListQuery, UpdateTripInput } from "../schemas/trip.inputs.js";
 import * as trips from "../services/trip.service.js";
+import { loadAvatars } from "../utils/member-avatars.js";
 import { memberView } from "../views/member.view.js";
 import { tripView } from "../views/trip.view.js";
 
@@ -9,7 +10,8 @@ import { tripView } from "../views/trip.view.js";
 export const listMyTrips: RequestHandler = async (req, res) => {
   const { tab } = TripListQuery.parse(req.query);
   const rows = await trips.listMine(currentUser(req), tab);
-  res.json(rows.map((r) => ({ trip: tripView(r.trip), me: memberView(r.me), outstanding: r.outstanding })));
+  const avatars = await loadAvatars(rows.map((r) => r.me));
+  res.json(rows.map((r) => ({ trip: tripView(r.trip), me: memberView(r.me, avatars), outstanding: r.outstanding })));
 };
 
 /** B1 POST /api/trips — creator becomes owner; other names become Unclaimed Members. */
@@ -21,7 +23,7 @@ export const createTrip: RequestHandler = async (req, res) => {
 /** A3 GET /api/trips/:tripId -> { trip, me } */
 export const getTrip: RequestHandler = async (req, res) => {
   const me = currentMember(req);
-  res.json({ trip: tripView(await trips.get(me.tripId)), me: memberView(me) });
+  res.json({ trip: tripView(await trips.get(me.tripId)), me: memberView(me, await loadAvatars([me])) });
 };
 
 /** B2 PATCH /api/trips/:tripId (owner) — incl. `legs` and `meetingPoint` (`null` removes them). */

@@ -23,6 +23,7 @@ export interface FormMember {
   id: ID;
   name: string;
   color: ColorKey;
+  avatarUrl?: string;
 }
 
 export interface ExpenseFormInitial {
@@ -263,7 +264,7 @@ export function ExpenseForm({ tripId, expenseId, members, trip, initial, transit
                     on ? "border-primary bg-primary-soft" : "border-line bg-surface hover:border-line-strong",
                   )}
                 >
-                  <Avatar name={m.name} color={m.color} size="md" />
+                  <Avatar name={m.name} color={m.color} src={m.avatarUrl} size="md" />
                   <span className="max-w-full truncate text-[13px] font-semibold">{m.name}</span>
                 </button>
               );
@@ -365,7 +366,7 @@ export function ExpenseForm({ tripId, expenseId, members, trip, initial, transit
                     >
                       {on ? <Icon name="check" size={14} /> : null}
                     </span>
-                    <Avatar name={m.name} color={m.color} size="sm" />
+                    <Avatar name={m.name} color={m.color} src={m.avatarUrl} size="sm" />
                     <span className="flex min-w-0 flex-1 flex-col">
                       <span className="truncate font-medium">{m.name}</span>
                       {on && mode === "shares" ? (

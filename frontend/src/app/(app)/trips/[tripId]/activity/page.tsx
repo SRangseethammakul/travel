@@ -141,7 +141,7 @@ export default async function ActivityPage({ params, searchParams }: PageProps<"
                         )}
                       >
                         <span className="relative size-10 shrink-0">
-                          <Avatar name={actor?.displayName ?? "?"} color={actor?.color ?? "gray"} size="lg" />
+                          <Avatar name={actor?.displayName ?? "?"} color={actor?.color ?? "gray"} src={actor?.avatarUrl} size="lg" />
                           <span aria-hidden="true" className={cn("absolute -right-1 -bottom-1 rounded-full border-2 border-surface px-[5px] py-px text-[10px] font-bold", tag.className)}>
                             {tag.label}
                           </span>

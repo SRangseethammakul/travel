@@ -29,7 +29,7 @@ function first(v: string | string[] | undefined) {
 function Party({ member, isMe }: { member: Member; isMe: boolean }) {
   return (
     <span className="flex flex-col items-center gap-1">
-      <Avatar name={member.displayName} color={member.color} size="xl" />
+      <Avatar name={member.displayName} color={member.color} src={member.avatarUrl} size="xl" />
       <span className="text-[13px] font-semibold">
         {member.displayName}
         {isMe ? " (คุณ)" : ""}

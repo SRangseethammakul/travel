@@ -69,7 +69,7 @@ export default async function ExpenseDetailPage({ params }: PageProps<"/trips/[t
 
         <section aria-label="การจ่าย" className="flex flex-col rounded-card bg-surface px-4 py-1">
           <div className="flex items-center gap-3 border-b border-line-soft py-3">
-            {payer ? <Avatar name={payer.displayName} color={payer.color} size="md" /> : null}
+            {payer ? <Avatar name={payer.displayName} color={payer.color} src={payer.avatarUrl} size="md" /> : null}
             <span className="flex flex-1 flex-col">
               <span className="text-[13px] text-ink-muted">จ่ายโดย</span>
               <span className="font-semibold">
@@ -108,7 +108,7 @@ export default async function ExpenseDetailPage({ params }: PageProps<"/trips/[t
               const isPayer = s.memberId === expense.payerId;
               return (
                 <li key={s.memberId} className="flex min-h-12 items-center gap-3">
-                  {m ? <Avatar name={m.displayName} color={m.color} size="sm" /> : null}
+                  {m ? <Avatar name={m.displayName} color={m.color} src={m.avatarUrl} size="sm" /> : null}
                   <span className="flex min-w-0 flex-1 flex-col">
                     <span className="font-medium">
                       {name(s.memberId)}
