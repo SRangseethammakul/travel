@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createSeed, TRIP_IDS } from "@/test/fixtures/seed";
 import { formatDuration } from "@/lib/labels";
 import type { PlanItem, TransitPlanItem } from "@/lib/api/types";
-import { formatVisitLine, placeVisits, stayTransitWarnings, nightsLodging, arrivalsOnDay, dayAreasLabel, dayCardCaption, hopText, itemsByDay, legCity, placeDays, resolveDay, unscheduledPlaces } from "./plan";
+import { formatVisitLine, placeVisits, stayTransitWarnings, tripChecks, nightsLodging, arrivalsOnDay, dayAreasLabel, dayCardCaption, hopText, itemsByDay, legCity, placeDays, resolveDay, unscheduledPlaces } from "./plan";
 
 const seed = createSeed(new Date("2026-11-11T10:00:00Z"));
 const trip = (id: string) => seed.trips.find((t) => t.id === id)!;
@@ -157,6 +157,35 @@ describe("stayTransitWarnings", () => {
   });
   it("ignores a single stay", () => {
     expect(stayTransitWarnings([stay("A", "x", "2026-12-01", "2026-12-03")], [], t)).toEqual([]);
+  });
+});
+
+describe("tripChecks", () => {
+  type P = import("@/lib/api/types").Place;
+  const stay = (id: string, checkIn: string, checkOut: string) => ({ id, name: id, city: "Tokyo", type: "stay", stay: { checkIn, checkOut } }) as unknown as P;
+  const flight = (day: string) => ({ kind: "transit", id: `f${day}`, toText: "Tokyo", fromText: "BKK", departAt: `${day}T09:00`, arriveAt: `${day}T17:00` }) as unknown as PlanItem;
+  // Japan: 10 days, 1–10 Dec (9 nights)
+  const japan = { startDate: "2026-12-01", endDate: "2026-12-10" };
+
+  it("warns when the outbound flight has no return", () => {
+    const w = tripChecks([stay("A", "2026-12-01", "2026-12-10")], [flight("2026-12-01")], japan);
+    expect(w).toEqual(["วันสุดท้าย (วันที่ 10) ยังไม่มีเที่ยวกลับ"]);
+  });
+  it("is quiet with a return flight on the last day", () => {
+    expect(tripChecks([stay("A", "2026-12-01", "2026-12-10")], [flight("2026-12-01"), flight("2026-12-10")], japan)).toEqual([]);
+  });
+  it("says nothing for a driving trip with no transit and no stays", () => {
+    const huaHin = { startDate: "2026-12-18", endDate: "2026-12-20" };
+    expect(tripChecks([], [], huaHin)).toEqual([]);
+  });
+  it("warns about nights after the last stay and before the first", () => {
+    expect(tripChecks([stay("A", "2026-12-01", "2026-12-08")], [], japan)).toEqual(["คืนที่ 8–9 ยังไม่มีที่พัก"]);
+    expect(tripChecks([stay("A", "2026-12-03", "2026-12-10")], [], japan)).toEqual(["คืนที่ 1–2 ยังไม่มีที่พัก"]);
+    expect(tripChecks([stay("A", "2026-12-01", "2026-12-09")], [], japan)).toEqual(["คืนที่ 9 ยังไม่มีที่พัก"]);
+  });
+  it("keeps the existing gap warning and does not repeat it", () => {
+    const w = tripChecks([stay("A", "2026-12-01", "2026-12-03"), stay("B", "2026-12-05", "2026-12-10")], [], japan);
+    expect(w).toEqual(["คืนวันที่ 3–4 ยังไม่มีที่พัก (ระหว่าง A กับ B)"]);
   });
 });
 

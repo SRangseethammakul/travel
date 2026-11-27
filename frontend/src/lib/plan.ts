@@ -170,6 +170,35 @@ export function stayTransitWarnings(places: readonly Place[], plan: readonly Pla
   return out;
 }
 
+/**
+ * Everything "ลองเช็คอีกที" says: stay/transit warnings plus
+ * - nights before the first dated stay or after the last one with no stay (only when a dated stay exists);
+ * - a transit leaves on the trip's first day but none leaves on the last day (no return).
+ */
+export function tripChecks(places: readonly Place[], plan: readonly PlanItem[], trip: Pick<Trip, "startDate" | "endDate">): string[] {
+  const out = stayTransitWarnings(places, plan, trip);
+  const stays = places.filter((p) => p.type === "stay" && p.stay);
+  if (stays.length) {
+    const first = stays.reduce((m, p) => (p.stay!.checkIn < m ? p.stay!.checkIn : m), stays[0].stay!.checkIn);
+    const last = stays.reduce((m, p) => (p.stay!.checkOut > m ? p.stay!.checkOut : m), stays[0].stay!.checkOut);
+    const nights = nightsLodging(places, trip);
+    const edge = (list: LodgingNight[]) => {
+      if (!list.length) return;
+      const a = list[0].night;
+      const b = list[list.length - 1].night;
+      out.push(`คืนที่ ${a === b ? a : `${a}–${b}`} ยังไม่มีที่พัก`);
+    };
+    edge(nights.filter((n) => !n.place && n.date < first));
+    edge(nights.filter((n) => !n.place && n.date >= last));
+  }
+  const days = tripDayCount(trip);
+  const departDays = new Set(
+    plan.filter((i): i is TransitPlanItem => i.kind === "transit").map((t) => daysBetween(trip.startDate, t.departAt.slice(0, 10)) + 1),
+  );
+  if (days > 1 && departDays.has(1) && !departDays.has(days)) out.push(`วันสุดท้าย (วันที่ ${days}) ยังไม่มีเที่ยวกลับ`);
+  return out;
+}
+
 export interface PlaceVisit {
   day: number;
   /** "19:00", or null when not timed yet. */

@@ -10,6 +10,8 @@ import {
   stayExpenseSync,
   stayPhase,
   stayPlanSync,
+  stayPriceForNights,
+  stayVisitTime,
   stayTripDays,
   tagSuggestions,
   tagUsage,
@@ -138,7 +140,7 @@ describe("stayPlanSync (Hua Hin 18–20 Dec, hotel 1 shortened to check out on t
 
   it("removes the untouched visit on the day that is no longer part of the stay", () => {
     const r = stayPlanSync(all, { checkIn: "2026-12-18", checkOut: "2026-12-20" }, { checkIn: "2026-12-18", checkOut: "2026-12-19" }, trip);
-    expect(r).toEqual({ addDays: [], removeIds: ["a3"] });
+    expect(r).toEqual({ addDays: [], removeIds: ["a3"], retime: [] });
   });
   it("keeps a visit the user timed or annotated", () => {
     const v = [visit("a1", 1), visit("a2", 2), visit("a3", 3, { time: "10:00" })];
@@ -148,16 +150,80 @@ describe("stayPlanSync (Hua Hin 18–20 Dec, hotel 1 shortened to check out on t
   });
   it("adds days when the stay is extended and never touches days outside the old stay", () => {
     const r = stayPlanSync([visit("a1", 1)], { checkIn: "2026-12-18", checkOut: "2026-12-19" }, { checkIn: "2026-12-18", checkOut: "2026-12-20" }, trip);
-    expect(r).toEqual({ addDays: [2, 3], removeIds: [] });
+    expect(r).toEqual({ addDays: [2, 3], removeIds: [], retime: [] });
     const manual = [visit("m3", 3)]; // placed by hand on day 3, old stay ended on day 2
     expect(stayPlanSync(manual, { checkIn: "2026-12-18", checkOut: "2026-12-19" }, { checkIn: "2026-12-18", checkOut: "2026-12-19" }, trip).removeIds).toEqual([]);
   });
   it("moving the stay removes the old days and adds the new ones", () => {
     const r = stayPlanSync([visit("a1", 1), visit("a2", 2)], { checkIn: "2026-12-18", checkOut: "2026-12-19" }, { checkIn: "2026-12-19", checkOut: "2026-12-20" }, trip);
-    expect(r).toEqual({ addDays: [3], removeIds: ["a1"] });
+    expect(r).toEqual({ addDays: [3], removeIds: ["a1"], retime: [] });
   });
   it("removing the stay clears the untouched visits of its days", () => {
-    expect(stayPlanSync(all, { checkIn: "2026-12-18", checkOut: "2026-12-20" }, null, trip)).toEqual({ addDays: [], removeIds: ["a1", "a2", "a3"] });
+    expect(stayPlanSync(all, { checkIn: "2026-12-18", checkOut: "2026-12-20" }, null, trip)).toEqual({ addDays: [], removeIds: ["a1", "a2", "a3"], retime: [] });
+  });
+});
+
+describe("stayPlanSync with check-in/out times", () => {
+  const trip = { startDate: "2026-12-18", endDate: "2026-12-20" };
+  const visit = (id: string, day: number, time: string | null, note = "") => ({ id, day, time, note });
+  const timed = { checkIn: "2026-12-18", checkOut: "2026-12-20", checkInTime: "14:00", checkOutTime: "12:00" };
+
+  it("removes a check-out card that still has the old automatic time", () => {
+    const v = [visit("a1", 1, "14:00"), visit("a2", 2, null), visit("a3", 3, "12:00")];
+    const r = stayPlanSync(v, timed, { ...timed, checkOut: "2026-12-19" }, trip);
+    expect(r.removeIds).toEqual(["a3"]);
+    expect(r.retime).toEqual([{ id: "a2", time: "12:00" }]);
+  });
+  it("keeps a card whose time the user changed", () => {
+    const r = stayPlanSync([visit("a3", 3, "10:00")], timed, { ...timed, checkOut: "2026-12-19" }, trip);
+    expect(r.removeIds).toEqual([]);
+  });
+  it("retimes untouched check-in/out cards when the times change, and leaves custom times alone", () => {
+    const v = [visit("a1", 1, "14:00"), visit("a2", 2, null), visit("a3", 3, "09:00")];
+    const r = stayPlanSync(v, timed, { ...timed, checkInTime: "15:00", checkOutTime: "10:00" }, trip);
+    expect(r.retime).toEqual([{ id: "a1", time: "15:00" }]);
+  });
+  it("gives existing untimed cards their time when a legacy stay gets times", () => {
+    const legacy = { checkIn: "2026-12-18", checkOut: "2026-12-20" };
+    const r = stayPlanSync([visit("a1", 1, null), visit("a2", 2, null), visit("a3", 3, null)], legacy, timed, trip);
+    expect(r.retime).toEqual([{ id: "a1", time: "14:00" }, { id: "a3", time: "12:00" }]);
+  });
+  it("clears the time when a check-out day becomes a night", () => {
+    const r = stayPlanSync([visit("a2", 2, "12:00")], { ...timed, checkOut: "2026-12-19" }, timed, trip);
+    expect(r.retime).toEqual([{ id: "a2", time: null }]);
+  });
+});
+
+describe("stayVisitTime", () => {
+  const stay = { checkIn: "2026-12-18", checkOut: "2026-12-20", checkInTime: "14:00", checkOutTime: "12:00" };
+  it("gives check-in / check-out times on those days only", () => {
+    expect(stayVisitTime(stay, "2026-12-18")).toBe("14:00");
+    expect(stayVisitTime(stay, "2026-12-19")).toBeNull();
+    expect(stayVisitTime(stay, "2026-12-20")).toBe("12:00");
+    expect(stayVisitTime(stay, "2026-12-21")).toBeNull();
+  });
+  it("is null for a stay without times", () => {
+    expect(stayVisitTime({ checkIn: "2026-12-18", checkOut: "2026-12-20" }, "2026-12-18")).toBeNull();
+  });
+});
+
+describe("stayPriceForNights", () => {
+  it("keeps the per-night rate", () => {
+    expect(stayPriceForNights(560000, 2, 3)).toBe(840000);
+    expect(stayPriceForNights(560000, 2, 1)).toBe(280000);
+  });
+  it("rounds to whole satang and ignores bad night counts", () => {
+    expect(stayPriceForNights(10000, 3, 2)).toBe(6667);
+    expect(stayPriceForNights(10000, 0, 2)).toBe(10000);
+  });
+});
+
+describe("checkStayDraft times", () => {
+  const base: PlaceDraft = { ...draft, type: "stay", checkIn: "2026-12-18", checkOut: "2026-12-20" };
+  it("carries valid times and rejects bad ones", () => {
+    const ok = checkPlaceDraft({ ...base, checkInTime: "14:00", checkOutTime: "12:00" });
+    expect(ok.ok && ok.stay).toMatchObject({ checkInTime: "14:00", checkOutTime: "12:00" });
+    expect(checkPlaceDraft({ ...base, checkInTime: "25:00" }).ok).toBe(false);
   });
 });
 

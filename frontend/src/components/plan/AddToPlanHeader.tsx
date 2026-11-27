@@ -28,7 +28,7 @@ export function AddToPlanHeader({ title, subtitle, closeHref, planBase, day, cur
         value={current}
         options={[
           { value: "place", label: "สถานที่", href: `${planBase}/add?day=${day}` },
-          { value: "transit", label: "การเดินทาง", href: `${planBase}/transit/new?day=${day}` },
+          { value: "transit", label: "ตั๋วเดินทาง", href: `${planBase}/transit/new?day=${day}` },
         ]}
       />
       {children}

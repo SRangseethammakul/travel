@@ -28,7 +28,7 @@ import { formatCountdown, formatDateRange, formatDayMonth, formatTripLength, for
 import { unreadCount } from "@/lib/expenses";
 import { memberRoleLine, transitModeLabel } from "@/lib/labels";
 import { canAddExpense, canEditPlan, canEditPlanEntry, canEditTripStructure } from "@/lib/permissions";
-import { dayCardCaption, itemDay, itemsByDay, nightsLodging, resolveDay, stayTransitWarnings } from "@/lib/plan";
+import { dayCardCaption, itemDay, itemsByDay, nightsLodging, resolveDay, tripChecks } from "@/lib/plan";
 
 export default async function TripPage({ params }: PageProps<"/trips/[tripId]">) {
   const { tripId } = await params;
@@ -73,7 +73,7 @@ export default async function TripPage({ params }: PageProps<"/trips/[tripId]">)
                 ? [
                     { href: `${base}/places/new`, icon: "place" as const, label: "สถานที่", hint: "ที่เที่ยว ที่กิน" },
                     { href: `${base}/places/new?type=stay`, icon: "home" as const, label: "ที่พัก", hint: "โรงแรม รีสอร์ท พร้อมวันเช็คอิน-เช็คเอาท์" },
-                    { href: `${base}/plan/transit/new`, icon: "train" as const, label: "การเดินทาง", hint: "เครื่องบิน รถไฟ เรือ รถทัวร์" },
+                    { href: `${base}/plan/transit/new`, icon: "train" as const, label: "ตั๋วเดินทาง", hint: "เครื่องบิน รถไฟ เรือ รถทัวร์" },
                   ]
                 : []),
               ...(canAddExpense(me) ? [{ href: `${base}/expenses/new`, icon: "receipt" as const, label: "ค่าใช้จ่าย", hint: "จดรายจ่ายและหารเงิน" }] : []),
@@ -137,7 +137,7 @@ export default async function TripPage({ params }: PageProps<"/trips/[tripId]">)
         </Card>
 
         {nights.length ? <LodgingNights nights={nights} base={base} day={currentDay} /> : null}
-        <StayWarnings warnings={stayTransitWarnings(places, plan, trip)} />
+        <StayWarnings warnings={tripChecks(places, plan, trip)} />
 
         <TravelDetails trip={trip} me={me} plan={plan} places={places} spent={balances.total} base={base} />
 

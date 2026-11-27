@@ -21,7 +21,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 /** Read-only Place, shown to every member (tapping a place never opens the form). Shows the note, which the list only previews; editors get an "แก้ไข" button to the edit page. */
-export function PlaceDetail({ tripId, place, me, tagNames, linkedExpense, startDate, visits, editHref }: { tripId: string; place: Place; me: Pick<Member, "id" | "role">; tagNames: string[]; linkedExpense?: { id: string; amount: number } | null; startDate: string; visits: PlaceVisit[]; editHref?: string }) {
+export function PlaceDetail({ tripId, place, me, tagNames, linkedExpense, startDate, visits, editHref }: { tripId: string; place: Place; me: Pick<Member, "id" | "role">; tagNames: string[]; linkedExpense?: { id: string; amount: number; canEdit?: boolean } | null; startDate: string; visits: PlaceVisit[]; editHref?: string }) {
   const style = placeTypeStyle[place.type];
   const stay = place.stay;
   return (
@@ -49,7 +49,7 @@ export function PlaceDetail({ tripId, place, me, tagNames, linkedExpense, startD
         {stay ? (
           <>
             <Row label="เช็คอิน – เช็คเอาท์">
-              {formatDayMonth(stay.checkIn)} – {formatDayMonth(stay.checkOut)} ({stayNights(stay)} คืน)
+              {formatDayMonth(stay.checkIn)}{stay.checkInTime ? ` ${stay.checkInTime}` : ""} – {formatDayMonth(stay.checkOut)}{stay.checkOutTime ? ` ${stay.checkOutTime}` : ""} ({stayNights(stay)} คืน)
             </Row>
             {stay.price ? (
               <Row label="ราคารวม">
@@ -70,6 +70,16 @@ export function PlaceDetail({ tripId, place, me, tagNames, linkedExpense, startD
                 <Link href={`/trips/${encodeURIComponent(tripId)}/expenses/${encodeURIComponent(linkedExpense.id)}`} className="flex min-h-11 items-center font-semibold text-primary">
                   ดูรายการค่าใช้จ่าย
                 </Link>
+                {stay.price && linkedExpense.amount !== stay.price ? (
+                  <>
+                    <span className="text-[13px] font-semibold text-todo">ยอดค่าใช้จ่ายไม่ตรงกับราคาที่พัก</span>
+                    {linkedExpense.canEdit ? (
+                      <Link href={`/trips/${encodeURIComponent(tripId)}/expenses/${encodeURIComponent(linkedExpense.id)}/edit`} className="flex min-h-11 items-center font-semibold text-primary">
+                        แก้ค่าใช้จ่าย
+                      </Link>
+                    ) : null}
+                  </>
+                ) : null}
               </Row>
             ) : null}
             {stay.bookingRef ? <Row label="เลขที่จอง">{stay.bookingRef}</Row> : null}

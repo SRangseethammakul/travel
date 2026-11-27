@@ -136,6 +136,9 @@ export interface PlacePhoto {
 export interface PlaceStay {
   checkIn: string; // YYYY-MM-DD, within trip dates
   checkOut: string; // YYYY-MM-DD, after checkIn
+  /** "HH:mm"; optional (stays saved before times existed have none). */
+  checkInTime?: string;
+  checkOutTime?: string;
   /** Total for the whole stay. */
   price?: Satang;
   bookingRef?: string;

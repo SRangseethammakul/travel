@@ -10,7 +10,7 @@ import { getDocuments, getExpenses, getPlaces, getPlanItems, requireTripMember }
 import { cn } from "@/lib/cn";
 import { canEditExpense, canEditPlan, canEditPlanEntry } from "@/lib/permissions";
 import { formatLongDayMonth, formatWeekdayDay, todayISO, tripDayDate } from "@/lib/date";
-import { arrivalsOnDay, dayAreasLabel, itemDay, itemsByDay, legCity, nightsLodging, placeDays, resolveDay, stayTransitWarnings, unscheduledPlaces } from "@/lib/plan";
+import { arrivalsOnDay, dayAreasLabel, itemDay, itemsByDay, legCity, nightsLodging, placeDays, resolveDay, tripChecks, unscheduledPlaces } from "@/lib/plan";
 
 export default async function PlannerPage({ params, searchParams }: PageProps<"/trips/[tripId]/plan">) {
   const { tripId } = await params;
@@ -31,7 +31,7 @@ export default async function PlannerPage({ params, searchParams }: PageProps<"/
   const areas = dayAreasLabel(dayItems, placeById, city);
   const canEdit = canEditPlan(me);
   const nights = nightsLodging(places, trip);
-  const warnings = stayTransitWarnings(places, plan, trip);
+  const warnings = tripChecks(places, plan, trip);
   const dashed = buttonClasses({ variant: "dashed", className: "rounded-2xl text-sm" });
 
   return (
@@ -92,7 +92,7 @@ export default async function PlannerPage({ params, searchParams }: PageProps<"/
             date={date}
           />
         ) : (
-          <p className="m-0 rounded-2xl bg-surface px-4 py-5 text-center text-sm text-ink-muted">{canEdit ? "ยังไม่มีแผนของวันนี้ เพิ่มสถานที่หรือการเดินทางได้ด้านล่าง" : "ยังไม่มีแผนของวันนี้"}</p>
+          <p className="m-0 rounded-2xl bg-surface px-4 py-5 text-center text-sm text-ink-muted">{canEdit ? "ยังไม่มีแผนของวันนี้ เพิ่มสถานที่หรือตั๋วเดินทางได้ด้านล่าง" : "ยังไม่มีแผนของวันนี้"}</p>
         )}
 
         {/* Adding to the plan is for owner / editor; viewers only look (SPEC "สิทธิ์"). */}
@@ -104,7 +104,7 @@ export default async function PlannerPage({ params, searchParams }: PageProps<"/
             </Link>
             <Link href={`${base}/plan/transit/new?day=${day}`} className={dashed}>
               <Icon name="plus" size={16} />
-              การเดินทาง
+              ตั๋วเดินทาง
             </Link>
           </div>
         ) : null}

@@ -7,9 +7,10 @@
  */
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { checkPlaceDraft, cleanLabel, cleanTagName, MAX_TAG_NAME, stayPlanSync, stayTripDays, type PlaceDraft } from "@/lib/place-form";
+import { checkPlaceDraft, cleanLabel, cleanTagName, MAX_TAG_NAME, stayPlanSync, stayTripDays, stayVisitTime, type PlaceDraft } from "@/lib/place-form";
 import { checkHop, checkLegs, checkTransitDraft, checkVisitDraft, checkVisitEdit, transitPatchBody, type TransitDraft, type VisitDraft, type VisitEdit } from "@/lib/plan-form";
 import { itemDay, tripDayCount } from "@/lib/plan";
+import { tripDayDate } from "@/lib/date";
 import { stayExpenseSavedText } from "@/lib/stay-expense";
 import { formatMoney } from "@/lib/money/format";
 import { uploadDocument } from "./documents";
@@ -97,7 +98,16 @@ export async function createPlace(tripId: ID, draft: PlaceDraft, then: "list" | 
     let placed = false;
     if (days.length) {
       try {
-        await apiFetch(`${tripPath(tripId)}/plan/places`, { method: "POST", json: { placeId: place.id, days, time: null, note: "" } });
+        // Check-in and check-out days carry the stay's times, the nights between have none: one POST per time.
+        const stay = checked.stay;
+        const byTime = new Map<string | null, number[]>();
+        for (const d of days) {
+          const time = trip ? stayVisitTime(stay, tripDayDate(trip.startDate, d)) : null;
+          byTime.set(time, [...(byTime.get(time) ?? []), d]);
+        }
+        for (const [time, group] of byTime) {
+          await apiFetch(`${tripPath(tripId)}/plan/places`, { method: "POST", json: { placeId: place.id, days: group, time, note: "" } });
+        }
         placed = true;
       } catch {
         // Saved but not placed on the plan: fall through to the normal ending.
@@ -171,8 +181,16 @@ export async function updatePlaceAction(
       const sync = stayPlanSync(visits, prevStay, checked.stay, trip);
       try {
         for (const id of sync.removeIds) await apiFetch(`${tripPath(tripId)}/plan/${encodeURIComponent(id)}`, { method: "DELETE" });
-        if (sync.addDays.length) {
-          await apiFetch(`${tripPath(tripId)}/plan/places`, { method: "POST", json: { placeId, days: sync.addDays, time: null, note: "" } });
+        for (const r of sync.retime) {
+          await apiFetch(`${tripPath(tripId)}/plan/${encodeURIComponent(r.id)}`, { method: "PATCH", json: { time: r.time } });
+        }
+        const addByTime = new Map<string | null, number[]>();
+        for (const d of sync.addDays) {
+          const time = checked.stay ? stayVisitTime(checked.stay, tripDayDate(trip.startDate, d)) : null;
+          addByTime.set(time, [...(addByTime.get(time) ?? []), d]);
+        }
+        for (const [time, days] of addByTime) {
+          await apiFetch(`${tripPath(tripId)}/plan/places`, { method: "POST", json: { placeId, days, time, note: "" } });
         }
       } catch (e) {
         refresh();

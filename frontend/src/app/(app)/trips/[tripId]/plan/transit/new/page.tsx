@@ -17,7 +17,7 @@ export default async function AddTransitPage({ params, searchParams }: PageProps
 
   return (
     <div className="flex min-h-dvh flex-1 flex-col bg-surface">
-      <AddToPlanHeader title="เพิ่มการเดินทาง" closeHref={`${base}/plan?day=${day}`} planBase={`${base}/plan`} day={day} current="transit" />
+      <AddToPlanHeader title="เพิ่มตั๋ว / การเดินทางที่จองไว้" closeHref={`${base}/plan?day=${day}`} planBase={`${base}/plan`} day={day} current="transit" />
       <TransitForm
         tripId={tripId}
         trip={{ startDate: trip.startDate, endDate: trip.endDate }}

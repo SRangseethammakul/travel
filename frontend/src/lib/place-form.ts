@@ -10,6 +10,10 @@ export const MAX_PLACE_NAME = 80;
 export const MAX_NOTE = 500;
 export const MAX_TAG_NAME = 30;
 export const MAX_TAGS = 10;
+/** Defaults offered for a new stay (and an old one that has no times yet). */
+export const DEFAULT_CHECK_IN_TIME = "14:00";
+export const DEFAULT_CHECK_OUT_TIME = "12:00";
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 export interface PlaceDraft {
   name: string;
@@ -27,6 +31,9 @@ export interface PlaceDraft {
   /** Hotel fields (type "stay" only); "" = not filled. Price is baht as typed. */
   checkIn?: string;
   checkOut?: string;
+  /** "HH:mm" or "" (not set). */
+  checkInTime?: string;
+  checkOutTime?: string;
   price?: string;
   bookingRef?: string;
   address?: string;
@@ -105,18 +112,21 @@ export function checkStayDraft(draft: PlaceDraft): { stay: PlaceStay } | { error
   const checkIn = (draft.checkIn ?? "").trim();
   const checkOut = (draft.checkOut ?? "").trim();
   const price = (draft.price ?? "").trim();
+  const checkInTime = (draft.checkInTime ?? "").trim();
+  const checkOutTime = (draft.checkOutTime ?? "").trim();
   const bookingRef = cleanLabel(draft.bookingRef ?? "");
   const address = cleanLabel(draft.address ?? "");
   if (!checkIn && !checkOut) return price || bookingRef || address ? { error: "ใส่วันเช็คอินและเช็คเอาท์ก่อน จึงจะบันทึกราคาหรือเลขจองได้" } : undefined;
   if (!checkIn) return { error: "ใส่วันเช็คอิน" };
   if (!checkOut) return { error: "ใส่วันเช็คเอาท์" };
   if (checkOut <= checkIn) return { error: "วันเช็คเอาท์ต้องหลังวันเช็คอิน" };
+  if ((checkInTime && !TIME_RE.test(checkInTime)) || (checkOutTime && !TIME_RE.test(checkOutTime))) return { error: "เวลาเช็คอิน/เช็คเอาท์ไม่ถูกต้อง" };
   const satang = parseBahtInput(price);
   if (satang === null) return { error: "ราคาที่พักไม่ถูกต้อง" };
   if (bookingRef.length > 100) return { error: "เลขจองยาวเกินไป" };
   if (address.length > 300) return { error: "ที่อยู่ยาวเกินไป" };
   return {
-    stay: { checkIn, checkOut, ...(satang > 0 ? { price: satang } : {}), ...(bookingRef ? { bookingRef } : {}), ...(address ? { address } : {}) },
+    stay: { checkIn, checkOut, ...(checkInTime ? { checkInTime } : {}), ...(checkOutTime ? { checkOutTime } : {}), ...(satang > 0 ? { price: satang } : {}), ...(bookingRef ? { bookingRef } : {}), ...(address ? { address } : {}) },
   };
 }
 
@@ -135,6 +145,22 @@ export function stayPhase(stay: Pick<PlaceStay, "checkIn" | "checkOut">, date: s
   if (date === stay.checkIn) return "in";
   if (date === stay.checkOut) return "out";
   return date > stay.checkIn && date < stay.checkOut ? "night" : null;
+}
+
+type StayTimes = Pick<PlaceStay, "checkIn" | "checkOut" | "checkInTime" | "checkOutTime">;
+
+/** The time a stay's visit gets on a date: check-in time on the check-in day, check-out time on the check-out day, otherwise null. */
+export function stayVisitTime(stay: StayTimes, date: string): string | null {
+  const phase = stayPhase(stay, date);
+  if (phase === "in") return stay.checkInTime ?? null;
+  if (phase === "out") return stay.checkOutTime ?? null;
+  return null;
+}
+
+/** Price for a stay of `newNights` when it was `price` for `oldNights` (per-night rate kept, rounded to whole satang). */
+export function stayPriceForNights(price: number, oldNights: number, newNights: number): number {
+  if (oldNights <= 0 || newNights <= 0) return price;
+  return Math.round((price * newNights) / oldNights);
 }
 
 /** "3 คืน" */
@@ -248,28 +274,34 @@ export interface StayVisit {
 }
 
 /**
- * Keeps the plan in step when a hotel's stay dates change (or the stay is removed).
+ * Keeps the plan in step when a hotel's stay dates or check-in/out times change (or the stay is removed).
  *
- * Visits the stay put on the plan have no time and no note, but a visit the user
- * added by hand looks the same, so it cannot be told apart for certain. Rule:
- *  - add: every day of the new stay that has no visit of this Place yet;
- *  - remove: visits on days of the OLD stay that fall outside the new one, and only
- *    if they are still untouched (no time, no note). Days outside the old stay
- *    (manual placements) and visits the user timed or annotated are never removed.
+ * Visits the stay put on the plan have no note and only the stay's own automatic time
+ * (check-in / check-out time, else none), but a visit the user added by hand looks the
+ * same, so it cannot be told apart for certain. A visit is "untouched" when its time is
+ * null or equals the OLD automatic time of its day. Rule:
+ *  - add: every day of the new stay that has no visit of this Place yet (with that day's automatic time);
+ *  - remove: visits on days of the OLD stay that fall outside the new one, only if untouched and without a
+ *    note. Days outside the old stay (manual placements) and timed or annotated visits are never removed;
+ *  - retime: untouched visits on days of the new stay whose automatic time changed.
  */
 export function stayPlanSync(
   visits: readonly StayVisit[],
-  oldStay: Pick<PlaceStay, "checkIn" | "checkOut"> | null | undefined,
-  newStay: Pick<PlaceStay, "checkIn" | "checkOut"> | null | undefined,
+  oldStay: StayTimes | null | undefined,
+  newStay: StayTimes | null | undefined,
   trip: Pick<Trip, "startDate" | "endDate">,
-): { addDays: number[]; removeIds: ID[] } {
+): { addDays: number[]; removeIds: ID[]; retime: { id: ID; time: string | null }[] } {
   const oldDays = oldStay ? stayTripDays(oldStay, trip) : [];
   const newDays = newStay ? stayTripDays(newStay, trip) : [];
   const have = new Set(visits.map((v) => v.day));
-  return {
-    addDays: newDays.filter((d) => !have.has(d)),
-    removeIds: visits.filter((v) => oldDays.includes(v.day) && !newDays.includes(v.day) && v.time === null && !v.note.trim()).map((v) => v.id),
-  };
+  const oldAuto = (day: number) => (oldStay ? stayVisitTime(oldStay, tripDayDate(trip.startDate, day)) : null);
+  const newAuto = (day: number) => (newStay ? stayVisitTime(newStay, tripDayDate(trip.startDate, day)) : null);
+  const untouched = (v: StayVisit) => v.time === null || v.time === oldAuto(v.day);
+  const removeIds = visits.filter((v) => oldDays.includes(v.day) && !newDays.includes(v.day) && untouched(v) && !v.note.trim()).map((v) => v.id);
+  const retime = visits
+    .filter((v) => newDays.includes(v.day) && untouched(v) && v.time !== newAuto(v.day))
+    .map((v) => ({ id: v.id, time: newAuto(v.day) }));
+  return { addDays: newDays.filter((d) => !have.has(d)), removeIds, retime };
 }
 
 /** Check-in = the plan day the user came from, check-out = next day (left empty when that is past the trip's last day). */
