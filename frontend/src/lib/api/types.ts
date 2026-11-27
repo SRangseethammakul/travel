@@ -39,6 +39,8 @@ export interface Member {
   role: Role;
   joinedVia?: AuthProvider;
   color: ColorKey;
+  /** Provider picture of the linked User; absent for Unclaimed Members. */
+  avatarUrl?: string;
   /** A4 lists `pending` Members (waiting for the owner's approval) next to `active` ones; absent = active. */
   status?: "active" | "pending" | "removed";
 }

@@ -44,7 +44,7 @@ export function TransferStrip({ base, toPay, toConfirm, members }: Props) {
                   href={`${base}/summary/settle?from=${encodeURIComponent(r.fromId)}&to=${encodeURIComponent(r.toId)}`}
                   className="flex min-h-14 items-center gap-3 px-3.5 py-2.5 text-ink no-underline hover:bg-surface-alt hover:text-ink"
                 >
-                  <Avatar name={name} color={other?.color ?? "gray"} size="md" />
+                  <Avatar name={name} color={other?.color ?? "gray"} src={other?.avatarUrl} size="md" />
                   <span className="min-w-0 flex-1 font-semibold">{text}</span>
                   <Money
                     value={r.amount}

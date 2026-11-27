@@ -125,7 +125,7 @@ export default async function TripPage({ params }: PageProps<"/trips/[tripId]">)
           <ul className="m-0 flex list-none flex-col p-0">
             {members.map((m) => (
               <li key={m.id} className="flex min-h-12 items-center gap-3 py-1">
-                <Avatar name={m.displayName} color={m.color} />
+                <Avatar name={m.displayName} color={m.color} src={m.avatarUrl} />
                 <div className="flex min-w-0 flex-1 flex-col">
                   <span className="font-semibold">{m.displayName}</span>
                   <span className="text-[13px] text-ink-muted">{memberRoleLine(m, m.id === me.id)}</span>

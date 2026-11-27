@@ -92,7 +92,7 @@ export default async function DevUiPage(props: PageProps<"/dev/ui">) {
               <Avatar name="Kong" color="gray" size="md" />
               <Avatar name="N" color="slate" size="sm" />
             </div>
-            <AvatarStack people={members.map((m) => ({ id: m.id, name: m.displayName, color: m.color }))} />
+            <AvatarStack people={members.map((m) => ({ id: m.id, name: m.displayName, color: m.color, src: m.avatarUrl }))} />
           </Card>
         </Section>
 

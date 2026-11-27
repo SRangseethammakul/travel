@@ -48,7 +48,7 @@ export default async function AddExpensePage({ params, searchParams }: PageProps
         tripId={tripId}
         expenseId={null}
         trip={{ startDate: trip.startDate, endDate: trip.endDate }}
-        members={members.map((m) => ({ id: m.id, name: m.displayName, color: m.color }))}
+        members={members.map((m) => ({ id: m.id, name: m.displayName, color: m.color, avatarUrl: m.avatarUrl }))}
         initial={initial}
         usedCardNames={usedCardNames(expenses, personal)}
         {...(transit ? { transitId: transit.id } : {})}

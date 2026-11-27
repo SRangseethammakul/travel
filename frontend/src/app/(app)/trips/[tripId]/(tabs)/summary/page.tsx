@@ -86,6 +86,7 @@ export default async function SummaryPage({ params }: PageProps<"/trips/[tripId]
               id: r.member.id,
               name: r.member.displayName,
               color: r.member.color,
+              avatarUrl: r.member.avatarUrl,
               isMe: r.member.id === me.id,
               paid: r.paid,
               share: r.share,
@@ -105,9 +106,9 @@ export default async function SummaryPage({ params }: PageProps<"/trips/[tripId]
             const s = t.status === "waiting" ? null : statusStyle[t.status];
             return (
               <div key={t.key} className="flex items-center gap-2.5 border-t border-line-soft py-2.5">
-                <Avatar name={from.displayName} color={from.color} size="sm" />
+                <Avatar name={from.displayName} color={from.color} src={from.avatarUrl} size="sm" />
                 <Icon name="arrowRight" size={18} className="shrink-0 text-ink-muted" />
-                <Avatar name={to.displayName} color={to.color} size="sm" />
+                <Avatar name={to.displayName} color={to.color} src={to.avatarUrl} size="sm" />
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="text-sm font-semibold">
                     {from.displayName} → {to.displayName}

@@ -26,6 +26,7 @@ export interface ChecklistPerson {
   id: ID;
   name: string;
   color: ColorKey;
+  avatarUrl?: string;
 }
 
 interface ChecklistViewProps {
@@ -126,7 +127,7 @@ export function ChecklistView({ tripId, scope, groups, people, suggestions, canA
                           className="relative flex min-h-9 shrink-0 cursor-pointer items-center gap-1 rounded-full border border-line bg-surface py-0 pr-2 pl-1 text-xs font-semibold text-ink-subtle before:absolute before:inset-x-0 before:-inset-y-1 before:content-[''] hover:border-ink-muted disabled:cursor-default disabled:hover:border-line"
                         >
                           {who ? (
-                            <Avatar name={who.name} color={who.color} size="xs" />
+                            <Avatar name={who.name} color={who.color} src={who.avatarUrl} size="xs" />
                           ) : (
                             <span aria-hidden="true" className="flex size-7 items-center justify-center rounded-full bg-disabled font-display text-[11px] font-semibold text-surface">
                               ?
@@ -297,7 +298,7 @@ export function ChecklistView({ tripId, scope, groups, people, suggestions, canA
                 )}
               >
                 {p ? (
-                  <Avatar name={p.name} color={p.color} size="sm" />
+                  <Avatar name={p.name} color={p.color} src={p.avatarUrl} size="sm" />
                 ) : (
                   <span aria-hidden="true" className="flex size-8 items-center justify-center rounded-full bg-disabled font-display text-[13px] font-semibold text-surface">
                     ?

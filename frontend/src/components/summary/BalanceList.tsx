@@ -14,6 +14,7 @@ export interface BalanceRowView {
   id: ID;
   name: string;
   color: ColorKey;
+  avatarUrl?: string;
   isMe: boolean;
   paid: number;
   share: number;
@@ -47,7 +48,7 @@ export function BalanceList({ rows, initialOpen, solo = false }: { rows: Balance
               onClick={() => setOpen(isOpen ? null : r.id)}
               className="flex w-full cursor-pointer items-center gap-3 border-0 bg-transparent p-3.5 text-left text-ink hover:bg-surface-alt"
             >
-              <Avatar name={r.name} color={r.color} />
+              <Avatar name={r.name} color={r.color} src={r.avatarUrl} />
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="font-semibold">
                   {r.name}

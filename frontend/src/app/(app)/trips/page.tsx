@@ -99,7 +99,7 @@ export default async function TripsPage({ searchParams }: PageProps<"/trips">) {
                       <span className="text-[13px] opacity-90">{status.dates}</span>
                     </div>
                     <div className="flex items-center gap-3 px-4 py-3">
-                      <AvatarStack people={members.map((m) => ({ id: m.id, name: m.displayName, color: m.color }))} />
+                      <AvatarStack people={members.map((m) => ({ id: m.id, name: m.displayName, color: m.color, src: m.avatarUrl }))} />
                       <span className="flex-1 pl-1.5 text-[13px] text-ink-muted">{meta}</span>
                       {hasExpenses ? (
                         <span className="text-[13px] font-semibold">

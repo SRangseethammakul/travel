@@ -58,7 +58,7 @@ export function Avatar({ name, color, src, size = "lg", ring, label, className }
 }
 
 interface AvatarStackProps {
-  people: { id: string; name: string; color: ColorKey }[];
+  people: { id: string; name: string; color: ColorKey; src?: string }[];
   className?: string;
 }
 
@@ -67,7 +67,7 @@ export function AvatarStack({ people, className }: AvatarStackProps) {
   return (
     <span role="img" aria-label={`สมาชิก ${people.map((p) => p.name).join(", ")}`} className={cn("flex", className)}>
       {people.map((p) => (
-        <Avatar key={p.id} name={p.name} color={p.color} size="xs" ring className="-mr-1.5" />
+        <Avatar key={p.id} name={p.name} color={p.color} src={p.src} size="xs" ring className="-mr-1.5" />
       ))}
     </span>
   );

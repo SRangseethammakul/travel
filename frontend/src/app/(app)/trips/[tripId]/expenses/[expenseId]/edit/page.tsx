@@ -27,7 +27,7 @@ export default async function EditExpensePage({ params }: PageProps<"/trips/[tri
         tripId={tripId}
         expenseId={expense.id}
         trip={{ startDate: trip.startDate, endDate: trip.endDate }}
-        members={members.map((m) => ({ id: m.id, name: m.displayName, color: m.color }))}
+        members={members.map((m) => ({ id: m.id, name: m.displayName, color: m.color, avatarUrl: m.avatarUrl }))}
         initial={expenseFormInitial(expense, { me, members, defaultDate: expense.date, slipName: slip?.name ?? null })}
         usedCardNames={usedCardNames(expenses, personal)}
       />

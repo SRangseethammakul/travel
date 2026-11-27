@@ -37,6 +37,7 @@ export default async function MembersPage({ params }: PageProps<"/trips/[tripId]
     id: m.id,
     displayName: m.displayName,
     color: m.color,
+    avatarUrl: m.avatarUrl,
     role: m.role,
     isMe: m.id === me.id,
     unclaimed: m.userId === null,
