@@ -26,6 +26,10 @@ _Avoid_: Merge, link
 The **Member** that the signed-in **User** is in the Trip being viewed — the "คุณ" in the UI. Every per-person figure ("my balance", "you owe") is computed from it, never hard-coded.
 _Avoid_: Me, self
 
+**Admin**:
+A **User** who runs the app and can see every User and Trip from outside any Trip. Being an Admin is not a **Member** role, and gives no rights inside a Trip.
+_Avoid_: Owner, superuser, moderator
+
 ### Money
 
 **Expense**:
