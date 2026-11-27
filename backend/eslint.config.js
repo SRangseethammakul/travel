@@ -11,4 +11,18 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
     },
   },
+  {
+    // Controllers do HTTP only; data access goes through a service.
+    files: ["src/controllers/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            { group: ["../models/*", "../db/*"], message: "Controllers call services, not models or the database." },
+          ],
+        },
+      ],
+    },
+  },
 );

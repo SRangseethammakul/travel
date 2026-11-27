@@ -1,12 +1,7 @@
 import type { RequestHandler } from "express";
-import { HttpError } from "../errors.js";
-import { pingDb } from "../models/health.model.js";
+import * as health from "../services/health.service.js";
 
 export const getHealth: RequestHandler = async (_req, res) => {
-  try {
-    await pingDb();
-  } catch {
-    throw new HttpError(503, "db_unavailable", "ฐานข้อมูลไม่พร้อมใช้งาน");
-  }
+  await health.check();
   res.json({ ok: true });
 };
