@@ -6,6 +6,7 @@ import { mockUser } from "./auth/middleware.js";
 import { sessionUser } from "./auth/session.js";
 import type { Config } from "./config.js";
 import { errorHandler, notFoundHandler } from "./errors.js";
+import { requestLogger } from "./utils/logger.js";
 import { healthRoutes } from "./routes/health.routes.js";
 import { requireMember, requireUser } from "./auth/middleware.js";
 import { devRoutes } from "./routes/dev.routes.js";
@@ -51,6 +52,7 @@ export function createApp(config: Config) {
   app.disable("x-powered-by");
   if (config.TRUST_PROXY > 0) app.set("trust proxy", config.TRUST_PROXY);
   // Signed file URLs are opened from the frontend origin (same site, other port).
+  app.use(requestLogger);
   app.use(helmet({ crossOriginResourcePolicy: { policy: "same-site" } }));
   app.use(cors({ origin: config.CORS_ORIGIN, credentials: true }));
   app.use(express.json());

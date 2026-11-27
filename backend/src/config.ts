@@ -7,6 +7,8 @@ const optional = z.preprocess((v) => (v === "" ? undefined : v), z.string().min(
 const ConfigSchema = z
   .object({
   MONGODB_URI: z.string().startsWith("mongodb"),
+  /** winston level (error | warn | info | http | debug). Default: info in production, debug otherwise. Under tests logs are off unless set. */
+  LOG_LEVEL: z.enum(["error", "warn", "info", "http", "verbose", "debug", "silly"]).optional(),
   PORT: z.coerce.number().int().min(1).max(65535).default(4000),
   NODE_ENV: z.enum(["development", "test", "production"]),
   SESSION_SECRET: secret,

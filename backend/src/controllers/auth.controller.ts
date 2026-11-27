@@ -6,6 +6,7 @@ import { clearSession, setSession } from "../auth/session.js";
 import type { Config } from "../config.js";
 import { HttpError } from "../errors.js";
 import * as auth from "../services/auth.service.js";
+import { logger } from "../utils/logger.js";
 import { param } from "./params.js";
 
 const STATE_COOKIE = "oauth-state";
@@ -66,7 +67,7 @@ export function authController(config: Config) {
     try {
       profile = await fetchProfile(p, creds, redirectUri(p), query.code);
     } catch (err) {
-      console.error(err);
+      logger.error(`oauth ${p} profile fetch failed`, err);
       throw new HttpError(502, "oauth_failed", "เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่");
     }
     const user = await auth.findOrCreateUser(p, profile);
