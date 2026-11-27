@@ -41,6 +41,7 @@ const paths = {
   wallet: { w: 1.8, d: <><path d="M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><path d="M3 7l12-4v4" /><circle cx="16" cy="13.5" r="1.3" /></> },
   paste: { w: 1.8, d: <><path d="M9 4h6v3H9z" /><path d="M15 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2" /></> },
   image: { w: 1.8, d: <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="M21 15l-5-5L5 21" /></> },
+  print: { w: 1.8, d: <><path d="M7 9V3h10v6" /><rect x="3" y="9" width="18" height="8" rx="2" /><path d="M7 14h10v7H7z" /></> },
   minus: { w: 2, d: <path d="M5 12h14" /> },
 } as const;
 

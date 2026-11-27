@@ -36,7 +36,16 @@ export default async function PlannerPage({ params, searchParams }: PageProps<"/
 
   return (
     <>
-      <TabPageHeader caption={trip.name} title="แผนรายวัน">
+      <TabPageHeader caption={trip.name} title="แผนรายวัน" action={
+        <Link
+          href={`${base}/plan/print`}
+          aria-label="บันทึก PDF แผนการเดินทาง"
+          className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-icon border border-line bg-surface px-3 text-[13px] font-semibold text-ink no-underline transition-colors duration-150 hover:bg-bg hover:text-ink active:bg-line-soft"
+        >
+          <Icon name="print" size={18} />
+          PDF
+        </Link>
+      }>
         <nav aria-label="เลือกวัน">
           <DayStrip long={days.length > 4}>
             {days.map((_, i) => {
