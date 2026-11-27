@@ -1,5 +1,6 @@
 import type { RequestHandler } from "express";
 import winston from "winston";
+import { redactPath } from "./redact-path.js";
 
 const { combine, timestamp, errors, json, colorize, printf } = winston.format;
 
@@ -24,12 +25,12 @@ export const logger = winston.createLogger({
   transports: [new winston.transports.Console({ stderrLevels: ["error"] })],
 });
 
-/** Logs one `http` line per request when the response finishes. The query string is left out: signed file URLs carry their token there. */
+/** Logs one `http` line per request when the response finishes. The query string is left out (signed file URLs carry their token there) and invite tokens are redacted. */
 export const requestLogger: RequestHandler = (req, res, next) => {
   const start = process.hrtime.bigint();
   res.on("finish", () => {
     const ms = Number(process.hrtime.bigint() - start) / 1e6;
-    const path = req.originalUrl.split("?", 1)[0];
+    const path = redactPath(req.originalUrl);
     logger.http(`${req.method} ${path} ${res.statusCode} ${ms.toFixed(1)}ms`, {
       method: req.method,
       path,

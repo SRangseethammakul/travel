@@ -1,5 +1,6 @@
 import type { RequestHandler } from "express";
 import { insertRequestLog } from "../models/request-log.model.js";
+import { redactPath } from "./redact-path.js";
 
 /** Not worth logging: the health probe is noisy and admin reads would fill the log with themselves. */
 export function shouldRecordRequest(path: string): boolean {
@@ -15,12 +16,12 @@ const truncatePath = (path: string) => (path.length > MAX_PATH_LENGTH ? `${path.
 /**
  * Stores one entry per finished request in the capped `requestLogs` collection for the admin
  * dashboard. Fire-and-forget: a failed write never touches the request. The query string is
- * left out (signed file URLs carry their token there).
+ * left out (signed file URLs carry their token there) and invite tokens are redacted.
  */
 export const requestLogWriter: RequestHandler = (req, res, next) => {
   const start = process.hrtime.bigint();
   res.on("finish", () => {
-    const path = req.originalUrl.split("?", 1)[0] ?? "";
+    const path = redactPath(req.originalUrl);
     if (!shouldRecordRequest(path)) return;
     insertRequestLog({
       at: new Date(),
