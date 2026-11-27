@@ -146,7 +146,9 @@ export function createSeed(now: Date = new Date()): SeedData {
       _id: T,
       tripId: T,
       token: "tokyo-winter-7d-seed-invite",
-      expiresAt: new Date(now.getTime() + 7 * 86_400_000),
+      // Wall clock, not `now`: join.service checks expiry against Date.now(), and tests seed with a
+      // fixed TEST_NOW — an expiry relative to it ran out 7 days later and broke every join test.
+      expiresAt: new Date(Date.now() + 7 * 86_400_000),
       requireApproval: true,
       updatedAt: SEEDED_AT,
     },

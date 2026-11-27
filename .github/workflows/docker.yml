@@ -22,7 +22,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Lint, typecheck and tests must pass before any image is built or pushed.
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [backend, frontend]
+    defaults:
+      run:
+        working-directory: ${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ${{ matrix.app }}/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      # Backend tests start mongodb-memory-server (downloads mongod on first run).
+      - run: npm test
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
