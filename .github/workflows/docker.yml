@@ -43,6 +43,9 @@ jobs:
 
       - run: npm ci
       - run: npm run lint
+      # PageProps / LayoutProps are global types Next writes into .next/types; a fresh checkout has none.
+      - if: matrix.app == 'frontend'
+        run: npx next typegen
       - run: npx tsc --noEmit
       # Backend tests start mongodb-memory-server (downloads mongod on first run).
       - run: npm test
