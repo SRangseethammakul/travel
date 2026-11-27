@@ -12,6 +12,7 @@ Types (`Trip`, `Member`, `Expense`, …) refer to `frontend/src/lib/api/types.ts
 - Base path `/api`. JSON in and out. IDs are strings.
 - Money is integer satang (`Satang`). Dates are `ISODate` (`2026-12-12`); timestamps are full ISO; transit times are `LocalDateTime` (`2026-12-12T00:30`, local wall clock).
 - Auth: session cookie (signed `userId.sessionVersion.expiresAt`, 30 days). Logout (B42) bumps the User's `sessionVersion` on the server, so every session cookie issued before it — including a copied one — gets `401`; it signs the User out on all devices. In development/test only, the `mock-user` cookie holds a **User id** (`act`, `mint`, `beam`, `ploy`, `n`) and is not affected by logout.
+- Every `Member` in a response (A2–A4, A14, B4, B5, B9–B11a, summary) carries optional `avatarUrl`: the provider picture of the linked User (`User.avatarUrl`), computed per request with one lookup and never stored on the Member. Omitted for Unclaimed Members and Users without a picture.
 - The **Current Member** is always derived on the server from the session + `tripId`. The client never sends "who I am".
 - Not a Member of the trip → `404` (don't reveal the trip exists). Wrong role → `403`.
 - Errors: `{ "error": { "code": string, "message": string } }` with 400 / 401 / 403 / 404 / 409. `message` is Thai. Also `413` (`file_too_large`, uploads) and `429` (`rate_limited`).

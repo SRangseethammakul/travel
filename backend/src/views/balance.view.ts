@@ -1,7 +1,7 @@
 import type { TripBalanceRow } from "../domain/money/trip.js";
 import type { SuggestedTransfer } from "../domain/money/settle.js";
 import type { ExpenseDoc, MemberDoc, SettlementDoc } from "../schemas/models.js";
-import { memberView } from "./member.view.js";
+import { memberView, type AvatarMap } from "./member.view.js";
 import { settlementView } from "./settlement.view.js";
 
 const CATEGORIES: ExpenseDoc["category"][] = ["stay", "transport", "food", "activity", "other"];
@@ -13,6 +13,7 @@ export interface BalanceData {
   total: number;
   rows: TripBalanceRow[];
   transfers: SuggestedTransfer[];
+  avatars?: AvatarMap;
 }
 
 /** Members listed in the tables: active ones, plus anyone else who still has money on the trip. */
@@ -28,14 +29,14 @@ export function balancesView(d: BalanceData) {
   const byId = new Map(d.members.map((m) => [m._id, m]));
   return {
     total: d.total,
-    rows: shownRows(d).map(({ r, m }) => ({ member: memberView(m), paid: r.paid, share: r.share, net: r.net, outstanding: r.outstanding })),
+    rows: shownRows(d).map(({ r, m }) => ({ member: memberView(m, d.avatars), paid: r.paid, share: r.share, net: r.net, outstanding: r.outstanding })),
     transfers: d.transfers.map((t) => {
       // Matched by pair, not amount: a partial transfer still belongs to this Suggested Transfer
       // (at most one open Settlement per pair — `settlements_open_pair`).
       const open = d.settlements.find((s) => s.fromId === t.fromId && s.toId === t.toId && s.status !== "confirmed");
       return {
-        from: memberView(byId.get(t.fromId)!),
-        to: memberView(byId.get(t.toId)!),
+        from: memberView(byId.get(t.fromId)!, d.avatars),
+        to: memberView(byId.get(t.toId)!, d.avatars),
         amount: t.amount,
         settlement: open ? settlementView(open) : null,
       };
