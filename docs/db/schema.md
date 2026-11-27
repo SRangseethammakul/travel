@@ -69,7 +69,7 @@ Frequency: **H** = every page view of that screen · **M** = per user action · 
 
 ## 2. Collections
 
-Thirteen collections: `users`, `trips`, `members`, `invites`, `documents`, `places`, `tags`, `planItems`, `expenses`, `settlements`, `checklistItems`, `activities`, `personalExpenses`.
+Fourteen collections: `users`, `trips`, `members`, `invites`, `documents`, `places`, `tags`, `planItems`, `expenses`, `settlements`, `checklistItems`, `activities`, `personalExpenses`, `requestLogs` (capped, admin dashboard).
 
 Sizes are per trip, from `frontend/src/lib/mock/seed.ts` (Tokyo: 4 Members, 12 Places, ~4 days of plan, 5 Expenses, 2 Settlements) scaled to a realistic upper bound for a group trip.
 
@@ -87,6 +87,7 @@ A real person's account (LINE / Google). Not trip-scoped.
   providerSubject?: string;    // OAuth `sub` — NEW, needed for B41 find-or-create; absent on seed users
   color: 'teal' | 'blue' | 'orange' | 'purple' | 'slate' | 'gray' | 'ink';
   sessionVersion?: int;        // NEW — logout does $inc; a session cookie must carry the current value. Absent = 0
+  lastSeenAt?: Date;           // NEW — set when a session is accepted, at most every 10 minutes (admin dashboard "ใช้ล่าสุด")
   createdAt: Date;
 }
 ```
@@ -423,6 +424,14 @@ A **Personal Expense** (CONTEXT.md): money one Member spent only for themself. P
 - `currency` + `baseAmount` kept for the same multi-currency path as Expenses; the header card ("ทริปนี้ฉันใช้") sums `baseAmount`.
 - Size: 0–200 per Member per trip, ~300 B each — tiny; at most ~50 × 200 docs per trip.
 
+### 2.14 `requestLogs`
+
+Admin dashboard request log (screen 27). **Capped collection**, 1,000 documents / 1 MB, so MongoDB drops the oldest itself. No indexes besides `_id`; reads use `$natural: -1` (newest first). Written fire-and-forget by `utils/request-log.ts`; `/api/health` and `/api/admin/*` are not recorded; the path has no query string. Not written under `NODE_ENV=test` unless `createApp(config, { recordRequests: true })`.
+
+```ts
+{ _id: string; at: Date; method: string; path: string; status: int; ms: int; userId: string | null }
+```
+
 ## 3. Indexes
 
 `_id` indexes are implicit and not listed. Names are fixed so tests can assert them.
@@ -444,6 +453,8 @@ A **Personal Expense** (CONTEXT.md): money one Member spent only for themself. P
 | checklistItems | `checklist_trip_scope_owner` | `{ tripId: 1, scope: 1, ownerId: 1 }` | — | A15 — both `$or` branches (see below), B3 |
 | activities | `activities_trip_created` | `{ tripId: 1, createdAt: -1 }` | — | A16 without type, B39, B3 |
 | activities | `activities_trip_type_created` | `{ tripId: 1, type: 1, createdAt: -1 }` | — | A16 `?type=` |
+| activities | `activities_created` | `{ createdAt: -1 }` | — | Admin: busiest trips / active trips in a time window |
+| activities | `activities_actor_created` | `{ actorId: 1, createdAt: -1 }` | — | Admin: one User's latest activity (by their Member ids) |
 | personalExpenses | `personalExpenses_trip_owner_date` | `{ tripId: 1, ownerId: 1, date: 1, createdAt: 1 }` | — | B44 (equality + full sort, no in-memory sort), B6 hard-delete cleanup, B3 (prefix `tripId`) |
 
 Total: 15 secondary indexes, at most 2 per collection — cheap on writes.

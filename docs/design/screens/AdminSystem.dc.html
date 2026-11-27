@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>Admin · ระบบ</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&amp;family=Prompt:wght@500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#0B7A6A}a:hover{color:#075E52}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; display: grid; grid-template-columns: 240px 1fr; background: #F3F5F7; color: #13222F; font-family: 'IBM Plex Sans Thai', sans-serif; overflow: hidden">
+
+  <!-- Sidebar (shared across Admin screens) -->
+  <aside style="display: flex; flex-direction: column; gap: 4px; padding: 24px 16px; background: #FFFFFF; border-right: 1px solid #E3E8EC">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 0 8px 20px">
+      <span style="width: 32px; height: 32px; border-radius: 10px; background: #0B7A6A; color: #FFFFFF; display: grid; place-items: center; font-family: Prompt, sans-serif; font-weight: 700; font-size: 15px">P</span>
+      <span style="display: flex; flex-direction: column"><span style="font-family: Prompt, sans-serif; font-weight: 600; font-size: 16px">Plan Trip</span><span style="font-size: 12px; color: #5B6B78">ผู้ดูแลระบบ</span></span>
+    </div>
+    <nav aria-label="เมนูผู้ดูแล" style="display: flex; flex-direction: column; gap: 4px">
+      <sc-for list="{{nav}}" as="n" hint-placeholder-count="4">
+        <a href="{{n.href}}" aria-current="{{n.current}}" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 12px; text-decoration: none; font-size: 14px; font-weight: 600; background: {{n.bg}}; color: {{n.fg}}">{{n.label}}</a>
+      </sc-for>
+    </nav>
+    <div style="flex: 1"></div>
+    <a href="Trips.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; font-size: 14px; color: #3C4C59; text-decoration: none">← กลับไปที่แอป</a>
+    <div style="display: flex; align-items: center; gap: 10px; padding: 12px 8px 0; border-top: 1px solid #EEF1F4">
+      <span style="width: 32px; height: 32px; border-radius: 50%; background: #0B7A6A; color: #FFFFFF; display: grid; place-items: center; font-family: Prompt, sans-serif; font-weight: 600; font-size: 14px">A</span>
+      <span style="display: flex; flex-direction: column; min-width: 0"><span style="font-size: 13px; font-weight: 600">Act</span><span style="font-size: 12px; color: #5B6B78">act@example.com</span></span>
+    </div>
+  </aside>
+
+  <div style="display: flex; flex-direction: column; min-width: 0">
+    <header style="display: flex; align-items: center; gap: 16px; height: 72px; padding: 0 32px; border-bottom: 1px solid #E3E8EC; background: #FFFFFF">
+      <h1 style="margin: 0; font-family: Prompt, sans-serif; font-size: 22px; font-weight: 600">ระบบ</h1>
+      <span style="padding: 3px 10px; border-radius: 999px; background: #FCEBDD; color: #8A4A0C; font-size: 12px; font-weight: 600">production</span>
+      <div style="flex: 1"></div>
+      <span style="font-size: 13px; color: #5B6B78">อัปเดต 10:14:32 · รีเฟรชทุก 30 วิ</span>
+    </header>
+
+    <main style="flex: 1; overflow-y: auto; padding: 24px 32px; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 20px; align-content: start">
+
+      <!-- Health cards -->
+      <sc-for list="{{health}}" as="h" hint-placeholder-count="4">
+        <section style="grid-column: span 3; display: flex; flex-direction: column; gap: 6px; padding: 20px; border-radius: 18px; background: #FFFFFF">
+          <span style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #5B6B78"><span style="width: 8px; height: 8px; border-radius: 50%; background: {{h.dot}}"></span>{{h.label}}</span>
+          <span style="font-family: Prompt, sans-serif; font-size: 26px; font-weight: 600">{{h.value}}</span>
+          <span style="font-size: 12px; color: #3C4C59">{{h.sub}}</span>
+        </section>
+      </sc-for>
+
+      <!-- Errors per hour -->
+      <section style="grid-column: span 12; display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: 18px; background: #FFFFFF">
+        <div style="display: flex; align-items: baseline; gap: 16px">
+          <h2 style="margin: 0; font-family: Prompt, sans-serif; font-size: 16px; font-weight: 600">error ต่อชั่วโมง (24 ชม.)</h2>
+          <span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #3C4C59"><span style="width: 10px; height: 10px; border-radius: 3px; background: #B23A2E"></span>5xx</span>
+          <span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #3C4C59"><span style="width: 10px; height: 10px; border-radius: 3px; background: #E8B98A"></span>4xx</span>
+        </div>
+        <div role="img" aria-label="กราฟแท่ง error รายชั่วโมง" style="display: flex; align-items: flex-end; gap: 4px; height: 120px; border-bottom: 1px solid #E3E8EC">
+          <sc-for list="{{hours}}" as="b" hint-placeholder-count="24">
+            <div title="{{b.tip}}" style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%">
+              <span style="height: {{b.c4}}%; background: #E8B98A; border-radius: 3px 3px 0 0"></span>
+              <span style="height: {{b.c5}}%; background: #B23A2E"></span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #5B6B78"><span>10:00 เมื่อวาน</span><span>22:00</span><span>ตอนนี้</span></div>
+      </section>
+
+      <!-- Request log -->
+      <section style="grid-column: span 12; display: flex; flex-direction: column; border-radius: 18px; background: #FFFFFF; overflow: hidden">
+        <div style="display: flex; align-items: center; gap: 8px; padding: 16px 20px">
+          <h2 style="margin: 0 12px 0 0; font-family: Prompt, sans-serif; font-size: 16px; font-weight: 600">Request log</h2>
+          <sc-for list="{{filters}}" as="f" hint-placeholder-count="4">
+            <button type="button" aria-pressed="{{f.on}}" onClick="{{f.pick}}" style="min-height: 36px; padding: 0 14px; border-radius: 999px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid {{f.line}}; background: {{f.bg}}; color: {{f.fg}}">{{f.label}}</button>
+          </sc-for>
+          <div style="flex: 1"></div>
+          <span style="font-size: 12px; color: #5B6B78">เก็บ 1,000 รายการล่าสุด</span>
+        </div>
+        <div role="row" style="display: grid; grid-template-columns: 110px 70px 1fr 70px 80px 140px; gap: 12px; align-items: center; height: 40px; padding: 0 20px; background: #F8FAFB; border-top: 1px solid #E3E8EC; border-bottom: 1px solid #E3E8EC; font-size: 12px; font-weight: 600; color: #5B6B78">
+          <span>เวลา</span><span>method</span><span>path</span><span>status</span><span style="text-align: right">ms</span><span>userId</span>
+        </div>
+        <sc-for list="{{logs}}" as="l" hint-placeholder-count="10">
+          <div role="row" style="display: grid; grid-template-columns: 110px 70px 1fr 70px 80px 140px; gap: 12px; align-items: center; min-height: 40px; padding: 0 20px; border-bottom: 1px solid #EEF1F4; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px">
+            <span style="color: #5B6B78">{{l.t}}</span>
+            <span style="font-weight: 600">{{l.m}}</span>
+            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{l.p}}</span>
+            <span><span style="padding: 1px 8px; border-radius: 6px; font-weight: 600; background: {{l.sBg}}; color: {{l.sFg}}">{{l.s}}</span></span>
+            <span style="text-align: right; color: {{l.msFg}}">{{l.ms}}</span>
+            <span style="color: #3C4C59">{{l.u}}</span>
+          </div>
+        </sc-for>
+      </section>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { filter: 'all' };
+  }
+  renderVals() {
+    var self = this;
+    var st = this.state;
+    var nav = [['ภาพรวม', 'AdminOverview.dc.html'], ['ผู้ใช้', 'AdminUsers.dc.html'], ['ทริป', 'AdminTrips.dc.html'], ['ระบบ', 'AdminSystem.dc.html', true]].map(function (n) {
+      return { label: n[0], href: n[1], current: n[2] ? 'page' : 'false', bg: n[2] ? '#E3F2EF' : 'transparent', fg: n[2] ? '#0B5C50' : '#3C4C59' };
+    });
+    var ok = '#0B7A6A', warn = '#8A4A0C';
+    var health = [
+      { label: 'API', value: '42 ms', sub: 'p95 ใน 1 ชม. · ทำงานมา 6 วัน', dot: ok },
+      { label: 'MongoDB', value: '3 ms', sub: 'ping ok · 13 collections', dot: ok },
+      { label: 'ที่เก็บไฟล์', value: 's3', sub: 'STORAGE_DRIVER · 2.1 GB', dot: ok },
+      { label: 'Rate limit (auth)', value: '17', sub: 'ครั้งที่ถูกบล็อกใน 24 ชม.', dot: warn }
+    ];
+    var c4 = [3, 2, 1, 1, 0, 0, 0, 1, 2, 4, 6, 5, 4, 7, 5, 3, 4, 6, 8, 5, 3, 2, 4, 3];
+    var c5 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 3, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0];
+    var hours = c4.map(function (v, i) { return { c4: Math.round(v / 12 * 100), c5: Math.round(c5[i] / 12 * 100), tip: '4xx ' + v + ' · 5xx ' + c5[i] }; });
+    var all = [
+      ['10:14:31', 'GET', '/api/trips/6650…e21/expenses', 200, 38, 'mint'],
+      ['10:14:29', 'POST', '/api/trips/6650…e21/expenses', 201, 64, 'mint'],
+      ['10:14:12', 'GET', '/api/trips', 200, 22, 'act'],
+      ['10:13:58', 'PATCH', '/api/trips/6650…e21/plan-items/…', 403, 9, 'ploy'],
+      ['10:13:40', 'POST', '/api/auth/line/callback', 429, 2, '—'],
+      ['10:13:22', 'GET', '/api/trips/6650…b07', 404, 11, 'kao'],
+      ['10:12:51', 'POST', '/api/trips/6650…e21/documents', 500, 1840, 'act'],
+      ['10:12:40', 'GET', '/api/health', 200, 4, '—'],
+      ['10:12:03', 'DELETE', '/api/trips/6650…e21/places/…', 204, 27, 'act'],
+      ['10:11:47', 'GET', '/api/me', 200, 8, 'nam']
+    ];
+    var logs = all.filter(function (r) {
+      return st.filter === 'all' || (st.filter === '4xx' && r[3] >= 400 && r[3] < 500) || (st.filter === '5xx' && r[3] >= 500) || (st.filter === 'slow' && r[4] >= 500);
+    }).map(function (r) {
+      var s = r[3] >= 500 ? ['#FCE8E6', '#9B2C22'] : r[3] >= 400 ? ['#FCEBDD', '#8A4A0C'] : ['#E3F2EF', '#0B5C50'];
+      return { t: r[0], m: r[1], p: r[2], s: r[3], ms: r[4], u: r[5], sBg: s[0], sFg: s[1], msFg: r[4] >= 500 ? '#9B2C22' : '#3C4C59' };
+    });
+    var filters = [['all', 'ทั้งหมด'], ['4xx', '4xx'], ['5xx', '5xx'], ['slow', 'ช้า ≥ 500 ms']].map(function (f) {
+      var on = st.filter === f[0];
+      return { label: f[1], on: on ? 'true' : 'false', bg: on ? '#13222F' : '#FFFFFF', fg: on ? '#FFFFFF' : '#13222F', line: on ? '#13222F' : '#D5DDE3', pick: function () { self.setState({ filter: f[0] }); } };
+    });
+    return { nav: nav, health: health, hours: hours, logs: logs, filters: filters };
+  }
+}
+</script>
+</body>
+</html>

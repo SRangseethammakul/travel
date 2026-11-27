@@ -32,3 +32,10 @@ export function updateUserProfile(userId: string, profile: Pick<UserDoc, "name" 
     { returnDocument: "after" },
   );
 }
+
+/** Sets `lastSeenAt` unless it is already newer than `staleBefore` (the throttle is enforced in the filter, so racing requests write once). */
+export async function setLastSeen(userId: string, now: Date, staleBefore: Date): Promise<void> {
+  await collections
+    .users()
+    .updateOne({ _id: userId, $or: [{ lastSeenAt: { $exists: false } }, { lastSeenAt: { $lt: staleBefore } }] }, { $set: { lastSeenAt: now } });
+}

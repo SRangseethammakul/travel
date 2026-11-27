@@ -1,5 +1,5 @@
 import { Router } from "express";
-import type { Config } from "../config.js";
+import type { Config } from "../config/config.js";
 import { authController } from "../controllers/auth.controller.js";
 import { ipLimiter } from "./rate-limit.js";
 

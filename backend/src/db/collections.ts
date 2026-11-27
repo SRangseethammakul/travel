@@ -8,6 +8,7 @@ import type {
   MemberDoc,
   PersonalExpenseDoc,
   PlaceDoc,
+  RequestLogDoc,
   PlanItemDoc,
   SettlementDoc,
   TagDoc,
@@ -30,5 +31,6 @@ export const collections = {
   personalExpenses: (): Collection<PersonalExpenseDoc> => getDb().collection<PersonalExpenseDoc>("personalExpenses"),
   settlements: (): Collection<SettlementDoc> => getDb().collection<SettlementDoc>("settlements"),
   checklistItems: (): Collection<ChecklistItemDoc> => getDb().collection<ChecklistItemDoc>("checklistItems"),
+  requestLogs: (): Collection<RequestLogDoc> => getDb().collection<RequestLogDoc>("requestLogs"),
   activities: (): Collection<ActivityDoc> => getDb().collection<ActivityDoc>("activities"),
 };

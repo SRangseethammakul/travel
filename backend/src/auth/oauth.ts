@@ -3,7 +3,7 @@
  * Only name, email and picture are requested (SPEC).
  */
 import { z } from "zod";
-import type { Config } from "../config.js";
+import type { Config } from "../config/config.js";
 
 export type Provider = "line" | "google";
 

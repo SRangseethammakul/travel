@@ -25,6 +25,8 @@ export const UserDoc = z.strictObject({
   color: ColorKey,
   /** Bumped by logout; a session cookie carries the version it was issued with. Absent = 0. */
   sessionVersion: z.number().int().min(0).optional(),
+  /** Last time a session was accepted; written at most every 10 minutes (auth/session.ts). Admin dashboard only. */
+  lastSeenAt: z.date().optional(),
   createdAt: z.date(),
 });
 
@@ -276,6 +278,18 @@ export const ActivityDoc = z.strictObject({
   readBy: z.array(Id).max(100),
 });
 
+/** One HTTP request, capped collection `requestLogs` (admin dashboard). */
+export const RequestLogDoc = z.strictObject({
+  _id: Id,
+  at: z.date(),
+  method: text(10),
+  path: text(500),
+  status: z.int().min(100).max(599),
+  ms: z.int().min(0),
+  userId: Id.nullable(),
+});
+
+export type RequestLogDoc = z.infer<typeof RequestLogDoc>;
 export type UserDoc = z.infer<typeof UserDoc>;
 export type TripDoc = z.infer<typeof TripDoc>;
 export type MemberDoc = z.infer<typeof MemberDoc>;

@@ -98,3 +98,44 @@ Owner: qa-api (task T3 in `wondrous-dancing-torvalds.md`). Sources: API.md "Pers
 13. **Title whitespace:** `title` is trimmed and inner whitespace is collapsed (same `label()` as Places). API.md doesn't mention this.
 
 **No coverage:** a Claimed Unclaimed Member's records (an Unclaimed Member can't sign in, so it can't own records today); concurrent edits of the same record; live-stack curl (not run in this pass).
+
+---
+
+## Admin API (`/api/admin/*`) — QA pass, branch `feat/admin-dashboard`
+
+Tests: `backend/src/qa/admin.qa.test.ts` (80 tests, 77 pass, 3 fail on purpose). Sources: API.md "Admin", SPEC "ผู้ดูแลระบบ (Admin)", ADR 0002, schema.md. Full backend suite: 788 tests, 785 pass, 3 fail (all ADMIN-BUG tests in this file). `eslint` and `tsc --noEmit` are clean.
+
+**Checked and passing:** 401 signed out / 404 `not_found` for non-admin on every route including POST, DELETE, PATCH and unknown sub-paths; unset, empty, whitespace and comma-only `ADMIN_USER_IDS` admit nobody (via `loadConfig`); Personal Expenses and Personal checklist items change none of `spent`, overview, counts, activity (deep-equal snapshots of 12 admin responses); no `providerSubject`, `token`, `fileKey`, documents or shares in any response; paging (past the end, `page=0/abc/-1/1.5`, repeated params → 400), sort/dir, provider/status filters, regex metacharacters in `q`, owner search by Member displayName and User name, owners = active owner Members only (several owners, unclaimed owner, removed/pending excluded); trip status around the Asia/Bangkok boundary (fake clock at 16:59 and 17:30 UTC); force sign-out (204, version +1, old signed cookie then 401, re-login works, self 409, unknown/non-admin 404, other admin allowed, concurrent calls); request log skips `/api/health` and `/api/admin/*`, never stores a query string, cap 1000, failed or throwing write does not fail the request; `lastSeenAt` set once, not rewritten within 10 min, rewritten after 11, not set by a 401; `/system` 24 buckets, counts, slow = `ms >= 500`, filters, paging, p95, Mongo-down → 200.
+
+### ADMIN-BUG-1: request log records `/API/ADMIN/*`, `/API/HEALTH` and `/api/health/` (FIXED)
+- Severity: low
+- Endpoint: any `GET /API/ADMIN/users` (admin), `GET /API/HEALTH`, `GET /api/health/`
+- Expected: API.md "skipping `/api/health` and `/api/admin/*`". Express matches routes case-insensitively and ignores a trailing slash, so these are the same routes.
+- Actual: `shouldRecordRequest` compares the raw path with `===` / `startsWith`, so these requests are stored in `requestLogs` (admin reads fill the log with themselves, and health probes with a trailing slash add noise).
+- Repro: createApp with `recordRequests: true`; `GET /API/ADMIN/users` as admin; `requestLogs` has an entry with that path.
+- Test: backend/src/qa/admin.qa.test.ts:610
+- Fix hint: lower-case the path and strip a trailing slash before comparing (`src/utils/request-log.ts`).
+
+### ADMIN-BUG-2: requests with a path over 500 characters are silently not logged (FIXED)
+- Severity: low
+- Endpoint: any, e.g. `GET /api/aaaa…(600)`
+- Expected: "`requestLogs` keeps the latest 1,000 requests". Every request should have an entry (probing with long URLs is exactly what an admin wants to see).
+- Actual: the `requestLogs` validator has `path` maxLength 500, the insert fails, and `.catch(() => undefined)` hides it. No entry, no error.
+- Test: backend/src/qa/admin.qa.test.ts:687
+- Fix hint: truncate `path` to 500 before insert.
+
+### ADMIN-BUG-3: `rateLimit.blocked24h` misses 429s in the oldest partial hour (FIXED)
+- Severity: low
+- Endpoint: `GET /api/admin/system` as admin
+- Expected: "`blocked24h` counts 429s" in the last 24 hours (API.md; task: blocked24h counts 429s).
+- Actual: `requestLogsSince(hours[0], …)` starts at the start of the oldest hourly bucket (`floor(now − 23h)`), but `blocked24h` filters on `now − 24h`. A 429 from 23.5 h ago at 10:10 is before 11:00 the previous day, so it is not counted. Up to 1 hour of the window is lost (the 24 h window is really 23–24 h).
+- Repro: fake `Date` to 10:10; insert a 429 log dated now − 23.5 h; `blocked24h` is 0, expected 1.
+- Test: backend/src/qa/admin.qa.test.ts:828
+- Fix hint: query from `min(hours[0], now − 24h)`.
+
+### Spec questions (Admin)
+1. **Trip detail `members`:** `listTripMembers` returns active and pending Members and hides removed ones. API.md only says `members: {…status}[]`. The `status` field suggests all statuses may be wanted; confirm that removed Members should be hidden from the admin view.
+2. **Out-of-window logs:** the 1,000-request cap means `errorsByHour` and `blocked24h` undercount on a busy day (older rows are overwritten). Fine for an MVP, but the UI should not present them as exact.
+3. **Test environment:** `createApp` skips request logging unless `recordRequests: true` or `NODE_ENV != test`. Documented in code, not in API.md or schema.md.
+
+**Not covered:** live :4000 stack beyond one 401 curl (admin ids there are unknown to this pass; per instructions the server was not touched); load/race on the real 1,000-row cap while writing; real-time rate-limiter 429s (the test is best-effort and returns early if the limiter does not trip).

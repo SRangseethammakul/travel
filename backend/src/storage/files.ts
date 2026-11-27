@@ -9,6 +9,7 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { DeleteObjectsCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { logger } from "../utils/logger.js";
 
 interface CommonSettings {
   urlSecret: string;
@@ -89,7 +90,7 @@ export async function removeFiles(fileKeys: string[]): Promise<void> {
     try {
       await s.client.send(new DeleteObjectsCommand({ Bucket: s.bucket, Delete: { Objects: batch.map((Key) => ({ Key })), Quiet: true } }));
     } catch (err) {
-      console.error("failed to delete files from object storage", batch.length, err);
+      logger.error(`failed to delete ${batch.length} files from object storage`, err);
     }
   }
 }

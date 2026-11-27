@@ -16,6 +16,12 @@ describe("loadConfig", () => {
     expect(config.GOOGLE_CLIENT_ID).toBeUndefined();
   });
 
+  it("reads ADMIN_USER_IDS as a trimmed list; unset or empty means nobody", () => {
+    expect(loadConfig(valid).ADMIN_USER_IDS).toEqual([]);
+    expect(loadConfig({ ...valid, ADMIN_USER_IDS: "" }).ADMIN_USER_IDS).toEqual([]);
+    expect(loadConfig({ ...valid, ADMIN_USER_IDS: " act, mint ,," }).ADMIN_USER_IDS).toEqual(["act", "mint"]);
+  });
+
   it("stops on a missing or weak value", () => {
     expect(() => loadConfig({ ...valid, MONGODB_URI: undefined })).toThrow(/MONGODB_URI/);
     expect(() => loadConfig({ ...valid, SESSION_SECRET: "short" })).toThrow(/SESSION_SECRET/);

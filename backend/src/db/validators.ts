@@ -2,7 +2,7 @@
  * `$jsonSchema` validators and indexes, transcribed from docs/db/schema.md §3–4.
  * Index names are fixed so tests can assert them.
  */
-import type { CreateIndexesOptions, Document, IndexSpecification } from "mongodb";
+import type { CreateCollectionOptions, CreateIndexesOptions, Document, IndexSpecification } from "mongodb";
 
 const id = { bsonType: "string", minLength: 1, maxLength: 100 };
 const money = { bsonType: ["int", "long"], minimum: 0 };
@@ -32,6 +32,8 @@ export interface IndexDef {
 export interface CollectionDef {
   name: string;
   validator: Document;
+  /** Passed to createCollection (capped collections). Cannot be changed on an existing collection. */
+  options?: CreateCollectionOptions;
   indexes: IndexDef[];
 }
 
@@ -52,6 +54,7 @@ export const collectionDefs: CollectionDef[] = [
           providerSubject: text(200),
           color,
           sessionVersion: { bsonType: "int", minimum: 0 },
+          lastSeenAt: date,
           createdAt: date,
         },
       },
@@ -464,6 +467,31 @@ export const collectionDefs: CollectionDef[] = [
     indexes: [
       { key: { tripId: 1, createdAt: -1 }, options: { name: "activities_trip_created" } },
       { key: { tripId: 1, type: 1, createdAt: -1 }, options: { name: "activities_trip_type_created" } },
+      // Admin dashboard: recent activity overall, and one person's activity.
+      { key: { createdAt: -1 }, options: { name: "activities_created" } },
+      { key: { actorId: 1, createdAt: -1 }, options: { name: "activities_actor_created" } },
     ],
+  },
+  {
+    // Admin dashboard request log: newest 1,000 requests, oldest overwritten by MongoDB itself.
+    name: "requestLogs",
+    options: { capped: true, size: 1_048_576, max: 1000 },
+    validator: {
+      $jsonSchema: {
+        bsonType: "object",
+        additionalProperties: false,
+        required: ["_id", "at", "method", "path", "status", "ms", "userId"],
+        properties: {
+          _id: id,
+          at: date,
+          method: text(10),
+          path: text(500),
+          status: { bsonType: "int", minimum: 100, maximum: 599 },
+          ms: { bsonType: "int", minimum: 0 },
+          userId: { bsonType: ["string", "null"] },
+        },
+      },
+    },
+    indexes: [],
   },
 ];

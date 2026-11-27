@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { rateLimit, type RateLimitRequestHandler } from "express-rate-limit";
 import { currentUser } from "../auth/middleware.js";
-import type { Config } from "../config.js";
+import type { Config } from "../config/config.js";
 
 const WINDOW_MS = 15 * 60_000;
 const LIMIT = 30;

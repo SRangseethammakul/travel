@@ -10,7 +10,7 @@ export async function ensureSchema(db: Db): Promise<void> {
     if (existing.has(def.name)) {
       await db.command({ collMod: def.name, validator: def.validator, ...validation });
     } else {
-      await db.createCollection(def.name, { validator: def.validator, ...validation });
+      await db.createCollection(def.name, { ...def.options, validator: def.validator, ...validation });
     }
     if (def.indexes.length > 0) {
       await db.collection(def.name).createIndexes(def.indexes.map((i) => ({ key: i.key, ...i.options })));

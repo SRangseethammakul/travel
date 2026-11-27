@@ -8,7 +8,7 @@
  */
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { afterAll, beforeAll } from "vitest";
-import type { Config } from "../config.js";
+import type { Config } from "../config/config.js";
 import { closeDb, connectDb, getDb } from "../db/client.js";
 import { ensureSchema } from "../db/schema.js";
 import { seed } from "../seed/seed.js";
@@ -28,6 +28,7 @@ export const testConfig: Config = {
   STORAGE_DRIVER: "local",
   S3_REGION: "us-east-1",
   TRUST_PROXY: 0,
+  ADMIN_USER_IDS: [],
 };
 
 /** Request header that signs in as a seed User (`act`, `mint`, `beam`, `ploy`, `n`). */

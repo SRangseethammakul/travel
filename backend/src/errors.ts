@@ -1,5 +1,6 @@
 import type { ErrorRequestHandler, RequestHandler } from "express";
 import { ZodError } from "zod";
+import { logger } from "./utils/logger.js";
 
 /** Thrown by services/middleware; rendered as `{ error: { code, message } }`. */
 export class HttpError extends Error {
@@ -20,7 +21,7 @@ function hasStatus(err: unknown): err is { status: number } {
   return typeof err === "object" && err !== null && typeof (err as { status?: unknown }).status === "number";
 }
 
-export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   if (err instanceof HttpError) {
     res.status(err.status).json({ error: { code: err.code, message: err.message } });
     return;
@@ -34,6 +35,6 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     res.status(err.status).json({ error: { code: "bad_request", message: "คำขอไม่ถูกต้อง" } });
     return;
   }
-  console.error(err);
+  logger.error(`unhandled error on ${req.method} ${req.originalUrl.split("?", 1)[0]}`, err);
   res.status(500).json({ error: { code: "internal", message: "เกิดข้อผิดพลาด" } });
 };

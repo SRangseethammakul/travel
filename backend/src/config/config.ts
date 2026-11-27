@@ -7,6 +7,8 @@ const optional = z.preprocess((v) => (v === "" ? undefined : v), z.string().min(
 const ConfigSchema = z
   .object({
   MONGODB_URI: z.string().startsWith("mongodb"),
+  /** winston level (error | warn | info | http | debug). Default: info in production, debug otherwise. Under tests logs are off unless set. */
+  LOG_LEVEL: z.enum(["error", "warn", "info", "http", "verbose", "debug", "silly"]).optional(),
   PORT: z.coerce.number().int().min(1).max(65535).default(4000),
   NODE_ENV: z.enum(["development", "test", "production"]),
   SESSION_SECRET: secret,
@@ -37,6 +39,16 @@ const ConfigSchema = z
   GOOGLE_CLIENT_SECRET: optional,
   LINE_CHANNEL_ID: optional,
   LINE_CHANNEL_SECRET: optional,
+  /** Comma-separated User ids allowed into /api/admin (docs/adr/0002). Empty or unset = nobody. */
+  ADMIN_USER_IDS: z
+    .string()
+    .optional()
+    .transform((v) =>
+      (v ?? "")
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean),
+    ),
 })
   .superRefine((c, ctx) => {
     // Browsers reach us through Next, so with 0 every client has Next's IP and one client could

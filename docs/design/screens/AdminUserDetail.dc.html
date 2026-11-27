@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>Admin · ผู้ใช้ Mint</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&amp;family=Prompt:wght@500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#0B7A6A}a:hover{color:#075E52}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; display: grid; grid-template-columns: 240px 1fr; background: #F3F5F7; color: #13222F; font-family: 'IBM Plex Sans Thai', sans-serif; overflow: hidden; position: relative">
+
+  <!-- Sidebar (shared across Admin screens) -->
+  <aside style="display: flex; flex-direction: column; gap: 4px; padding: 24px 16px; background: #FFFFFF; border-right: 1px solid #E3E8EC">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 0 8px 20px">
+      <span style="width: 32px; height: 32px; border-radius: 10px; background: #0B7A6A; color: #FFFFFF; display: grid; place-items: center; font-family: Prompt, sans-serif; font-weight: 700; font-size: 15px">P</span>
+      <span style="display: flex; flex-direction: column"><span style="font-family: Prompt, sans-serif; font-weight: 600; font-size: 16px">Plan Trip</span><span style="font-size: 12px; color: #5B6B78">ผู้ดูแลระบบ</span></span>
+    </div>
+    <nav aria-label="เมนูผู้ดูแล" style="display: flex; flex-direction: column; gap: 4px">
+      <sc-for list="{{nav}}" as="n" hint-placeholder-count="4">
+        <a href="{{n.href}}" aria-current="{{n.current}}" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 12px; text-decoration: none; font-size: 14px; font-weight: 600; background: {{n.bg}}; color: {{n.fg}}">{{n.label}}</a>
+      </sc-for>
+    </nav>
+    <div style="flex: 1"></div>
+    <a href="Trips.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; font-size: 14px; color: #3C4C59; text-decoration: none">← กลับไปที่แอป</a>
+    <div style="display: flex; align-items: center; gap: 10px; padding: 12px 8px 0; border-top: 1px solid #EEF1F4">
+      <span style="width: 32px; height: 32px; border-radius: 50%; background: #0B7A6A; color: #FFFFFF; display: grid; place-items: center; font-family: Prompt, sans-serif; font-weight: 600; font-size: 14px">A</span>
+      <span style="display: flex; flex-direction: column; min-width: 0"><span style="font-size: 13px; font-weight: 600">Act</span><span style="font-size: 12px; color: #5B6B78">act@example.com</span></span>
+    </div>
+  </aside>
+
+  <div style="display: flex; flex-direction: column; min-width: 0">
+    <header style="display: flex; align-items: center; gap: 12px; height: 72px; padding: 0 32px; border-bottom: 1px solid #E3E8EC; background: #FFFFFF">
+      <a href="AdminUsers.dc.html" style="font-size: 14px; color: #3C4C59; text-decoration: none">ผู้ใช้</a>
+      <span style="color: #A7B4BE">/</span>
+      <h1 style="margin: 0; font-family: Prompt, sans-serif; font-size: 22px; font-weight: 600">Mint</h1>
+      <span style="padding: 3px 10px; border-radius: 999px; background: #FCEBDD; color: #8A4A0C; font-size: 12px; font-weight: 600">production</span>
+      <div style="flex: 1"></div>
+      <button type="button" onClick="{{openConfirm}}" style="min-height: 44px; padding: 0 18px; border: 1px solid #F1C7C2; border-radius: 12px; background: #FFFFFF; color: #9B2C22; font-size: 14px; font-weight: 600; cursor: pointer">บังคับออกจากระบบทุกเครื่อง</button>
+    </header>
+
+    <main style="flex: 1; overflow-y: auto; padding: 24px 32px; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 20px; align-content: start">
+
+      <sc-if value="{{signedOut}}" hint-placeholder-val="{{ false }}">
+        <div role="status" style="grid-column: span 12; padding: 12px 20px; border-radius: 14px; background: #E3F2EF; color: #0B5C50; font-size: 14px; font-weight: 600">ออกจากระบบทุกเครื่องแล้ว Mint ต้องเข้าสู่ระบบใหม่</div>
+      </sc-if>
+
+      <!-- Profile -->
+      <section style="grid-column: span 4; display: flex; flex-direction: column; gap: 16px; padding: 24px; border-radius: 18px; background: #FFFFFF">
+        <div style="display: flex; align-items: center; gap: 16px">
+          <span style="width: 64px; height: 64px; border-radius: 50%; background: #2F5BB7; color: #FFFFFF; display: grid; place-items: center; font-family: Prompt, sans-serif; font-weight: 600; font-size: 26px">M</span>
+          <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-family: Prompt, sans-serif; font-size: 20px; font-weight: 600">Mint</span><span style="font-size: 14px; color: #3C4C59">mint@example.com</span></span>
+        </div>
+        <dl style="margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 10px 16px; font-size: 14px">
+          <sc-for list="{{facts}}" as="f" hint-placeholder-count="6">
+            <dt style="color: #5B6B78">{{f.k}}</dt><dd style="margin: 0; font-weight: 500">{{f.v}}</dd>
+          </sc-for>
+        </dl>
+        <p style="margin: 0; padding: 12px; border-radius: 12px; background: #F8FAFB; font-size: 13px; line-height: 1.6; color: #3C4C59">ผู้ดูแลดูได้อย่างเดียว ไม่เห็นค่าใช้จ่ายส่วนตัวและเช็คลิสต์ส่วนตัวของผู้ใช้</p>
+      </section>
+
+      <!-- Trips -->
+      <section style="grid-column: span 8; display: flex; flex-direction: column; padding: 20px 24px; border-radius: 18px; background: #FFFFFF">
+        <h2 style="margin: 0 0 8px; font-family: Prompt, sans-serif; font-size: 16px; font-weight: 600">ทริปที่อยู่ (3)</h2>
+        <sc-for list="{{trips}}" as="t" hint-placeholder-count="3">
+          <a href="AdminTrips.dc.html" style="display: grid; grid-template-columns: 8px 1fr 100px 120px 100px; gap: 16px; align-items: center; min-height: 60px; border-top: 1px solid #EEF1F4; color: #13222F; text-decoration: none; font-size: 14px">
+            <span style="height: 36px; border-radius: 4px; background: {{t.cover}}"></span>
+            <span style="display: flex; flex-direction: column"><span style="font-weight: 600">{{t.name}}</span><span style="font-size: 12px; color: #5B6B78">{{t.dates}}</span></span>
+            <span><span style="padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: {{t.roleBg}}; color: {{t.roleFg}}">{{t.role}}</span></span>
+            <span style="color: #3C4C59">{{t.members}}</span>
+            <span style="font-size: 12px; color: #5B6B78">{{t.status}}</span>
+          </a>
+        </sc-for>
+      </section>
+
+      <!-- Activity -->
+      <section style="grid-column: span 12; display: flex; flex-direction: column; padding: 20px 24px; border-radius: 18px; background: #FFFFFF">
+        <h2 style="margin: 0 0 8px; font-family: Prompt, sans-serif; font-size: 16px; font-weight: 600">ความเคลื่อนไหวล่าสุด</h2>
+        <sc-for list="{{activity}}" as="a" hint-placeholder-count="5">
+          <div style="display: grid; grid-template-columns: 140px 200px 1fr; gap: 16px; align-items: center; min-height: 48px; border-top: 1px solid #EEF1F4; font-size: 14px">
+            <span style="font-size: 13px; color: #5B6B78">{{a.when}}</span>
+            <span style="color: #3C4C59">{{a.trip}}</span>
+            <span>{{a.text}}</span>
+          </div>
+        </sc-for>
+      </section>
+    </main>
+  </div>
+
+  <!-- ConfirmDialog -->
+  <sc-if value="{{confirming}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; display: grid; place-items: center; background: rgba(19, 34, 47, 0.45)">
+      <div role="alertdialog" aria-labelledby="cfm-t" style="width: 420px; display: flex; flex-direction: column; gap: 12px; padding: 24px; border-radius: 20px; background: #FFFFFF; box-shadow: 0 12px 32px rgba(19, 34, 47, 0.2)">
+        <h2 id="cfm-t" style="margin: 0; font-family: Prompt, sans-serif; font-size: 18px; font-weight: 600">ออกจากระบบ Mint ทุกเครื่อง?</h2>
+        <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #3C4C59">ทุก session ของ Mint จะหมดอายุทันที ข้อมูลทริปไม่หาย Mint เข้าสู่ระบบใหม่ได้ตามปกติ</p>
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px">
+          <button type="button" onClick="{{closeConfirm}}" style="min-height: 44px; padding: 0 18px; border: 1px solid #D5DDE3; border-radius: 12px; background: #FFFFFF; color: #13222F; font-size: 14px; font-weight: 600; cursor: pointer">ยกเลิก</button>
+          <button type="button" onClick="{{doSignOut}}" style="min-height: 44px; padding: 0 18px; border: 0; border-radius: 12px; background: #B23A2E; color: #FFFFFF; font-size: 14px; font-weight: 600; cursor: pointer">ออกจากระบบทุกเครื่อง</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { confirming: false, signedOut: false };
+  }
+  renderVals() {
+    var self = this;
+    var st = this.state;
+    var nav = [['ภาพรวม', 'AdminOverview.dc.html'], ['ผู้ใช้', 'AdminUsers.dc.html', true], ['ทริป', 'AdminTrips.dc.html'], ['ระบบ', 'AdminSystem.dc.html']].map(function (n) {
+      return { label: n[0], href: n[1], current: n[2] ? 'page' : 'false', bg: n[2] ? '#E3F2EF' : 'transparent', fg: n[2] ? '#0B5C50' : '#3C4C59' };
+    });
+    var facts = [
+      { k: 'เข้าด้วย', v: 'Google' },
+      { k: 'สมัครเมื่อ', v: '2 ม.ค. 2569' },
+      { k: 'ใช้ล่าสุด', v: st.signedOut ? '—' : 'วันนี้ 08:40' },
+      { k: 'session', v: st.signedOut ? 'version 4 (เพิ่งรีเซ็ต)' : 'version 3' },
+      { k: 'ทริปที่เป็นเจ้าของ', v: '1' },
+      { k: 'user id', v: '6650…a91f' }
+    ];
+    var role = function (r) {
+      var m = { owner: ['เจ้าของ', '#E3F2EF', '#0B5C50'], editor: ['แก้ไขได้', '#E6EDFA', '#23468F'], viewer: ['ดูอย่างเดียว', '#EEF1F4', '#3C4C59'] }[r];
+      return { role: m[0], roleBg: m[1], roleFg: m[2] };
+    };
+    var trips = [
+      Object.assign({ name: 'เชียงใหม่ปีใหม่', dates: '29 ธ.ค. 2569 – 2 ม.ค. 2570', members: '6 คน', status: 'กำลังจะไป', cover: '#0B7A6A' }, role('owner')),
+      Object.assign({ name: 'โตเกียวหน้าหนาว', dates: '12 – 15 ธ.ค. 2569', members: '4 คน', status: 'กำลังจะไป', cover: '#13222F' }, role('editor')),
+      Object.assign({ name: 'เขาใหญ่สุดสัปดาห์', dates: 'มิ.ย. 2569', members: '3 คน', status: 'ผ่านมาแล้ว', cover: '#B2540F' }, role('viewer'))
+    ];
+    var activity = [
+      { when: 'วันนี้ 08:40', trip: 'โตเกียวหน้าหนาว', text: 'เพิ่มค่าใช้จ่าย “ราเมน Ichiran” ฿1,240' },
+      { when: 'วันนี้ 08:31', trip: 'โตเกียวหน้าหนาว', text: 'เพิ่มสถานที่ “Shibuya Sky”' },
+      { when: 'เมื่อวาน 21:05', trip: 'เชียงใหม่ปีใหม่', text: 'ส่งลิงก์ชวนแบบ แก้ไขได้' },
+      { when: 'เมื่อวาน 20:47', trip: 'เชียงใหม่ปีใหม่', text: 'สร้างทริป' },
+      { when: '3 วันที่แล้ว', trip: 'เขาใหญ่สุดสัปดาห์', text: 'บันทึกการโอนคืนให้ Bank ฿320' }
+    ];
+    return Object.assign({
+      nav: nav, facts: facts, trips: trips, activity: activity,
+      confirming: st.confirming, signedOut: st.signedOut,
+      openConfirm: function () { self.setState({ confirming: true }); },
+      closeConfirm: function () { self.setState({ confirming: false }); },
+      doSignOut: function () { self.setState({ confirming: false, signedOut: true }); }
+    });
+  }
+}
+</script>
+</body>
+</html>
